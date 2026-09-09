@@ -1,7 +1,9 @@
 import React, { useState } from "react";
-import { Outlet, NavLink, useLocation } from "react-router-dom";
-import { Home, Users, BookOpen, PlayCircle, Gamepad2, Sparkles, Bell, User } from "lucide-react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { Home, Users, BookOpen, PlayCircle, Gamepad2, Sparkles, Bell, User, ChevronLeft, Settings } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
+import AnimatedOutlet from "@/components/AnimatedOutlet";
+import SettingsModal from "@/components/SettingsModal";
 
 const NAV = [
   { to: "/", label: "Home", icon: Home, end: true },
@@ -12,12 +14,17 @@ const NAV = [
   { to: "/kids", label: "Kids", icon: Sparkles },
 ];
 
+const ROOT_TABS = NAV.map((n) => n.to);
+
 export default function Layout() {
   const [lang, setLang] = useState("fr");
+  const [showSettings, setShowSettings] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const showBack = !ROOT_TABS.includes(location.pathname);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Desktop floating glass rail */}
       <header className="hidden md:flex sticky top-0 z-40 px-6 pt-5">
         <div className="mx-auto w-full max-w-6xl flex items-center justify-between rounded-full border border-border bg-background/70 backdrop-blur-xl px-6 py-3 glow-soft">
@@ -58,7 +65,7 @@ export default function Layout() {
             <button className="h-9 w-9 grid place-items-center rounded-full border border-border hover:bg-muted transition">
               <Bell className="h-4 w-4" />
             </button>
-            <button className="h-9 w-9 grid place-items-center rounded-full brand-gradient text-white shadow-sm">
+            <button onClick={() => setShowSettings(true)} className="h-9 w-9 grid place-items-center rounded-full brand-gradient text-white shadow-sm">
               <User className="h-4 w-4" />
             </button>
           </div>
@@ -66,13 +73,28 @@ export default function Layout() {
       </header>
 
       {/* Mobile top bar */}
-      <header className="md:hidden sticky top-0 z-40 px-4 pt-4 bg-background/80 backdrop-blur-xl">
+      <header
+        className="md:hidden sticky top-0 z-40 px-4 bg-background/80 backdrop-blur-xl"
+        style={{ paddingTop: "max(1rem, env(safe-area-inset-top))" }}
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full brand-gradient grid place-items-center text-white font-display font-extrabold text-sm">C</div>
-            <span className="font-display font-extrabold tracking-tight">
-              <span className="brand-gradient-text">CHAY</span>
-            </span>
+            {showBack ? (
+              <button
+                onClick={() => navigate(-1)}
+                className="h-9 w-9 grid place-items-center rounded-full border border-border hover:bg-muted transition"
+                aria-label="Retour"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+            ) : (
+              <>
+                <div className="h-8 w-8 rounded-full brand-gradient grid place-items-center text-white font-display font-extrabold text-sm">C</div>
+                <span className="font-display font-extrabold tracking-tight">
+                  <span className="brand-gradient-text">CHAY</span>
+                </span>
+              </>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -82,19 +104,22 @@ export default function Layout() {
               {lang === "fr" ? "FR" : "EN"}
             </button>
             <ThemeToggle />
-            <button className="h-9 w-9 grid place-items-center rounded-full border border-border">
-              <Bell className="h-4 w-4" />
+            <button
+              onClick={() => setShowSettings(true)}
+              className="h-9 w-9 grid place-items-center rounded-full border border-border"
+            >
+              <Settings className="h-4 w-4" />
             </button>
           </div>
         </div>
       </header>
 
       <main className="pb-28 md:pb-12">
-        <Outlet />
+        <AnimatedOutlet />
       </main>
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 px-4 pb-4">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 px-4" style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
         <div className="mx-auto max-w-md flex items-center justify-around rounded-full border border-border bg-background/85 backdrop-blur-xl px-2 py-2 glow-soft">
           {NAV.map((item) => {
             const Icon = item.icon;
@@ -118,6 +143,8 @@ export default function Layout() {
           })}
         </div>
       </nav>
+
+      <SettingsModal open={showSettings} onOpenChange={setShowSettings} />
     </div>
   );
 }

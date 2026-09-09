@@ -120,6 +120,14 @@ export const AuthProvider = ({ children }) => {
     base44.auth.redirectToLogin(window.location.href);
   };
 
+  const deleteAccount = async () => {
+    if (!user?.id) throw new Error('Aucun utilisateur connecté');
+    await base44.entities.User.delete(user.id);
+    setUser(null);
+    setIsAuthenticated(false);
+    base44.auth.logout(window.location.origin + '/login');
+  };
+
   return (
     <AuthContext.Provider value={{ 
       user, 
@@ -131,6 +139,7 @@ export const AuthProvider = ({ children }) => {
       authChecked,
       logout,
       navigateToLogin,
+      deleteAccount,
       checkUserAuth,
       checkAppState
     }}>

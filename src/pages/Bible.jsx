@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { BookOpen, ExternalLink, Search } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import DrawerSelect from "@/components/DrawerSelect";
 
 const LSG_BOOKS = [
   { n: "Genèse", u: "01.Genese.html" }, { n: "Exode", u: "02.Exode.html" }, { n: "Lévitique", u: "03.Levitique.html" },
@@ -31,6 +33,8 @@ const BASE = "https://www.info-bible.org/lsg/";
 export default function Bible() {
   const [book, setBook] = useState("43.Jean.html");
   const [query, setQuery] = useState("");
+  const isMobile = useIsMobile();
+  const bookOptions = LSG_BOOKS.map((b) => ({ value: b.u, label: b.n }));
 
   const filtered = query
     ? LSG_BOOKS.filter((b) => b.n.toLowerCase().includes(query.toLowerCase()))
@@ -45,8 +49,25 @@ export default function Bible() {
         <p className="mt-3 text-lg text-foreground/60">Version Louis Segond 1910 — en français.</p>
       </header>
 
+      {/* Mobile book picker */}
+      {isMobile && (
+        <div className="mb-4">
+          <DrawerSelect
+            value={book}
+            options={bookOptions}
+            onChange={setBook}
+            placeholder="Choisir un livre"
+            title="Livres de la Bible"
+            description="Version Louis Segond 1910"
+            searchable
+            triggerClassName="w-full justify-between"
+          />
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Book list */}
+        {/* Desktop book list */}
+        {!isMobile && (
         <aside className="lg:col-span-1 rounded-[1.5rem] border border-border bg-card p-5 lg:max-h-[70vh] lg:overflow-y-auto">
           <div className="flex items-center gap-2 rounded-full border border-border bg-background px-3 py-2 mb-4">
             <Search className="h-4 w-4 text-foreground/40" />
@@ -71,6 +92,7 @@ export default function Bible() {
             ))}
           </div>
         </aside>
+        )}
 
         {/* Reader */}
         <div className="lg:col-span-3 rounded-[1.5rem] border border-border bg-card overflow-hidden">
@@ -91,7 +113,7 @@ export default function Bible() {
             key={book}
             src={BASE + book}
             title={`Bible LSG — ${currentName}`}
-            className="w-full h-[70vh] bg-white"
+            className="w-full h-[60vh] md:h-[70vh] bg-white"
             style={{ border: "none" }}
           />
         </div>

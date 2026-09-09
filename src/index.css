@@ -112,6 +112,15 @@
 
   body {
     @apply bg-background text-foreground font-body antialiased;
+    overscroll-behavior: none;
+    -webkit-user-select: none;
+    user-select: none;
+    overflow-x: hidden;
+  }
+
+  input, textarea, select, [contenteditable], [role="textbox"] {
+    -webkit-user-select: auto;
+    user-select: auto;
   }
 }
 
