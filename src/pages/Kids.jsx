@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Sparkles, BookOpen, Gamepad2, Film, Palette } from "lucide-react";
+import { Baby, BookOpen, Gamepad2, Film, Palette } from "lucide-react";
 
 const ZONES = [
   { id: "learn", label: "Apprendre la Bible", desc: "Leçons & quiz", icon: BookOpen, tone: "from-[#4A6CFE] to-[#8A56E2]" },
@@ -33,7 +33,7 @@ export default function Kids() {
       </div>
 
       <div className="mt-8 rounded-[2rem] brand-gradient p-8 md:p-10 text-white flex items-center gap-5 glow-primary">
-        <Sparkles className="h-12 w-12 shrink-0" />
+        <Baby className="h-12 w-12 shrink-0" />
         <div>
           <div className="font-display font-bold text-xl">L'histoire du jour : L'arche de Noé</div>
           <p className="text-white/80 text-sm mt-1">Touchez pour commencer l'aventure — gagnez des points en chemin !</p>

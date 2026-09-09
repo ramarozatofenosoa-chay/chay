@@ -255,40 +255,40 @@ export default function Bible() {
   return (
     <main className="mx-auto max-w-5xl px-4 py-6 md:px-8 md:py-10">
       <header className="mb-6 flex items-center gap-3">
-        <div className="rounded-2xl bg-orange-100 p-3">
-          <BookOpen className="h-7 w-7 text-orange-600" />
+        <div className="rounded-2xl bg-primary/10 p-3">
+          <BookOpen className="h-7 w-7 text-primary" />
         </div>
 
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">
+          <h1 className="text-3xl font-bold text-foreground">
             La Bible
           </h1>
 
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-muted-foreground">
             Louis Segond 1910
           </p>
         </div>
       </header>
 
-      <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 bg-slate-50 px-4 py-4 md:px-6">
+      <section className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
+        <div className="border-b border-border bg-muted/50 px-4 py-4 md:px-6">
           {booksStatus === "loading" && (
-            <div className="flex items-center gap-3 text-sm text-slate-500">
-              <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
+            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
               Chargement des livres…
             </div>
           )}
 
           {booksStatus === "error" && (
             <div className="flex items-center justify-between gap-3">
-              <p className="text-sm text-red-600">
+              <p className="text-sm text-destructive">
                 {errorMessage}
               </p>
 
               <button
                 type="button"
                 onClick={retry}
-                className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-3 py-2 text-sm font-bold text-white"
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-3 py-2 text-sm font-bold text-white"
               >
                 <RefreshCw className="h-4 w-4" />
                 Réessayer
@@ -301,7 +301,7 @@ export default function Bible() {
               <div>
                 <label
                   htmlFor="book-select"
-                  className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500"
+                  className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted-foreground"
                 >
                   Livre
                 </label>
@@ -310,7 +310,7 @@ export default function Bible() {
                   id="book-select"
                   value={selectedBookId}
                   onChange={handleBookChange}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 font-semibold text-slate-800 outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+                  className="w-full rounded-xl border border-border bg-card px-3 py-3 font-semibold text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 >
                   {books.map((book) => (
                     <option key={book.id} value={book.id}>
@@ -323,7 +323,7 @@ export default function Bible() {
               <div>
                 <label
                   htmlFor="chapter-select"
-                  className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500"
+                  className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted-foreground"
                 >
                   Chapitre
                 </label>
@@ -332,7 +332,7 @@ export default function Bible() {
                   id="chapter-select"
                   value={selectedChapter}
                   onChange={handleChapterChange}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 font-semibold text-slate-800 outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+                  className="w-full rounded-xl border border-border bg-card px-3 py-3 font-semibold text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 >
                   {chapterNumbers.map((chapter) => (
                     <option key={chapter} value={chapter}>
@@ -346,20 +346,20 @@ export default function Bible() {
         </div>
 
         {booksStatus === "ready" && (
-          <div className="border-b border-slate-200 px-5 py-4">
+          <div className="border-b border-border px-5 py-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-bold text-slate-900">
+                <h2 className="text-lg font-bold text-foreground">
                   {selectedBook?.name} {selectedChapter}
                 </h2>
 
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-muted-foreground">
                   Louis Segond 1910
                 </p>
               </div>
 
               {chapterStatus === "loading" && (
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Chargement
                 </span>
               )}
@@ -369,8 +369,8 @@ export default function Bible() {
 
         <div className="min-h-[52vh] px-5 py-7 md:px-10 md:py-9">
           {chapterStatus === "loading" && (
-            <div className="flex min-h-[42vh] flex-col items-center justify-center gap-3 text-slate-500">
-              <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+            <div className="flex min-h-[42vh] flex-col items-center justify-center gap-3 text-muted-foreground">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
 
               <p className="text-sm font-medium">
                 Chargement du chapitre…
@@ -380,14 +380,14 @@ export default function Bible() {
 
           {chapterStatus === "error" && (
             <div className="flex min-h-[42vh] flex-col items-center justify-center gap-4 text-center">
-              <AlertTriangle className="h-9 w-9 text-amber-500" />
+              <AlertTriangle className="h-9 w-9 text-primary" />
 
               <div>
-                <p className="font-bold text-slate-700">
+                <p className="font-bold text-foreground/80">
                   Impossible de charger ce chapitre.
                 </p>
 
-                <p className="mt-2 max-w-md text-sm text-slate-500">
+                <p className="mt-2 max-w-md text-sm text-muted-foreground">
                   {errorMessage}
                 </p>
               </div>
@@ -395,7 +395,7 @@ export default function Bible() {
               <button
                 type="button"
                 onClick={retry}
-                className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 font-bold text-white"
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 font-bold text-white"
               >
                 <RefreshCw className="h-4 w-4" />
                 Réessayer
@@ -405,10 +405,10 @@ export default function Bible() {
 
           {chapterStatus === "ready" && (
             <article className="mx-auto max-w-3xl">
-              <div className="space-y-4 text-[1.04rem] leading-8 text-slate-700">
+              <div className="space-y-4 text-[1.04rem] leading-8 text-foreground/80">
                 {verses.map((verse) => (
                   <p key={verse.number}>
-                    <sup className="mr-1.5 text-xs font-bold text-orange-600">
+                    <sup className="mr-1.5 text-xs font-bold text-primary">
                       {verse.number}
                     </sup>
 
@@ -417,12 +417,12 @@ export default function Bible() {
                 ))}
               </div>
 
-              <div className="mt-10 flex items-center justify-between border-t border-slate-200 pt-5">
+              <div className="mt-10 flex items-center justify-between border-t border-border pt-5">
                 <button
                   type="button"
                   onClick={goToPreviousChapter}
                   disabled={isFirstChapter}
-                  className="inline-flex items-center gap-1 rounded-xl px-2 py-2 text-sm font-bold text-orange-600 hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-30"
+                  className="inline-flex items-center gap-1 rounded-xl px-2 py-2 text-sm font-bold text-primary hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-30"
                 >
                   <ChevronLeft className="h-5 w-5" />
                   Précédent
@@ -432,7 +432,7 @@ export default function Bible() {
                   type="button"
                   onClick={goToNextChapter}
                   disabled={isLastChapter}
-                  className="inline-flex items-center gap-1 rounded-xl px-2 py-2 text-sm font-bold text-orange-600 hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-30"
+                  className="inline-flex items-center gap-1 rounded-xl px-2 py-2 text-sm font-bold text-primary hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-30"
                 >
                   Suivant
                   <ChevronRight className="h-5 w-5" />

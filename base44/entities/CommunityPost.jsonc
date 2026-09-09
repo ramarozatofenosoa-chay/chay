@@ -1,0 +1,52 @@
+{
+  "name": "CommunityPost",
+  "type": "object",
+  "properties": {
+    "text": {
+      "type": "string"
+    },
+    "image_url": {
+      "type": "string"
+    },
+    "author_name": {
+      "type": "string"
+    },
+    "likes": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "text"
+  ],
+  "rls": {
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "read": null,
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

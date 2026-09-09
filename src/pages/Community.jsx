@@ -1,81 +1,186 @@
-import React, { useState } from "react";
-import { Users, Heart, MessageCircle, Share2, ImagePlus, Send, Search } from "lucide-react";
-
-const SAMPLE_POSTS = [
-  { id: 1, author: "Pastor Jean", time: "2h", text: "Blessed Sunday service! 🙏 Remember: 'Faith is the assurance of things hoped for.'", likes: 42, comments: 7 },
-  { id: 2, author: "Marie R.", time: "5h", text: "Grateful for this community. Today's worship moved me to tears. 🎶", likes: 28, comments: 4 },
-  { id: 3, author: "David A.", time: "1d", text: "Prayer request: please pray for my mother's health this week.", likes: 67, comments: 12 },
-];
+import React, { useEffect, useState } from "react";
+import { base44 } from "@/api/base44Client";
+import { ImagePlus, Send, Loader2, X } from "lucide-react";
+import { Image } from "@/components/ui/image";
+import { useToast } from "@/components/ui/use-toast";
+import PostCard from "@/components/community/PostCard";
 
 export default function Community() {
-  const [posts, setPosts] = useState(SAMPLE_POSTS);
+  const { toast } = useToast();
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState("");
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [publishing, setPublishing] = useState(false);
+  const [user, setUser] = useState(null);
+  const [likedPosts, setLikedPosts] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("chay_liked") || "[]");
+    } catch {
+      return [];
+    }
+  });
 
-  const publish = () => {
-    if (!draft.trim()) return;
-    setPosts([{ id: Date.now(), author: "You", time: "now", text: draft.trim(), likes: 0, comments: 0 }, ...posts]);
-    setDraft("");
+  const loadPosts = async () => {
+    const p = await base44.entities.CommunityPost
+      .list("-created_date", 50)
+      .catch(() => []);
+    setPosts(Array.isArray(p) ? p : []);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    (async () => {
+      const me = await base44.auth.me().catch(() => null);
+      setUser(me);
+      await loadPosts();
+    })();
+  }, []);
+
+  const handleImagePick = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const publish = async () => {
+    if (!draft.trim() && !imageFile) return;
+    setPublishing(true);
+    try {
+      let image_url = null;
+      if (imageFile) {
+        const res = await base44.integrations.Core.UploadFile({ file: imageFile });
+        image_url = res.file_url;
+      }
+      const name =
+        user?.full_name ||
+        [user?.first_name, user?.last_name].filter(Boolean).join(" ") ||
+        "Membre";
+      await base44.entities.CommunityPost.create({
+        text: draft.trim(),
+        image_url,
+        author_name: name,
+        likes: 0,
+      });
+      setDraft("");
+      setImageFile(null);
+      setImagePreview(null);
+      await loadPosts();
+      toast({ title: "Publication partagée" });
+    } catch (e) {
+      toast({
+        title: "Erreur",
+        description: e.message,
+        variant: "destructive",
+      });
+    }
+    setPublishing(false);
+  };
+
+  const toggleLike = async (post) => {
+    const already = likedPosts.includes(post.id);
+    const newLiked = already
+      ? likedPosts.filter((id) => id !== post.id)
+      : [...likedPosts, post.id];
+    setLikedPosts(newLiked);
+    localStorage.setItem("chay_liked", JSON.stringify(newLiked));
+    try {
+      await base44.entities.CommunityPost.update(post.id, {
+        likes: Math.max(0, (post.likes || 0) + (already ? -1 : 1)),
+      });
+      await loadPosts();
+    } catch {
+      /* ignore */
+    }
   };
 
   return (
     <div className="mx-auto max-w-3xl px-6 md:px-8 py-8 md:py-12">
       <header className="mb-8">
-        <h1 className="display-fluid"><span className="brand-gradient-text">Community</span></h1>
-        <p className="mt-3 text-lg text-foreground/60">Share, encourage, and grow together.</p>
+        <h1 className="display-fluid">
+          <span className="brand-gradient-text">Communauté</span>
+        </h1>
+        <p className="mt-3 text-lg text-foreground/60">
+          Partagez, encouragez et grandissez ensemble.
+        </p>
       </header>
-
-      {/* Stories row */}
-      <div className="flex items-center gap-3 overflow-x-auto no-scrollbar pb-4 mb-6">
-        <div className="flex flex-col items-center gap-1.5 shrink-0">
-          <div className="h-16 w-16 rounded-full border-2 border-dashed border-primary grid place-items-center text-primary"><ImagePlus className="h-6 w-6" /></div>
-          <span className="text-xs font-semibold">Add</span>
-        </div>
-        {["Jean", "Marie", "David", "Sarah", "Paul"].map((n) => (
-          <div key={n} className="flex flex-col items-center gap-1.5 shrink-0">
-            <div className="h-16 w-16 rounded-full brand-gradient p-0.5"><div className="h-full w-full rounded-full bg-card grid place-items-center font-display font-bold text-lg">{n[0]}</div></div>
-            <span className="text-xs font-semibold">{n}</span>
-          </div>
-        ))}
-      </div>
 
       {/* Composer */}
       <div className="rounded-[1.5rem] border border-border bg-card p-5 mb-6">
         <textarea
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="Share something with the church…"
+          placeholder="Partagez quelque chose avec l'église…"
           rows={3}
           className="w-full bg-transparent outline-none resize-none text-foreground/85 placeholder:text-foreground/40 font-medium"
         />
+        {imagePreview && (
+          <div className="relative mt-3 rounded-2xl overflow-hidden border border-border">
+            <Image
+              src={imagePreview}
+              alt=""
+              fittingType="fill"
+              className="w-full max-h-64 object-cover"
+            />
+            <button
+              onClick={() => {
+                setImageFile(null);
+                setImagePreview(null);
+              }}
+              className="absolute top-2 right-2 h-8 w-8 rounded-full bg-black/50 text-white grid place-items-center"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
         <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
-          <button className="inline-flex items-center gap-2 text-sm font-semibold text-foreground/60 hover:text-primary transition">
+          <label className="inline-flex items-center gap-2 text-sm font-semibold text-foreground/60 hover:text-primary transition cursor-pointer">
             <ImagePlus className="h-4 w-4" /> Photo
-          </button>
-          <button onClick={publish} className="inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-5 py-2.5 text-sm font-bold hover:scale-105 transition disabled:opacity-50" disabled={!draft.trim()}>
-            <Send className="h-4 w-4" /> Post
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImagePick}
+              className="hidden"
+            />
+          </label>
+          <button
+            onClick={publish}
+            disabled={(!draft.trim() && !imageFile) || publishing}
+            className="inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-5 py-2.5 text-sm font-bold hover:scale-105 transition disabled:opacity-50"
+          >
+            {publishing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}{" "}
+            Publier
           </button>
         </div>
       </div>
 
       {/* Feed */}
       <div className="space-y-5">
-        {posts.map((p) => (
-          <div key={p.id} className="rounded-[1.5rem] border border-border bg-card p-5 md:p-6">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="h-11 w-11 rounded-full brand-gradient grid place-items-center text-white font-display font-bold">{p.author[0]}</div>
-              <div>
-                <div className="font-bold">{p.author}</div>
-                <div className="text-xs text-foreground/50">{p.time} ago</div>
-              </div>
-            </div>
-            <p className="text-foreground/85 leading-relaxed">{p.text}</p>
-            <div className="flex items-center gap-5 mt-4 pt-4 border-t border-border text-sm font-semibold text-foreground/55">
-              <button className="inline-flex items-center gap-1.5 hover:text-primary transition"><Heart className="h-4 w-4" /> {p.likes}</button>
-              <button className="inline-flex items-center gap-1.5 hover:text-primary transition"><MessageCircle className="h-4 w-4" /> {p.comments}</button>
-              <button className="inline-flex items-center gap-1.5 hover:text-primary transition ml-auto"><Share2 className="h-4 w-4" /> Share</button>
-            </div>
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-        ))}
+        ) : posts.length ? (
+          posts.map((p) => (
+            <PostCard
+              key={p.id}
+              post={p}
+              liked={likedPosts.includes(p.id)}
+              onToggleLike={toggleLike}
+              currentUser={user}
+            />
+          ))
+        ) : (
+          <p className="text-center text-foreground/50 py-12">
+            Aucune publication pour le moment. Soyez le premier à partager !
+          </p>
+        )}
       </div>
     </div>
   );

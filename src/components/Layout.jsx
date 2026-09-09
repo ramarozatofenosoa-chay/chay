@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { Home, Users, BookOpen, PlayCircle, Gamepad2, Sparkles, Bell, User, ChevronLeft, Settings } from "lucide-react";
+import { Home, Users, BookOpen, PlayCircle, Gamepad2, Baby, Bell, User, ChevronLeft, Settings } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import AnimatedOutlet from "@/components/AnimatedOutlet";
 import SettingsModal from "@/components/SettingsModal";
@@ -11,13 +11,12 @@ const NAV = [
   { to: "/bible", label: "Bible", icon: BookOpen },
   { to: "/media", label: "Media", icon: PlayCircle },
   { to: "/games", label: "Games", icon: Gamepad2 },
-  { to: "/kids", label: "Kids", icon: Sparkles },
+  { to: "/kids", label: "Kids", icon: Baby },
 ];
 
 const ROOT_TABS = NAV.map((n) => n.to);
 
 export default function Layout() {
-  const [lang, setLang] = useState("fr");
   const [showSettings, setShowSettings] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -55,12 +54,6 @@ export default function Layout() {
           </nav>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setLang((l) => (l === "fr" ? "en" : "fr"))}
-              className="px-3 py-1.5 rounded-full border border-border text-xs font-bold uppercase tracking-wide hover:bg-muted transition"
-            >
-              {lang === "fr" ? "FR" : "EN"}
-            </button>
             <ThemeToggle />
             <button className="h-9 w-9 grid place-items-center rounded-full border border-border hover:bg-muted transition">
               <Bell className="h-4 w-4" />
@@ -97,12 +90,6 @@ export default function Layout() {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setLang((l) => (l === "fr" ? "en" : "fr"))}
-              className="px-3 py-1.5 rounded-full border border-border text-xs font-bold uppercase"
-            >
-              {lang === "fr" ? "FR" : "EN"}
-            </button>
             <ThemeToggle />
             <button
               onClick={() => setShowSettings(true)}

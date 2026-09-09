@@ -107,7 +107,7 @@ export default function Media() {
               </div>
               <div className="font-bold text-sm line-clamp-1">{t.title}</div>
               <div className="text-xs text-foreground/55">{t.artist}</div>
-              {t.audio_url && playing === t.id && <audio src={t.audio_url} autoPlay controls className="w-full mt-2 h-8" />}
+              {t.audio_url && playing === t.id && <audio src={t.audio_url} autoPlay controls controlsList="nodownload" className="w-full mt-2 h-8" />}
             </div>
           )) : <p className="col-span-full text-foreground/50">Aucune musique importée pour le moment.</p>}
         </div>
@@ -125,7 +125,7 @@ export default function Media() {
               <div className="p-5">
                 <div className="font-display font-bold text-lg leading-snug line-clamp-2">{s.title}</div>
                 <div className="mt-1 text-sm text-foreground/55 font-medium">{s.speaker} · {s.category || "Prédication"}</div>
-                {s.audio_url ? <audio src={s.audio_url} controls className="w-full mt-3 h-9" /> : (
+                {s.audio_url ? <audio src={s.audio_url} controls controlsList="nodownload" className="w-full mt-3 h-9" /> : (
                   <div className="mt-3 h-9 rounded-full bg-muted grid place-items-center text-xs font-semibold text-foreground/40">Aucun fichier audio</div>
                 )}
               </div>
@@ -140,7 +140,7 @@ export default function Media() {
            videos.length ? videos.map((v) => (
             <div key={v.id} className="group rounded-[1.5rem] border border-border bg-card overflow-hidden hover:-translate-y-1 hover:shadow-lg transition-all">
               {v.video_url ? (
-                <video src={v.video_url} controls className="w-full h-44 bg-black object-cover" poster={v.cover_url} />
+                <video src={v.video_url} controls controlsList="nodownload" disablePictureInPicture onContextMenu={(e) => e.preventDefault()} className="w-full h-44 bg-black object-cover" poster={v.cover_url} />
               ) : (
                 <div className="h-44 brand-gradient grid place-items-center"><Film className="h-12 w-12 text-white/90" /></div>
               )}
