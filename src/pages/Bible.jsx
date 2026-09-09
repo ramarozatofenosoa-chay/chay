@@ -263,4 +263,4 @@ export default function Bible() {
       </div>
     </div>
   );
-}
+} 
