@@ -1,119 +1,99 @@
-import React, { useEffect, useState } from "react";
-import { base44 } from "@/api/base44Client";
-import { BookOpen, Headphones, Search, Bookmark, Highlighter, ChevronRight } from "lucide-react";
+import React, { useState } from "react";
+import { BookOpen, ExternalLink, Search } from "lucide-react";
 
-const BOOKS = [
-  "Genesis", "Exodus", "Psalms", "Proverbs", "Isaiah", "Matthew", "Mark", "Luke", "John", "Acts", "Romans", "Revelation",
+const LSG_BOOKS = [
+  { n: "Genèse", u: "01.Genese.html" }, { n: "Exode", u: "02.Exode.html" }, { n: "Lévitique", u: "03.Levitique.html" },
+  { n: "Nombres", u: "04.Nombres.html" }, { n: "Deutéronome", u: "05.Deuteronome.html" }, { n: "Josué", u: "06.Josue.html" },
+  { n: "Juges", u: "07.Juges.html" }, { n: "Ruth", u: "08.Ruth.html" }, { n: "1 Samuel", u: "09.1Samuel.html" },
+  { n: "2 Samuel", u: "10.2Samuel.html" }, { n: "1 Rois", u: "11.1Rois.html" }, { n: "2 Rois", u: "12.2Rois.html" },
+  { n: "1 Chroniques", u: "13.1Chroniques.html" }, { n: "2 Chroniques", u: "14.2Chroniques.html" }, { n: "Esdras", u: "15.Esdras.html" },
+  { n: "Néhémie", u: "16.Nehemie.html" }, { n: "Esther", u: "17.Esther.html" }, { n: "Job", u: "18.Job.html" },
+  { n: "Psaumes", u: "19.Psaumes.html" }, { n: "Proverbes", u: "20.Proverbes.html" }, { n: "Ecclésiaste", u: "21.Ecclesiaste.html" },
+  { n: "Cantique", u: "22.Cantique.html" }, { n: "Esaïe", u: "23.Esaie.html" }, { n: "Jérémie", u: "24.Jeremie.html" },
+  { n: "Lamentations", u: "25.Lamentations.html" }, { n: "Ezéchiel", u: "26.Ezechiel.html" }, { n: "Daniel", u: "27.Daniel.html" },
+  { n: "Osée", u: "28.Osee.html" }, { n: "Joël", u: "29.Joel.html" }, { n: "Amos", u: "30.Amos.html" },
+  { n: "Abdias", u: "31.Abdias.html" }, { n: "Jonas", u: "32.Jonas.html" }, { n: "Michée", u: "33.Michee.html" },
+  { n: "Nahum", u: "34.Nahum.html" }, { n: "Habacuc", u: "35.Habacuc.html" }, { n: "Sophonie", u: "36.Sophonie.html" },
+  { n: "Aggée", u: "37.Aggee.html" }, { n: "Zacharie", u: "38.Zacharie.html" }, { n: "Malachie", u: "39.Malachie.html" },
+  { n: "Matthieu", u: "40.Matthieu.html" }, { n: "Marc", u: "41.Marc.html" }, { n: "Luc", u: "42.Luc.html" },
+  { n: "Jean", u: "43.Jean.html" }, { n: "Actes", u: "44.Actes.html" }, { n: "Romains", u: "45.Romains.html" },
+  { n: "1 Corinthiens", u: "46.1Corinthiens.html" }, { n: "2 Corinthiens", u: "47.2Corinthiens.html" }, { n: "Galates", u: "48.Galates.html" },
+  { n: "Ephésiens", u: "49.Ephesiens.html" }, { n: "Philippiens", u: "50.Philippiens.html" }, { n: "Colossiens", u: "51.Colossiens.html" },
+  { n: "1 Thessaloniciens", u: "52.1Thessaloniciens.html" }, { n: "2 Thessaloniciens", u: "53.2Thessaloniciens.html" }, { n: "1 Timothée", u: "54.1Timothee.html" },
+  { n: "2 Timothée", u: "55.2Timothee.html" }, { n: "Tite", u: "56.Tite.html" }, { n: "Philémon", u: "57.Philemon.html" },
+  { n: "Hébreux", u: "58.Hebreux.html" }, { n: "Jacques", u: "59.Jacques.html" }, { n: "1 Pierre", u: "60.1Pierre.html" },
+  { n: "2 Pierre", u: "61.2Pierre.html" }, { n: "1 Jean", u: "62.1Jean.html" }, { n: "2 Jean", u: "63.2Jean.html" },
+  { n: "3 Jean", u: "64.3Jean.html" }, { n: "Jude", u: "65.Jude.html" }, { n: "Apocalypse", u: "66.Apocalypse.html" },
 ];
 
-export default function Bible() {
-  const [devotionals, setDevotionals] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [activeBook, setActiveBook] = useState("John");
-  const [activeChapter, setActiveChapter] = useState(3);
-  const [mode, setMode] = useState("read"); // read | audio
+const BASE = "https://www.info-bible.org/lsg/";
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const d = await base44.entities.Devotional.list("-reading_date", 5);
-        setDevotionals(Array.isArray(d) ? d : []);
-      } catch { /* ignore */ }
-      setLoading(false);
-    })();
-  }, []);
+export default function Bible() {
+  const [book, setBook] = useState("43.Jean.html");
+  const [query, setQuery] = useState("");
+
+  const filtered = query
+    ? LSG_BOOKS.filter((b) => b.n.toLowerCase().includes(query.toLowerCase()))
+    : LSG_BOOKS;
+
+  const currentName = LSG_BOOKS.find((b) => b.u === book)?.n || "Index";
 
   return (
     <div className="mx-auto max-w-6xl px-6 md:px-8 py-8 md:py-12">
-      <header className="mb-8">
-        <h1 className="display-fluid">The <span className="brand-gradient-text">Bible</span></h1>
-        <p className="mt-3 text-lg text-foreground/60">Read, listen, highlight, and bookmark — your way.</p>
+      <header className="mb-6">
+        <h1 className="display-fluid">La <span className="brand-gradient-text">Bible</span> (LSG)</h1>
+        <p className="mt-3 text-lg text-foreground/60">Version Louis Segond 1910 — en français.</p>
       </header>
 
-      {/* Mode + search */}
-      <div className="flex flex-wrap items-center gap-3 mb-8">
-        <div className="inline-flex rounded-full border border-border bg-card p-1">
-          {["read", "audio"].map((m) => (
-            <button
-              key={m}
-              onClick={() => setMode(m)}
-              className={`px-5 py-2 rounded-full text-sm font-bold capitalize transition ${
-                mode === m ? "bg-primary text-primary-foreground" : "text-foreground/60"
-              }`}
-            >
-              {m === "read" ? "Read" : "Audio Bible"}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 flex-1 min-w-[200px]">
-          <Search className="h-4 w-4 text-foreground/40" />
-          <input placeholder="Search a verse or word…" className="bg-transparent outline-none text-sm font-medium flex-1" />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-        {/* Reader */}
-        <div className="lg:col-span-2 rounded-[2rem] border border-border bg-card p-6 md:p-10">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-2">
-              <select
-                value={activeBook}
-                onChange={(e) => setActiveBook(e.target.value)}
-                className="rounded-full border border-border bg-background px-4 py-2 font-bold text-sm outline-none"
-              >
-                {BOOKS.map((b) => <option key={b}>{b}</option>)}
-              </select>
-              <select
-                value={activeChapter}
-                onChange={(e) => setActiveChapter(Number(e.target.value))}
-                className="rounded-full border border-border bg-background px-4 py-2 font-bold text-sm outline-none"
-              >
-                {Array.from({ length: 21 }, (_, i) => i + 1).map((c) => <option key={c}>{c}</option>)}
-              </select>
-            </div>
-            <div className="flex items-center gap-2">
-              <button className="h-9 w-9 grid place-items-center rounded-full border border-border hover:bg-muted transition"><Bookmark className="h-4 w-4" /></button>
-              <button className="h-9 w-9 grid place-items-center rounded-full border border-border hover:bg-muted transition"><Highlighter className="h-4 w-4" /></button>
-            </div>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Book list */}
+        <aside className="lg:col-span-1 rounded-[1.5rem] border border-border bg-card p-5 lg:max-h-[70vh] lg:overflow-y-auto">
+          <div className="flex items-center gap-2 rounded-full border border-border bg-background px-3 py-2 mb-4">
+            <Search className="h-4 w-4 text-foreground/40" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Rechercher un livre…"
+              className="bg-transparent outline-none text-sm font-medium flex-1"
+            />
           </div>
+          <div className="grid grid-cols-2 lg:grid-cols-1 gap-1.5">
+            {filtered.map((b) => (
+              <button
+                key={b.u}
+                onClick={() => setBook(b.u)}
+                className={`text-left px-3 py-2 rounded-xl text-sm font-semibold transition ${
+                  book === b.u ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground/75"
+                }`}
+              >
+                {b.n}
+              </button>
+            ))}
+          </div>
+        </aside>
 
-          {mode === "audio" ? (
-            <div className="rounded-3xl brand-gradient p-8 text-white text-center">
-              <Headphones className="h-12 w-12 mx-auto mb-4 opacity-90" />
-              <div className="font-display font-bold text-xl">{activeBook} {activeChapter}</div>
-              <p className="text-white/80 text-sm mt-1">Audio Bible — tap to play</p>
-              <button className="mt-6 rounded-full bg-white text-foreground px-8 py-3 font-bold hover:scale-105 transition">▶ Play</button>
+        {/* Reader */}
+        <div className="lg:col-span-3 rounded-[1.5rem] border border-border bg-card overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+            <div className="flex items-center gap-2 font-display font-bold text-lg">
+              <BookOpen className="h-5 w-5 text-primary" /> {currentName}
             </div>
-          ) : (
-            <div className="space-y-4 leading-relaxed text-foreground/85 text-lg">
-              <p><sup className="font-bold text-primary mr-1">1</sup> Now there was a man of the Pharisees named Nicodemus, a ruler of the Jews.</p>
-              <p><sup className="font-bold text-primary mr-1">2</sup> This man came to Jesus by night and said to him, "Rabbi, we know that you are a teacher come from God…"</p>
-              <p><sup className="font-bold text-primary mr-1">3</sup> Jesus answered him, "Truly, truly, I say to you, unless one is born again he cannot see the kingdom of God."</p>
-              <p className="text-foreground/50 italic text-base pt-2">Sample passage — connect a licensed translation to show full text.</p>
-            </div>
-          )}
-        </div>
-
-        {/* Devotionals sidebar */}
-        <div className="rounded-[2rem] border border-border bg-card p-6 md:p-8">
-          <h3 className="font-display font-extrabold text-xl mb-4 flex items-center gap-2">
-            <BookOpen className="h-5 w-5 text-primary" /> Devotionals
-          </h3>
-          {loading ? (
-            <div className="space-y-3">{[0, 1].map((i) => <div key={i} className="h-20 bg-background rounded-2xl animate-pulse" />)}</div>
-          ) : devotionals.length ? (
-            <div className="space-y-3">
-              {devotionals.map((d) => (
-                <div key={d.id} className="rounded-2xl bg-background border border-border p-4 hover:border-primary transition cursor-pointer">
-                  <div className="text-xs font-bold text-primary uppercase tracking-wide">{d.scripture_reference}</div>
-                  <div className="font-bold mt-1 line-clamp-1">{d.title}</div>
-                  <div className="text-sm text-foreground/55 line-clamp-2 mt-1">{d.content}</div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-foreground/50 text-sm">Daily devotionals will appear here.</p>
-          )}
+            <a
+              href={BASE + book}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm font-bold text-primary hover:underline"
+            >
+              Ouvrir <ExternalLink className="h-4 w-4" />
+            </a>
+          </div>
+          <iframe
+            key={book}
+            src={BASE + book}
+            title={`Bible LSG — ${currentName}`}
+            className="w-full h-[70vh] bg-white"
+            style={{ border: "none" }}
+          />
         </div>
       </div>
     </div>

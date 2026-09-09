@@ -1,0 +1,37 @@
+{
+  "name": "Video",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "language": {
+      "type": "string",
+      "enum": [
+        "fr",
+        "en",
+        "mg"
+      ],
+      "default": "fr"
+    },
+    "cover_url": {
+      "type": "string"
+    },
+    "video_url": {
+      "type": "string"
+    },
+    "duration_seconds": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "title",
+    "video_url"
+  ]
+}

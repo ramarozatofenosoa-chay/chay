@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Outlet, NavLink, useLocation } from "react-router-dom";
 import { Home, Users, BookOpen, PlayCircle, Gamepad2, Sparkles, Bell, User } from "lucide-react";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const NAV = [
   { to: "/", label: "Home", icon: Home, end: true },
@@ -53,6 +54,7 @@ export default function Layout() {
             >
               {lang === "fr" ? "FR" : "EN"}
             </button>
+            <ThemeToggle />
             <button className="h-9 w-9 grid place-items-center rounded-full border border-border hover:bg-muted transition">
               <Bell className="h-4 w-4" />
             </button>
@@ -79,6 +81,7 @@ export default function Layout() {
             >
               {lang === "fr" ? "FR" : "EN"}
             </button>
+            <ThemeToggle />
             <button className="h-9 w-9 grid place-items-center rounded-full border border-border">
               <Bell className="h-4 w-4" />
             </button>
