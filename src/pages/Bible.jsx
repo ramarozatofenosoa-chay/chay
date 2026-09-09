@@ -6,20 +6,8 @@ import {
   ChevronRight,
   Loader2,
   RefreshCw,
-  Search,
 } from "lucide-react";
 
-/*
-  Free Use Bible API
-  Translation: French Louis Segond 1910
-  Translation ID: fra_lsg
-
-  Books:
-  https://bible.helloao.org/api/fra_lsg/books.json
-
-  Chapter example:
-  https://bible.helloao.org/api/fra_lsg/JHN/3.simple.json
-*/
 const API_BASE_URL = "https://bible.helloao.org/api";
 const TRANSLATION_ID = "fra_lsg";
 
@@ -31,86 +19,48 @@ function getChapterUrl(bookId, chapterNumber) {
   return `${API_BASE_URL}/${TRANSLATION_ID}/${bookId}/${chapterNumber}.simple.json`;
 }
 
-/*
-  The simplified endpoint generally returns chapter content in a structure
-  containing an array of verses. This helper is deliberately flexible so the
-  interface survives small API response-structure variations.
-*/
-function normalizeChapterResponse(data) {
-  const possibleVerseArrays = [
-    data?.verses,
-    data?.content,
-    data?.chapter?.verses,
-    data?.data?.verses,
-  ];
-
-  const rawVerses = possibleVerseArrays.find(Array.isArray) || [];
-
-  return rawVerses
-    .map((verse, index) => {
-      if (typeof verse === "string") {
-        return {
-          number: index + 1,
-          text: verse.trim(),
-        };
-      }
-
-      const verseNumber =
-        verse?.number ??
-        verse?.verseNumber ??
-        verse?.verse ??
-        verse?.id ??
-        index + 1;
-
-      const verseText =
-        verse?.text ??
-        verse?.content ??
-        verse?.value ??
-        verse?.html ??
-        "";
-
-      return {
-        number: Number(verseNumber) || index + 1,
-        text: String(verseText)
-          .replace(/<[^>]*>/g, "")
-          .replace(/\s+/g, " ")
-          .trim(),
-      };
-    })
-    .filter((verse) => verse.text.length > 0);
-}
-
 function normalizeBookResponse(data) {
-  const rawBooks = Array.isArray(data)
-    ? data
-    : data?.books || data?.data || data?.translation?.books || [];
+  const rawBooks = data?.books;
 
   if (!Array.isArray(rawBooks)) {
+    console.error("Format de livres inattendu :", data);
     return [];
   }
 
   return rawBooks
-    .map((book, index) => {
-      const chapters =
-        book?.numberOfChapters ??
-        book?.chapters ??
-        book?.chapterCount ??
-        0;
-
-      return {
-        id: book?.id || book?.bookId || book?.abbreviation || "",
-        name:
-          book?.commonName ||
-          book?.name ||
-          book?.title ||
-          `Livre ${index + 1}`,
-        title: book?.title || book?.name || "",
-        order: Number(book?.order || index + 1),
-        numberOfChapters: Number(chapters) || 1,
-      };
-    })
-    .filter((book) => book.id)
+    .map((book) => ({
+      id: book.id,
+      name: book.commonName || book.name,
+      title: book.title || book.name,
+      order: Number(book.order),
+      numberOfChapters: Number(book.numberOfChapters),
+    }))
+    .filter(
+      (book) =>
+        book.id &&
+        book.name &&
+        book.numberOfChapters > 0,
+    )
     .sort((firstBook, secondBook) => firstBook.order - secondBook.order);
+}
+
+function normalizeChapterResponse(data) {
+  const content = data?.chapter?.content;
+
+  if (!Array.isArray(content)) {
+    console.error("Format de chapitre inattendu :", data);
+    return [];
+  }
+
+  return content
+    .filter((item) => item?.type === "verse")
+    .map((verse) => ({
+      number: Number(verse.number),
+      text: String(verse.text || "")
+        .replace(/\s+/g, " ")
+        .trim(),
+    }))
+    .filter((verse) => verse.text.length > 0);
 }
 
 export default function Bible() {
@@ -118,15 +68,11 @@ export default function Bible() {
   const [selectedBookId, setSelectedBookId] = useState("JHN");
   const [selectedChapter, setSelectedChapter] = useState(1);
   const [verses, setVerses] = useState([]);
-  const [bookSearch, setBookSearch] = useState("");
 
   const [booksStatus, setBooksStatus] = useState("loading");
   const [chapterStatus, setChapterStatus] = useState("idle");
   const [errorMessage, setErrorMessage] = useState("");
 
-  /*
-    Load the list of all 66 books once when the page opens.
-  */
   useEffect(() => {
     const controller = new AbortController();
 
@@ -141,47 +87,33 @@ export default function Bible() {
 
         if (!response.ok) {
           throw new Error(
-            `Impossible de charger les livres (HTTP ${response.status}).`,
+            `Impossible de charger les livres. HTTP ${response.status}.`,
           );
         }
 
         const data = await response.json();
-        const normalizedBooks = normalizeBookResponse(data);
+        const loadedBooks = normalizeBookResponse(data);
 
-        if (normalizedBooks.length === 0) {
-          console.error("Réponse livres reçue :", data);
-          throw new Error("La liste des livres reçue est vide ou invalide.");
+        if (loadedBooks.length === 0) {
+          throw new Error("Aucun livre n'a été trouvé.");
         }
 
-        setBooks(normalizedBooks);
+        setBooks(loadedBooks);
 
-        /*
-          Default to Jean if it exists in the API response.
-        */
-        const johnBook = normalizedBooks.find((book) => book.id === "JHN");
+        const jean = loadedBooks.find((book) => book.id === "JHN");
+        const firstBook = loadedBooks[0];
 
-        if (johnBook) {
-          setSelectedBookId(johnBook.id);
-          setSelectedChapter(1);
-        } else {
-          setSelectedBookId(normalizedBooks[0].id);
-          setSelectedChapter(1);
-        }
-
+        setSelectedBookId(jean?.id || firstBook.id);
+        setSelectedChapter(1);
         setBooksStatus("ready");
       } catch (error) {
         if (error.name === "AbortError") {
           return;
         }
 
-        console.error("Erreur de chargement des livres :", error);
-
+        console.error("Erreur lors du chargement des livres :", error);
         setBooksStatus("error");
-        setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : "Une erreur inconnue est survenue.",
-        );
+        setErrorMessage(error.message);
       }
     }
 
@@ -194,35 +126,21 @@ export default function Bible() {
     return books.find((book) => book.id === selectedBookId) || null;
   }, [books, selectedBookId]);
 
-  const visibleBooks = useMemo(() => {
-    const search = bookSearch.trim().toLocaleLowerCase("fr");
-
-    if (!search) {
-      return books;
-    }
-
-    return books.filter((book) =>
-      `${book.name} ${book.title}`
-        .toLocaleLowerCase("fr")
-        .includes(search),
-    );
-  }, [books, bookSearch]);
-
   const chapterNumbers = useMemo(() => {
-    const totalChapters = selectedBook?.numberOfChapters || 1;
+    const count = selectedBook?.numberOfChapters || 1;
 
     return Array.from(
-      { length: totalChapters },
+      { length: count },
       (_, index) => index + 1,
     );
   }, [selectedBook]);
 
-  /*
-    Each time the selected book or chapter changes, the text reloads
-    automatically.
-  */
   useEffect(() => {
-    if (!selectedBookId || !selectedChapter || booksStatus !== "ready") {
+    if (
+      booksStatus !== "ready" ||
+      !selectedBookId ||
+      !selectedChapter
+    ) {
       return;
     }
 
@@ -230,167 +148,147 @@ export default function Bible() {
 
     async function loadChapter() {
       setChapterStatus("loading");
-      setErrorMessage("");
       setVerses([]);
+      setErrorMessage("");
 
       try {
-        const response = await fetch(
-          getChapterUrl(selectedBookId, selectedChapter),
-          { signal: controller.signal },
-        );
+        const url = getChapterUrl(selectedBookId, selectedChapter);
+        const response = await fetch(url, {
+          signal: controller.signal,
+        });
 
         if (!response.ok) {
           throw new Error(
-            `Impossible de charger ce chapitre (HTTP ${response.status}).`,
+            `Impossible de charger le chapitre. HTTP ${response.status}.`,
           );
         }
 
         const data = await response.json();
-        const normalizedVerses = normalizeChapterResponse(data);
+        const loadedVerses = normalizeChapterResponse(data);
 
-        if (normalizedVerses.length === 0) {
-          console.error("Réponse chapitre reçue :", data);
-
+        if (loadedVerses.length === 0) {
           throw new Error(
-            "Le chapitre a été téléchargé, mais aucun verset n'a été trouvé.",
+            "Le chapitre a été reçu, mais aucun verset n'a été trouvé.",
           );
         }
 
-        setVerses(normalizedVerses);
+        setVerses(loadedVerses);
         setChapterStatus("ready");
       } catch (error) {
         if (error.name === "AbortError") {
           return;
         }
 
-        console.error("Erreur de chargement du chapitre :", error);
-
+        console.error("Erreur lors du chargement du chapitre :", error);
         setChapterStatus("error");
-        setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : "Une erreur inconnue est survenue.",
-        );
+        setErrorMessage(error.message);
       }
     }
 
     loadChapter();
 
     return () => controller.abort();
-  }, [selectedBookId, selectedChapter, booksStatus]);
+  }, [booksStatus, selectedBookId, selectedChapter]);
 
   function handleBookChange(event) {
-    const nextBookId = event.target.value;
-
-    setSelectedBookId(nextBookId);
+    setSelectedBookId(event.target.value);
     setSelectedChapter(1);
-    setBookSearch("");
   }
 
   function handleChapterChange(event) {
     setSelectedChapter(Number(event.target.value));
   }
 
-  function previousChapter() {
+  function goToPreviousChapter() {
     if (selectedChapter > 1) {
-      setSelectedChapter((chapter) => chapter - 1);
+      setSelectedChapter((value) => value - 1);
       return;
     }
 
-    const currentBookIndex = books.findIndex(
+    const currentIndex = books.findIndex(
       (book) => book.id === selectedBookId,
     );
 
-    if (currentBookIndex <= 0) {
-      return;
+    if (currentIndex > 0) {
+      const previousBook = books[currentIndex - 1];
+
+      setSelectedBookId(previousBook.id);
+      setSelectedChapter(previousBook.numberOfChapters);
     }
-
-    const previousBook = books[currentBookIndex - 1];
-
-    setSelectedBookId(previousBook.id);
-    setSelectedChapter(previousBook.numberOfChapters);
   }
 
-  function nextChapter() {
+  function goToNextChapter() {
     const totalChapters = selectedBook?.numberOfChapters || 1;
 
     if (selectedChapter < totalChapters) {
-      setSelectedChapter((chapter) => chapter + 1);
+      setSelectedChapter((value) => value + 1);
       return;
     }
 
-    const currentBookIndex = books.findIndex(
+    const currentIndex = books.findIndex(
       (book) => book.id === selectedBookId,
     );
 
-    if (currentBookIndex === -1 || currentBookIndex >= books.length - 1) {
-      return;
+    if (currentIndex < books.length - 1) {
+      const nextBook = books[currentIndex + 1];
+
+      setSelectedBookId(nextBook.id);
+      setSelectedChapter(1);
     }
-
-    const nextBook = books[currentBookIndex + 1];
-
-    setSelectedBookId(nextBook.id);
-    setSelectedChapter(1);
   }
 
-  function retryLoading() {
-    /*
-      Reloading the page is the simplest reliable retry because it reruns
-      both API calls and resets all state cleanly.
-    */
+  function retry() {
     window.location.reload();
   }
 
+  const currentBookIndex = books.findIndex(
+    (book) => book.id === selectedBookId,
+  );
+
   const isFirstChapter =
-    books.findIndex((book) => book.id === selectedBookId) === 0 &&
-    selectedChapter === 1;
+    currentBookIndex === 0 && selectedChapter === 1;
 
   const isLastChapter =
-    books.findIndex((book) => book.id === selectedBookId) === books.length - 1 &&
-    selectedChapter === (selectedBook?.numberOfChapters || 1);
+    currentBookIndex === books.length - 1 &&
+    selectedChapter === selectedBook?.numberOfChapters;
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-6 md:px-8 md:py-10">
-      <header className="mb-6">
-        <div className="flex items-center gap-3">
-          <div className="rounded-2xl bg-orange-100 p-3">
-            <BookOpen className="h-7 w-7 text-orange-600" />
-          </div>
+      <header className="mb-6 flex items-center gap-3">
+        <div className="rounded-2xl bg-orange-100 p-3">
+          <BookOpen className="h-7 w-7 text-orange-600" />
+        </div>
 
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-              La Bible
-            </h1>
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900">
+            La Bible
+          </h1>
 
-            <p className="mt-1 text-sm text-slate-500">
-              Louis Segond 1910
-            </p>
-          </div>
+          <p className="text-sm text-slate-500">
+            Louis Segond 1910
+          </p>
         </div>
       </header>
 
       <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 bg-slate-50 px-4 py-4 md:px-6">
           {booksStatus === "loading" && (
-            <div className="flex items-center gap-3 py-2 text-slate-500">
+            <div className="flex items-center gap-3 text-sm text-slate-500">
               <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
-              <span className="text-sm font-medium">
-                Chargement des livres de la Bible…
-              </span>
+              Chargement des livres…
             </div>
           )}
 
           {booksStatus === "error" && (
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-sm text-red-600">
-                <AlertTriangle className="h-5 w-5" />
-                Impossible de charger la liste des livres.
-              </div>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-red-600">
+                {errorMessage}
+              </p>
 
               <button
                 type="button"
-                onClick={retryLoading}
-                className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-3 py-2 text-sm font-bold text-white transition hover:bg-orange-600"
+                onClick={retry}
+                className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-3 py-2 text-sm font-bold text-white"
               >
                 <RefreshCw className="h-4 w-4" />
                 Réessayer
@@ -399,20 +297,20 @@ export default function Bible() {
           )}
 
           {booksStatus === "ready" && (
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto]">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_130px]">
               <div>
                 <label
-                  htmlFor="bible-book"
+                  htmlFor="book-select"
                   className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500"
                 >
                   Livre
                 </label>
 
                 <select
-                  id="bible-book"
+                  id="book-select"
                   value={selectedBookId}
                   onChange={handleBookChange}
-                  className="w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-3 py-3 text-base font-semibold text-slate-800 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 font-semibold text-slate-800 outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
                 >
                   {books.map((book) => (
                     <option key={book.id} value={book.id}>
@@ -422,23 +320,23 @@ export default function Bible() {
                 </select>
               </div>
 
-              <div className="md:w-36">
+              <div>
                 <label
-                  htmlFor="bible-chapter"
+                  htmlFor="chapter-select"
                   className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500"
                 >
                   Chapitre
                 </label>
 
                 <select
-                  id="bible-chapter"
+                  id="chapter-select"
                   value={selectedChapter}
                   onChange={handleChapterChange}
-                  className="w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-3 py-3 text-base font-semibold text-slate-800 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 font-semibold text-slate-800 outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
                 >
-                  {chapterNumbers.map((chapterNumber) => (
-                    <option key={chapterNumber} value={chapterNumber}>
-                      {chapterNumber}
+                  {chapterNumbers.map((chapter) => (
+                    <option key={chapter} value={chapter}>
+                      {chapter}
                     </option>
                   ))}
                 </select>
@@ -448,56 +346,56 @@ export default function Bible() {
         </div>
 
         {booksStatus === "ready" && (
-          <div className="border-b border-slate-200 px-4 py-3 md:px-6">
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="truncate text-lg font-bold text-slate-900">
+          <div className="border-b border-slate-200 px-5 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">
                   {selectedBook?.name} {selectedChapter}
-                </p>
+                </h2>
 
-                <p className="mt-0.5 text-sm text-slate-500">
+                <p className="text-sm text-slate-500">
                   Louis Segond 1910
                 </p>
               </div>
 
-              <div className="text-right text-xs font-semibold uppercase tracking-wide text-slate-400">
-                {verses.length > 0
-                  ? `${verses.length} versets`
-                  : "Chargement"}
-              </div>
+              {chapterStatus === "loading" && (
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Chargement
+                </span>
+              )}
             </div>
           </div>
         )}
 
         <div className="min-h-[52vh] px-5 py-7 md:px-10 md:py-9">
-          {chapterStatus === "idle" || chapterStatus === "loading" ? (
+          {chapterStatus === "loading" && (
             <div className="flex min-h-[42vh] flex-col items-center justify-center gap-3 text-slate-500">
               <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
 
               <p className="text-sm font-medium">
-                Chargement de {selectedBook?.name || "la Bible"}…
+                Chargement du chapitre…
               </p>
             </div>
-          ) : null}
+          )}
 
           {chapterStatus === "error" && (
             <div className="flex min-h-[42vh] flex-col items-center justify-center gap-4 text-center">
               <AlertTriangle className="h-9 w-9 text-amber-500" />
 
               <div>
-                <p className="text-sm font-bold text-slate-700">
+                <p className="font-bold text-slate-700">
                   Impossible de charger ce chapitre.
                 </p>
 
-                <p className="mx-auto mt-2 max-w-md text-xs leading-relaxed text-slate-500">
+                <p className="mt-2 max-w-md text-sm text-slate-500">
                   {errorMessage}
                 </p>
               </div>
 
               <button
                 type="button"
-                onClick={retryLoading}
-                className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-orange-600"
+                onClick={retry}
+                className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 font-bold text-white"
               >
                 <RefreshCw className="h-4 w-4" />
                 Réessayer
@@ -513,17 +411,18 @@ export default function Bible() {
                     <sup className="mr-1.5 text-xs font-bold text-orange-600">
                       {verse.number}
                     </sup>
+
                     {verse.text}
                   </p>
                 ))}
               </div>
 
-              <nav className="mt-10 flex items-center justify-between border-t border-slate-200 pt-5">
+              <div className="mt-10 flex items-center justify-between border-t border-slate-200 pt-5">
                 <button
                   type="button"
-                  onClick={previousChapter}
+                  onClick={goToPreviousChapter}
                   disabled={isFirstChapter}
-                  className="inline-flex items-center gap-1 rounded-xl px-2 py-2 text-sm font-bold text-orange-600 transition hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-30"
+                  className="inline-flex items-center gap-1 rounded-xl px-2 py-2 text-sm font-bold text-orange-600 hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-30"
                 >
                   <ChevronLeft className="h-5 w-5" />
                   Précédent
@@ -531,14 +430,14 @@ export default function Bible() {
 
                 <button
                   type="button"
-                  onClick={nextChapter}
+                  onClick={goToNextChapter}
                   disabled={isLastChapter}
-                  className="inline-flex items-center gap-1 rounded-xl px-2 py-2 text-sm font-bold text-orange-600 transition hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-30"
+                  className="inline-flex items-center gap-1 rounded-xl px-2 py-2 text-sm font-bold text-orange-600 hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-30"
                 >
                   Suivant
                   <ChevronRight className="h-5 w-5" />
                 </button>
-              </nav>
+              </div>
             </article>
           )}
         </div>
