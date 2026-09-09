@@ -1,0 +1,48 @@
+{
+  "name": "Sermon",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "speaker": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "duration_minutes": {
+      "type": "number"
+    },
+    "category": {
+      "type": "string"
+    },
+    "language": {
+      "type": "string",
+      "enum": [
+        "fr",
+        "en",
+        "mg"
+      ],
+      "default": "fr"
+    },
+    "cover_url": {
+      "type": "string"
+    },
+    "audio_url": {
+      "type": "string"
+    },
+    "bible_references": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "title",
+    "speaker",
+    "date"
+  ]
+}

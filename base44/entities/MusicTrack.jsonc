@@ -1,0 +1,40 @@
+{
+  "name": "MusicTrack",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "artist": {
+      "type": "string"
+    },
+    "album": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "language": {
+      "type": "string",
+      "enum": [
+        "fr",
+        "en",
+        "mg"
+      ],
+      "default": "fr"
+    },
+    "cover_url": {
+      "type": "string"
+    },
+    "audio_url": {
+      "type": "string"
+    },
+    "duration_seconds": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "title",
+    "artist"
+  ]
+}

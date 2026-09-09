@@ -1,0 +1,38 @@
+{
+  "name": "Announcement",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "body": {
+      "type": "string"
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "event",
+        "news",
+        "reminder"
+      ],
+      "default": "news"
+    },
+    "language": {
+      "type": "string",
+      "enum": [
+        "fr",
+        "en"
+      ],
+      "default": "fr"
+    }
+  },
+  "required": [
+    "title",
+    "body",
+    "date"
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "name": "Devotional",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "scripture_reference": {
+      "type": "string"
+    },
+    "verse_text": {
+      "type": "string"
+    },
+    "content": {
+      "type": "string"
+    },
+    "reading_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "language": {
+      "type": "string",
+      "enum": [
+        "fr",
+        "en"
+      ],
+      "default": "fr"
+    },
+    "image_url": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "title",
+    "scripture_reference",
+    "content",
+    "reading_date"
+  ]
+}
