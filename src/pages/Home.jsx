@@ -67,7 +67,7 @@ export default function Home() {
         <h1 className="display-fluid text-foreground">
           <span className="brand-gradient-text">ÉGLISE CHAY</span>
         </h1>
-        <p className="mt-4 text-lg md:text-xl text-foreground/60 max-w-xl">Tongasoa eto amin'ny Fiangonana Chay izay mitory ny Fanjakan'Andriamanitra. 
+        <p className="mt-4 text-lg md:text-xl text-foreground/60 max-w-xl [font-family:'Gilroy',_sans-serif]">Tongasoa eto amin'ny Fiangonana Chay izay mitory ny Fanjakan'Andriamanitra. 
 
         </p>
       </section>
