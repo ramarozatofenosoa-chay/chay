@@ -2,17 +2,17 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import {
-  BookOpen, Headphones, Radio, Gamepad2, Sparkles, Heart, ArrowRight, CalendarDays, Clock, Bell,
-} from "lucide-react";
+  BookOpen, Headphones, Radio, Gamepad2, Sparkles, Heart, ArrowRight, CalendarDays, Clock, Bell } from
+"lucide-react";
 
 const QUICK_TILES = [
-  { to: "/bible", label: "Bible", icon: BookOpen, tone: "from-[#4A6CFE] to-[#8A56E2]" },
-  { to: "/media", label: "Médias", icon: Headphones, tone: "from-[#8A56E2] to-[#FF57B2]" },
-  { to: "/media", label: "Radio", icon: Radio, tone: "from-[#FF57B2] to-[#FF4D2D]" },
-  { to: "/games", label: "Jeux", icon: Gamepad2, tone: "from-[#2E6F40] to-[#4A6CFE]" },
-  { to: "/kids", label: "Enfants", icon: Sparkles, tone: "from-[#FF4D2D] to-[#FF57B2]" },
-  { to: "/donate", label: "Donner", icon: Heart, tone: "from-[#8A56E2] to-[#4A6CFE]" },
-];
+{ to: "/bible", label: "Bible", icon: BookOpen, tone: "from-[#4A6CFE] to-[#8A56E2]" },
+{ to: "/media", label: "Médias", icon: Headphones, tone: "from-[#8A56E2] to-[#FF57B2]" },
+{ to: "/media", label: "Radio", icon: Radio, tone: "from-[#FF57B2] to-[#FF4D2D]" },
+{ to: "/games", label: "Jeux", icon: Gamepad2, tone: "from-[#2E6F40] to-[#4A6CFE]" },
+{ to: "/kids", label: "Enfants", icon: Sparkles, tone: "from-[#FF4D2D] to-[#FF57B2]" },
+{ to: "/donate", label: "Donner", icon: Heart, tone: "from-[#8A56E2] to-[#4A6CFE]" }];
+
 
 function useNow() {
   const [now, setNow] = useState(new Date());
@@ -30,8 +30,8 @@ function ClockCard({ label, tz, flag }) {
     <div className="rounded-[1.5rem] border border-border bg-card p-5 text-center">
       <div className="text-xs font-bold uppercase tracking-wide text-foreground/50">{flag} {label}</div>
       <div className="font-display font-extrabold text-2xl md:text-3xl mt-1 tabular-nums">{time}</div>
-    </div>
-  );
+    </div>);
+
 }
 
 export default function Home() {
@@ -43,9 +43,9 @@ export default function Home() {
     (async () => {
       try {
         const [devs, anns] = await Promise.all([
-          base44.entities.Devotional.list("-reading_date", 1).catch(() => []),
-          base44.entities.Announcement.list("-date", 10).catch(() => []),
-        ]);
+        base44.entities.Devotional.list("-reading_date", 1).catch(() => []),
+        base44.entities.Announcement.list("-date", 10).catch(() => [])]
+        );
         setDevotional(Array.isArray(devs) ? devs[0] : null);
         const events = (Array.isArray(anns) ? anns : []).filter((a) => a.type === "event");
         setReunion(events[0] || (Array.isArray(anns) ? anns[0] : null));
@@ -67,8 +67,8 @@ export default function Home() {
         <h1 className="display-fluid text-foreground">
           <span className="brand-gradient-text">ÉGLISE CHAY</span>
         </h1>
-        <p className="mt-4 text-lg md:text-xl text-foreground/60 max-w-xl">
-          Une communauté chrétienne vivante — lire, écouter, prier et grandir ensemble.
+        <p className="mt-4 text-lg md:text-xl text-foreground/60 max-w-xl">Tongasoa eto amin'ny Fiangonana Chay izay mitory ny Fanjakan'Andriamanitra. 
+
         </p>
       </section>
 
@@ -95,13 +95,13 @@ export default function Home() {
             <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-wide">
               <BookOpen className="h-3.5 w-3.5" /> Verset du jour
             </div>
-            {loading ? (
-              <div className="mt-5 space-y-3">
+            {loading ?
+            <div className="mt-5 space-y-3">
                 <div className="h-7 w-3/4 bg-white/20 rounded animate-pulse" />
                 <div className="h-7 w-2/3 bg-white/20 rounded animate-pulse" />
-              </div>
-            ) : devotional ? (
-              <>
+              </div> :
+            devotional ?
+            <>
                 <p className="mt-5 font-display font-bold text-2xl md:text-3xl leading-snug">
                   « {devotional.verse_text || devotional.title} »
                 </p>
@@ -110,10 +110,10 @@ export default function Home() {
                 <Link to="/bible" className="mt-6 inline-flex items-center gap-2 rounded-full bg-white text-foreground px-5 py-2.5 text-sm font-bold hover:scale-105 transition">
                   Lire la Bible <ArrowRight className="h-4 w-4" />
                 </Link>
-              </>
-            ) : (
-              <p className="mt-5 font-display font-bold text-2xl">« Je puis tout par celui qui me fortifie. » — Philippiens 4:13</p>
-            )}
+              </> :
+
+            <p className="mt-5 font-display font-bold text-2xl">« Je puis tout par celui qui me fortifie. » — Philippiens 4:13</p>
+            }
           </div>
         </div>
       </section>
@@ -125,26 +125,26 @@ export default function Home() {
             <Bell className="h-5 w-5 text-primary" />
             <h2 className="font-display font-extrabold text-xl">Prochaine réunion</h2>
           </div>
-          {loading ? (
-            <div className="h-20 bg-background rounded-2xl animate-pulse" />
-          ) : reunion ? (
-            <div className="flex items-start gap-4">
+          {loading ?
+          <div className="h-20 bg-background rounded-2xl animate-pulse" /> :
+          reunion ?
+          <div className="flex items-start gap-4">
               <div className="h-12 w-12 rounded-2xl bg-primary/10 grid place-items-center text-primary shrink-0">
                 <CalendarDays className="h-6 w-6" />
               </div>
               <div>
                 <div className="font-bold text-lg">{reunion.title}</div>
                 <div className="text-foreground/60 text-sm mt-1">{reunion.body}</div>
-                {reunion.date && (
-                  <div className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
+                {reunion.date &&
+              <div className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
                     <Clock className="h-4 w-4" /> {new Date(reunion.date).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}
                   </div>
-                )}
+              }
               </div>
-            </div>
-          ) : (
-            <p className="text-foreground/50">Aucune réunion annoncée pour le moment.</p>
-          )}
+            </div> :
+
+          <p className="text-foreground/50">Aucune réunion annoncée pour le moment.</p>
+          }
         </div>
       </section>
 
@@ -160,11 +160,11 @@ export default function Home() {
                   <Icon className="h-5 w-5" />
                 </div>
                 <div className="font-bold text-sm">{tile.label}</div>
-              </Link>
-            );
+              </Link>);
+
           })}
         </div>
       </section>
-    </div>
-  );
+    </div>);
+
 }
