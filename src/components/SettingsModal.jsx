@@ -22,8 +22,11 @@ import {
   CalendarDays,
   Phone,
   MapPin,
+  Camera,
+  LogOut,
 } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
+import { Image } from "@/components/ui/image";
 
 export default function SettingsModal({ open, onOpenChange }) {
   const { user, deleteAccount } = useAuth();
@@ -33,6 +36,7 @@ export default function SettingsModal({ open, onOpenChange }) {
   const [error, setError] = useState("");
   const [profile, setProfile] = useState({});
   const [saving, setSaving] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -42,6 +46,7 @@ export default function SettingsModal({ open, onOpenChange }) {
         birth_date: user.birth_date || "",
         phone: user.phone || "",
         location_label: user.location_label || "",
+        profile_photo_url: user.profile_photo_url || "",
       });
     }
   }, [user]);
@@ -71,6 +76,25 @@ export default function SettingsModal({ open, onOpenChange }) {
       });
     }
     setSaving(false);
+  };
+
+  const uploadPhoto = async (file) => {
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      const res = await base44.integrations.Core.UploadPublicFile({ file });
+      const photo_url = res.file_url;
+      setProfile((p) => ({ ...p, profile_photo_url: photo_url }));
+      await base44.auth.updateMe({ profile_photo_url: photo_url });
+      toast({ title: "Photo mise à jour" });
+    } catch (e) {
+      toast({ title: "Erreur", description: e.message, variant: "destructive" });
+    }
+    setUploadingPhoto(false);
+  };
+
+  const handleLogout = async () => {
+    await base44.auth.logout();
   };
 
   const handleOpenChange = (v) => {
@@ -112,6 +136,44 @@ export default function SettingsModal({ open, onOpenChange }) {
           <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
             <div className="text-xs font-bold uppercase tracking-wide text-foreground/50">
               Mon profil
+            </div>
+            <div className="flex items-center gap-4">
+              <label className="relative cursor-pointer shrink-0">
+                <div className="h-16 w-16 rounded-full overflow-hidden brand-gradient grid place-items-center text-white font-bold text-xl">
+                  {profile.profile_photo_url ? (
+                    <Image
+                      src={profile.profile_photo_url}
+                      fittingType="fill"
+                      className="w-full h-full"
+                    />
+                  ) : (
+                    (user?.first_name || user?.full_name?.[0] || user?.email || "?")[0]?.toUpperCase()
+                  )}
+                </div>
+                <span className="absolute bottom-0 right-0 h-6 w-6 rounded-full bg-primary text-primary-foreground grid place-items-center border-2 border-background">
+                  {uploadingPhoto ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Camera className="h-3 w-3" />
+                  )}
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => uploadPhoto(e.target.files?.[0])}
+                />
+              </label>
+              <div>
+                <div className="font-bold text-sm">
+                  {user?.full_name ||
+                    [user?.first_name, user?.last_name].filter(Boolean).join(" ") ||
+                    user?.email}
+                </div>
+                <div className="text-xs text-foreground/50">
+                  Changer la photo de profil
+                </div>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -196,6 +258,11 @@ export default function SettingsModal({ open, onOpenChange }) {
               <ThemeToggle />
             </div>
           </div>
+
+          {/* Logout */}
+          <Button variant="outline" className="w-full" onClick={handleLogout}>
+            <LogOut className="h-4 w-4 mr-2" /> Se déconnecter
+          </Button>
 
           {/* Delete Account */}
           {!confirming ? (

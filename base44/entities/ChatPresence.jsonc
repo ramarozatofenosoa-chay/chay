@@ -1,0 +1,27 @@
+{
+  "name": "ChatPresence",
+  "type": "object",
+  "properties": {
+    "display_name": {
+      "type": "string"
+    },
+    "typing_at": {
+      "type": "string"
+    },
+    "last_seen_at": {
+      "type": "string"
+    }
+  },
+  "rls": {
+    "read": {},
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

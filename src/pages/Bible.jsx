@@ -8,6 +8,9 @@ import {
   Loader2,
   RefreshCw,
   StickyNote,
+  Highlighter,
+  Copy,
+  X,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { HIGHLIGHT_COLORS, LANGUAGES, VERSIONS } from "@/lib/bibleConstants";
@@ -475,28 +478,34 @@ export default function Bible() {
 
       {selected.length > 0 && (
         <div className="fixed left-0 right-0 z-30 px-4 bottom-[88px] md:bottom-6">
-          <div className="mx-auto max-w-3xl flex items-center gap-2 rounded-2xl border border-border bg-background/95 backdrop-blur-xl shadow-lg px-3 py-2.5">
-            <span className="text-sm font-bold flex-1">
-              {selected.length} verset{selected.length > 1 ? "s" : ""} sélectionné
-              {selected.length > 1 ? "s" : ""}
-            </span>
+          <div className="mx-auto max-w-sm flex items-center justify-center gap-2 rounded-[1.5rem] border border-border bg-background/95 backdrop-blur-xl shadow-lg px-3 py-2.5">
             <button
               onClick={() => setSheetOpen(true)}
-              className="rounded-full bg-primary text-primary-foreground px-4 py-2 text-sm font-bold"
+              className="flex flex-col items-center gap-1 px-4 py-2 rounded-2xl brand-gradient text-white shadow-sm hover:scale-105 transition"
             >
-              Surligner / Note
+              <Highlighter className="h-5 w-5" />
+              <span className="text-[11px] font-bold">Surligner</span>
             </button>
             <button
               onClick={copySelected}
-              className="rounded-full border border-border px-4 py-2 text-sm font-bold hover:bg-muted"
+              className="flex flex-col items-center gap-1 px-4 py-2 rounded-2xl border border-border hover:bg-muted transition"
             >
-              Copier
+              <Copy className="h-5 w-5 text-primary" />
+              <span className="text-[11px] font-bold">Copier</span>
+            </button>
+            <button
+              onClick={() => setSheetOpen(true)}
+              className="flex flex-col items-center gap-1 px-4 py-2 rounded-2xl border border-border hover:bg-muted transition"
+            >
+              <StickyNote className="h-5 w-5 text-primary" />
+              <span className="text-[11px] font-bold">Notes</span>
             </button>
             <button
               onClick={() => setSelected([])}
-              className="rounded-full px-3 py-2 text-sm font-bold text-foreground/60 hover:text-foreground"
+              className="flex flex-col items-center gap-1 px-4 py-2 rounded-2xl border border-border hover:bg-muted transition"
             >
-              Annuler
+              <X className="h-5 w-5 text-foreground/60" />
+              <span className="text-[11px] font-bold">Annuler</span>
             </button>
           </div>
         </div>
