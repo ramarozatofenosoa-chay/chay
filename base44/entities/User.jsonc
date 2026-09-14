@@ -22,6 +22,9 @@
     "phone": {
       "type": "string"
     },
+    "profile_photo_url": {
+      "type": "string"
+    },
     "location_lat": {
       "type": "number"
     },
@@ -33,6 +36,9 @@
     },
     "church_assigned": {
       "type": "string"
+    },
+    "consents_accepted": {
+      "type": "boolean"
     }
   },
   "required": [

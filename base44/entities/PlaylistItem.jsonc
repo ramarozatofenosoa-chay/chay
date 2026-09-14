@@ -1,0 +1,39 @@
+{
+  "name": "PlaylistItem",
+  "type": "object",
+  "properties": {
+    "track_id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "artist": {
+      "type": "string"
+    },
+    "audio_url": {
+      "type": "string"
+    },
+    "cover_url": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "track_id",
+    "title"
+  ],
+  "rls": {
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}
