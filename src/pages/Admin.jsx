@@ -1,7 +1,18 @@
 import React, { useState } from "react";
 import { useAuth } from "@/lib/AuthContext";
-import EntityCrud from "@/components/admin/EntityCrud";
+import { base44 } from "@/api/base44Client";
+import { useToast } from "@/components/ui/use-toast";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import EntityCrud from "@/components/admin/EntityCrud";
+import DashboardHome from "@/components/admin/DashboardHome";
+import {
+  LayoutDashboard,
   BookOpen,
   Headphones,
   Film,
@@ -12,6 +23,7 @@ import {
   Bell,
   HelpCircle,
   Mail,
+  UserPlus,
   Loader2,
 } from "lucide-react";
 
@@ -55,6 +67,29 @@ const SECTIONS = [
       { name: "audio_url", label: "Audio", type: "file", accept: "audio/*" },
       { name: "bible_references", label: "Références bibliques", type: "text" },
       { name: "duration_minutes", label: "Durée (min)", type: "number" },
+    ],
+  },
+  {
+    key: "Announcement",
+    label: "Annonces",
+    icon: Bell,
+    sort: "-date",
+    listColumns: ["title", "date"],
+    fields: [
+      { name: "title", label: "Titre", type: "text", required: true },
+      { name: "body", label: "Texte", type: "textarea", required: true },
+      { name: "date", label: "Date", type: "date", required: true },
+      {
+        name: "type",
+        label: "Type",
+        type: "select",
+        options: [
+          { value: "event", label: "Événement" },
+          { value: "news", label: "Actualité" },
+          { value: "reminder", label: "Rappel" },
+        ],
+      },
+      { name: "language", label: "Langue", type: "select", options: LANGS },
     ],
   },
   {
@@ -131,29 +166,6 @@ const SECTIONS = [
     ],
   },
   {
-    key: "Announcement",
-    label: "Annonces",
-    icon: Bell,
-    sort: "-date",
-    listColumns: ["title", "date"],
-    fields: [
-      { name: "title", label: "Titre", type: "text", required: true },
-      { name: "body", label: "Texte", type: "textarea", required: true },
-      { name: "date", label: "Date", type: "date", required: true },
-      {
-        name: "type",
-        label: "Type",
-        type: "select",
-        options: [
-          { value: "event", label: "Événement" },
-          { value: "news", label: "Actualité" },
-          { value: "reminder", label: "Rappel" },
-        ],
-      },
-      { name: "language", label: "Langue", type: "select", options: LANGS },
-    ],
-  },
-  {
     key: "Faq",
     label: "FAQ",
     icon: HelpCircle,
@@ -177,9 +189,18 @@ const SECTIONS = [
   },
 ];
 
+const NAV = [
+  { key: "overview", label: "Tableau de bord", icon: LayoutDashboard },
+  ...SECTIONS.map((s) => ({ key: s.key, label: s.label, icon: s.icon })),
+];
+
 export default function Admin() {
   const { user } = useAuth();
-  const [active, setActive] = useState(SECTIONS[0].key);
+  const { toast } = useToast();
+  const [active, setActive] = useState("overview");
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviting, setInviting] = useState(false);
 
   if (!user) {
     return (
@@ -198,47 +219,153 @@ export default function Admin() {
 
   const section = SECTIONS.find((s) => s.key === active);
 
+  const invite = async () => {
+    if (!inviteEmail.trim()) return;
+    setInviting(true);
+    try {
+      await base44.users.inviteUser(inviteEmail.trim(), "admin");
+      toast({
+        title: "Invitation envoyée",
+        description: `${inviteEmail.trim()} a été invité en tant qu'administrateur.`,
+      });
+      setInviteOpen(false);
+      setInviteEmail("");
+    } catch (e) {
+      toast({ title: "Erreur", description: e.message, variant: "destructive" });
+    } finally {
+      setInviting(false);
+    }
+  };
+
   return (
-    <div className="mx-auto max-w-5xl px-4 md:px-8 py-6 md:py-10">
-      <header className="mb-6">
-        <h1 className="display-fluid">
-          <span className="brand-gradient-text">Administration</span>
-        </h1>
-        <p className="mt-2 text-foreground/60">
-          Gérez tout le contenu de l'application.
-        </p>
+    <div className="mx-auto max-w-7xl px-4 md:px-8 py-6 md:py-10">
+      <header className="flex items-end justify-between flex-wrap gap-4 mb-6">
+        <div>
+          <h1 className="display-fluid">
+            <span className="brand-gradient-text">Administration</span>
+          </h1>
+          <p className="mt-2 text-foreground/60">
+            Gérez tout le contenu de l'application CHAY.
+          </p>
+        </div>
+        <button
+          onClick={() => setInviteOpen(true)}
+          className="inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-5 py-2.5 text-sm font-bold hover:scale-105 transition glow-primary"
+        >
+          <UserPlus className="h-4 w-4" /> Inviter un admin
+        </button>
       </header>
 
-      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 mb-5">
-        {SECTIONS.map((s) => {
-          const Icon = s.icon;
-          return (
-            <button
-              key={s.key}
-              onClick={() => setActive(s.key)}
-              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold whitespace-nowrap transition ${
-                active === s.key
-                  ? "bg-primary text-primary-foreground"
-                  : "border border-border bg-card hover:bg-muted"
-              }`}
-            >
-              <Icon className="h-4 w-4" /> {s.label}
-            </button>
-          );
-        })}
+      <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-6 items-start">
+        {/* Desktop sidebar */}
+        <aside className="hidden md:block sticky top-6 self-start">
+          <nav className="rounded-[1.5rem] border border-border bg-card p-3 space-y-1">
+            {NAV.map((n) => {
+              const Icon = n.icon;
+              const isActive = active === n.key;
+              return (
+                <button
+                  key={n.key}
+                  onClick={() => setActive(n.key)}
+                  className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition ${
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : "text-foreground/70 hover:bg-muted"
+                  }`}
+                >
+                  <Icon className="h-4 w-4 shrink-0" /> {n.label}
+                </button>
+              );
+            })}
+          </nav>
+        </aside>
+
+        <div>
+          {/* Mobile pills */}
+          <div className="md:hidden flex gap-2 overflow-x-auto no-scrollbar pb-3 -mx-1 px-1">
+            {NAV.map((n) => {
+              const Icon = n.icon;
+              return (
+                <button
+                  key={n.key}
+                  onClick={() => setActive(n.key)}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold whitespace-nowrap transition ${
+                    active === n.key
+                      ? "bg-primary text-primary-foreground"
+                      : "border border-border bg-card hover:bg-muted"
+                  }`}
+                >
+                  <Icon className="h-4 w-4" /> {n.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Main content */}
+          <main>
+            {active === "overview" ? (
+              <DashboardHome onNavigate={setActive} />
+            ) : (
+              <section className="rounded-[2rem] border border-border bg-background/40 p-5 md:p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  {section && (() => {
+                    const Icon = section.icon;
+                    return <Icon className="h-5 w-5 text-primary" />;
+                  })()}
+                  <h2 className="font-display font-extrabold text-xl">
+                    {section?.label}
+                  </h2>
+                </div>
+                {section && (
+                  <EntityCrud
+                    key={section.key}
+                    entity={section.key}
+                    fields={section.fields}
+                    listColumns={section.listColumns}
+                    sort={section.sort}
+                    readOnly={section.readOnly}
+                    detailField={section.detailField}
+                  />
+                )}
+              </section>
+            )}
+          </main>
+        </div>
       </div>
 
-      <section className="rounded-[2rem] border border-border bg-background/40 p-5 md:p-6">
-        <EntityCrud
-          key={section.key}
-          entity={section.key}
-          fields={section.fields}
-          listColumns={section.listColumns}
-          sort={section.sort}
-          readOnly={section.readOnly}
-          detailField={section.detailField}
-        />
-      </section>
+      {/* Invite dialog */}
+      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Inviter un administrateur</DialogTitle>
+            <DialogDescription>
+              L'invité recevra un lien pour rejoindre l'équipe d'administration de
+              CHAY.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <input
+              type="email"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              placeholder="adresse@email.com"
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+            />
+            <button
+              onClick={invite}
+              disabled={inviting || !inviteEmail.trim()}
+              className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground px-5 py-2.5 text-sm font-bold disabled:opacity-50"
+            >
+              {inviting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <UserPlus className="h-4 w-4" />
+              )}
+              Envoyer l'invitation
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
