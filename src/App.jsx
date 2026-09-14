@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -28,9 +29,15 @@ import { AudioPlayerProvider } from '@/lib/AudioPlayerContext';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+  const [minSplashDone, setMinSplashDone] = useState(false);
 
-  // Show loading spinner while checking app public settings or auth
-  if (isLoadingPublicSettings || isLoadingAuth) {
+  useEffect(() => {
+    const t = setTimeout(() => setMinSplashDone(true), 4500);
+    return () => clearTimeout(t);
+  }, []);
+
+  // Show splash for at least 4.5s, and while checking app public settings or auth
+  if (isLoadingPublicSettings || isLoadingAuth || !minSplashDone) {
     return <SplashScreen />;
   }
 

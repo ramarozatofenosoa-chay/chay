@@ -52,11 +52,17 @@ function normalizeChapterResponse(data) {
 export default function Bible() {
   const { toast } = useToast();
   const [lang, setLang] = useState("fr");
-  const [selectedVersion, setSelectedVersion] = useState("fra_lsg");
+  const [selectedVersion, setSelectedVersion] = useState(() => {
+    const t = new URLSearchParams(window.location.search).get("translation");
+    return t || "fra_lsg";
+  });
   const [books, setBooks] = useState([]);
   const [selectedBookId, setSelectedBookId] = useState("JHN");
   const [selectedChapter, setSelectedChapter] = useState(1);
   const [verses, setVerses] = useState([]);
+  const [pendingRef, setPendingRef] = useState(() =>
+    new URLSearchParams(window.location.search).get("ref")
+  );
 
   const [booksStatus, setBooksStatus] = useState("loading");
   const [chapterStatus, setChapterStatus] = useState("idle");
@@ -82,8 +88,28 @@ export default function Bible() {
         if (loaded.length === 0) throw new Error("Aucun livre trouvé.");
         setBooks(loaded);
         const jean = loaded.find((b) => b.id === "JHN");
-        setSelectedBookId(jean?.id || loaded[0].id);
-        setSelectedChapter(1);
+        let nextBookId = jean?.id || loaded[0].id;
+        let nextChapter = 1;
+        if (pendingRef) {
+          const norm = (s) =>
+            s
+              .toLowerCase()
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, "")
+              .replace(/\s+/g, " ")
+              .trim();
+          const m = pendingRef.trim().match(/^(.*?)\s+(\d+)(?::\d+)?$/);
+          if (m) {
+            const book = loaded.find((b) => norm(b.name) === norm(m[1]));
+            if (book) {
+              nextBookId = book.id;
+              nextChapter = Number(m[2]);
+            }
+          }
+          setPendingRef(null);
+        }
+        setSelectedBookId(nextBookId);
+        setSelectedChapter(nextChapter);
         setBooksStatus("ready");
       } catch (e) {
         if (e.name === "AbortError") return;

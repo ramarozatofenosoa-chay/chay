@@ -123,6 +123,10 @@ export default function Home() {
     }
   };
 
+  const chapterLink = devotional?.scripture_reference
+    ? `/bible?ref=${encodeURIComponent(devotional.scripture_reference)}&translation=fra_lsg`
+    : "/bible";
+
   return (
     <div className="mx-auto max-w-6xl px-6 md:px-8 py-8 md:py-12">
       {/* Welcome */}
@@ -231,7 +235,7 @@ export default function Home() {
                   </p>
                 )}
                 <Link
-                  to="/bible"
+                  to={chapterLink}
                   className="mt-6 inline-flex items-center gap-2 rounded-full bg-white text-neutral-900 px-5 py-2.5 text-sm font-bold hover:scale-105 transition"
                 >
                   Lire le chapitre <ArrowRight className="h-4 w-4" />
@@ -305,37 +309,41 @@ export default function Home() {
       </section>
 
       {/* Social links */}
-      <footer className="mt-12 pt-8 border-t border-border flex items-center justify-center gap-4 pb-4">
-        <a
-          href="https://www.facebook.com/www.chay.fr"
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-bold hover:scale-105 hover:border-primary transition"
-        >
-          <Facebook className="h-5 w-5 text-primary" /> Facebook
-        </a>
-        <a
-          href="https://www.youtube.com/@EgliseChay.fr-tv"
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-bold hover:scale-105 hover:border-primary transition"
-        >
-          <Youtube className="h-5 w-5 text-primary" /> YouTube
-        </a>
-        <Link
-          to="/contact"
-          className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-bold hover:scale-105 hover:border-primary transition"
-        >
-          <Mail className="h-5 w-5 text-primary" /> Contact
-        </Link>
-        {user?.role === "admin" && (
-          <Link
-            to="/admin"
+      <footer className="mt-12 pt-8 border-t border-border pb-6 flex flex-col items-center gap-4">
+        <div className="flex items-center justify-center gap-3 flex-wrap">
+          <a
+            href="https://www.facebook.com/www.chay.fr"
+            target="_blank"
+            rel="noreferrer"
             className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-bold hover:scale-105 hover:border-primary transition"
           >
-            <Shield className="h-5 w-5 text-primary" /> Admin
+            <Facebook className="h-5 w-5 text-primary" /> Facebook
+          </a>
+          <a
+            href="https://www.youtube.com/@EgliseChay.fr-tv"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-bold hover:scale-105 hover:border-primary transition"
+          >
+            <Youtube className="h-5 w-5 text-primary" /> YouTube
+          </a>
+        </div>
+        <div className="flex items-center justify-center gap-3 flex-wrap">
+          <Link
+            to="/contact"
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-bold hover:scale-105 hover:border-primary transition"
+          >
+            <Mail className="h-5 w-5 text-primary" /> Contact
           </Link>
-        )}
+          {user?.role === "admin" && (
+            <Link
+              to="/admin"
+              className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-bold hover:scale-105 hover:border-primary transition"
+            >
+              <Shield className="h-5 w-5 text-primary" /> Admin
+            </Link>
+          )}
+        </div>
       </footer>
     </div>
   );

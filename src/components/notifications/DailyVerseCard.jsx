@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Bell, BellOff } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 export default function DailyVerseCard({ user }) {
   const [enabled, setEnabled] = useState(false);
@@ -82,39 +83,37 @@ export default function DailyVerseCard({ user }) {
   };
 
   const supported = typeof Notification !== "undefined";
+  const status = !supported
+    ? "Notifications non supportées sur cet appareil"
+    : enabled
+      ? "Vous serez notifié chaque jour"
+      : "Recevez le verset chaque jour à l'heure choisie";
 
   return (
-    <div className="rounded-[1.5rem] border border-border bg-card p-5 flex items-center gap-4">
-      <div className="h-12 w-12 rounded-2xl bg-primary/10 grid place-items-center text-primary shrink-0">
-        {enabled ? <Bell className="h-6 w-6" /> : <BellOff className="h-6 w-6" />}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="font-display font-bold text-base">Verset du jour</div>
-        <div className="text-xs text-muted-foreground">
-          {supported
-            ? enabled
-              ? "Notifications activées"
-              : "Recevez le verset chaque jour"
-            : "Notifications non supportées sur cet appareil"}
+    <div className="rounded-[1.5rem] border border-border bg-card p-5">
+      <div className="flex items-center gap-4">
+        <div className="h-12 w-12 rounded-2xl bg-primary/10 grid place-items-center text-primary shrink-0">
+          {enabled ? <Bell className="h-6 w-6" /> : <BellOff className="h-6 w-6" />}
         </div>
+        <div className="flex-1 min-w-0">
+          <div className="font-display font-bold text-base">Verset du jour</div>
+          <div className="text-xs text-muted-foreground leading-snug">{status}</div>
+        </div>
+        <Switch
+          checked={enabled && supported}
+          onCheckedChange={toggle}
+          disabled={saving || !supported}
+        />
       </div>
-      <input
-        type="time"
-        value={time}
-        onChange={changeTime}
-        className="rounded-xl border border-border bg-background px-2 py-1.5 text-sm font-semibold outline-none focus:border-primary shrink-0"
-      />
-      <button
-        onClick={toggle}
-        disabled={saving || !supported}
-        className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold transition disabled:opacity-50 ${
-          enabled
-            ? "bg-primary text-primary-foreground"
-            : "border border-border bg-background hover:bg-muted"
-        }`}
-      >
-        {enabled ? "Activé" : "Activer"}
-      </button>
+      <div className="mt-4 flex items-center gap-3">
+        <span className="text-sm font-semibold text-foreground/70 shrink-0">Heure</span>
+        <input
+          type="time"
+          value={time}
+          onChange={changeTime}
+          className="rounded-xl border border-border bg-background px-3 py-2 text-sm font-semibold outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+        />
+      </div>
     </div>
   );
 }
