@@ -223,14 +223,14 @@ export default function Home() {
               </div>
             ) : devotional ? (
               <>
-                <p className="mt-5 font-display font-bold text-2xl md:text-3xl leading-snug">
+                <p className="selectable mt-5 font-display font-bold text-2xl md:text-3xl leading-snug">
                   « {devotional.verse_text || devotional.title} »
                 </p>
                 <p className="mt-3 font-semibold text-white/80">
                   — {devotional.scripture_reference}
                 </p>
                 {devotional.content && (
-                  <p className="mt-4 text-white/75 max-w-2xl leading-relaxed">
+                  <p className="selectable mt-4 text-white/75 max-w-2xl leading-relaxed">
                     {devotional.content}
                   </p>
                 )}
@@ -242,7 +242,7 @@ export default function Home() {
                 </Link>
               </>
             ) : (
-              <p className="mt-5 font-display font-bold text-2xl">
+              <p className="selectable mt-5 font-display font-bold text-2xl">
                 « Je puis tout par celui qui me fortifie. » — Philippiens 4:13
               </p>
             )}

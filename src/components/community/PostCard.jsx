@@ -34,22 +34,30 @@ export default function PostCard({ post, liked, onToggleLike, currentUser }) {
 
   const submitComment = async () => {
     const text = draft.trim();
-    if (!text) return;
+    if (!text || posting) return;
+    const name =
+      currentUser?.full_name ||
+      [currentUser?.first_name, currentUser?.last_name]
+        .filter(Boolean)
+        .join(" ") ||
+      "Membre";
+    const tempId = `temp-${Date.now()}`;
+    setComments((prev) => [
+      { id: tempId, post_id: post.id, text, author_name: name, created_date: new Date().toISOString() },
+      ...prev,
+    ]);
+    setDraft("");
     setPosting(true);
     try {
-      const name =
-        currentUser?.full_name ||
-        [currentUser?.first_name, currentUser?.last_name]
-          .filter(Boolean)
-          .join(" ") ||
-        "Membre";
       await base44.entities.Comment.create({
         post_id: post.id,
         text,
         author_name: name,
       });
-      setDraft("");
       await loadComments();
+    } catch {
+      setComments((prev) => prev.filter((c) => c.id !== tempId));
+      setDraft(text);
     } finally {
       setPosting(false);
     }

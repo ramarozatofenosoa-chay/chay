@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +11,12 @@ import { Image } from "@/components/ui/image";
 import ReactMarkdown from "react-markdown";
 
 export default function ArticleCard({ article }) {
-  const [open, setOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const open = searchParams.get("article") === article.id;
+  const setOpen = (v) => {
+    if (v) setSearchParams({ article: article.id });
+    else setSearchParams({}, { replace: true });
+  };
   return (
     <>
       <button
@@ -56,7 +62,7 @@ export default function ArticleCard({ article }) {
               </DialogDescription>
             )}
           </DialogHeader>
-          <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/80 leading-relaxed">
+          <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/80 leading-relaxed selectable">
             <ReactMarkdown>{article.body}</ReactMarkdown>
           </div>
         </DialogContent>

@@ -12,6 +12,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { HIGHLIGHT_COLORS, LANGUAGES, VERSIONS } from "@/lib/bibleConstants";
 import VerseActionsSheet from "@/components/bible/VerseActionsSheet";
+import DrawerSelect from "@/components/DrawerSelect";
 
 const API_BASE_URL = "https://bible.helloao.org/api";
 
@@ -305,60 +306,29 @@ export default function Bible() {
             </div>
           )}
           {booksStatus === "ready" && (
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_130px]">
-              <div>
-                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                  Version
-                </label>
-                <select
-                  value={selectedVersion}
-                  onChange={(e) => setSelectedVersion(e.target.value)}
-                  className="w-full rounded-xl border border-border bg-card px-3 py-3 font-semibold text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                >
-                  {VERSIONS[lang].map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                  Livre
-                </label>
-                <select
-                  value={selectedBookId}
-                  onChange={(e) => {
-                    setSelectedBookId(e.target.value);
-                    setSelectedChapter(1);
-                  }}
-                  className="w-full rounded-xl border border-border bg-card px-3 py-3 font-semibold text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                >
-                  {books.map((book) => (
-                    <option key={book.id} value={book.id}>
-                      {book.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          )}
-          {booksStatus === "ready" && (
-            <div className="mt-3">
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                Chapitre
-              </label>
-              <select
+            <div className="flex flex-wrap gap-2">
+              <DrawerSelect
+                value={selectedVersion}
+                onChange={setSelectedVersion}
+                title="Version"
+                options={VERSIONS[lang].map((v) => ({ label: v.label, value: v.id }))}
+              />
+              <DrawerSelect
+                value={selectedBookId}
+                onChange={(v) => {
+                  setSelectedBookId(v);
+                  setSelectedChapter(1);
+                }}
+                title="Livre"
+                searchable
+                options={books.map((b) => ({ label: b.name, value: b.id }))}
+              />
+              <DrawerSelect
                 value={selectedChapter}
-                onChange={(e) => setSelectedChapter(Number(e.target.value))}
-                className="w-full rounded-xl border border-border bg-card px-3 py-3 font-semibold text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-              >
-                {chapterNumbers.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setSelectedChapter(Number(v))}
+                title="Chapitre"
+                options={chapterNumbers.map((c) => ({ label: `Chapitre ${c}`, value: c }))}
+              />
             </div>
           )}
         </div>
@@ -411,7 +381,7 @@ export default function Bible() {
           )}
           {chapterStatus === "ready" && (
             <article className="mx-auto max-w-3xl">
-              <div className="space-y-4 text-[1.04rem] leading-8 text-foreground/80">
+              <div className="selectable space-y-4 text-[1.04rem] leading-8 text-foreground/80">
                 {verses.map((verse) => {
                   const ann = annotations[verse.number];
                   const hl = ann?.highlight_color

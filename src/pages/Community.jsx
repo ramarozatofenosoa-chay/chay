@@ -86,15 +86,20 @@ export default function Community() {
     const newLiked = already
       ? likedPosts.filter((id) => id !== post.id)
       : [...likedPosts, post.id];
+    const newCount = Math.max(0, (post.likes || 0) + (already ? -1 : 1));
     setLikedPosts(newLiked);
     localStorage.setItem("chay_liked", JSON.stringify(newLiked));
+    setPosts((prev) =>
+      prev.map((p) => (p.id === post.id ? { ...p, likes: newCount } : p))
+    );
     try {
-      await base44.entities.CommunityPost.update(post.id, {
-        likes: Math.max(0, (post.likes || 0) + (already ? -1 : 1)),
-      });
-      await loadPosts();
+      await base44.entities.CommunityPost.update(post.id, { likes: newCount });
     } catch {
-      /* ignore */
+      setLikedPosts(likedPosts);
+      localStorage.setItem("chay_liked", JSON.stringify(likedPosts));
+      setPosts((prev) =>
+        prev.map((p) => (p.id === post.id ? { ...p, likes: post.likes } : p))
+      );
     }
   };
 
