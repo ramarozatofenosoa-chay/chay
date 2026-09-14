@@ -1,0 +1,44 @@
+{
+  "name": "BibleAnnotation",
+  "type": "object",
+  "properties": {
+    "translation_id": {
+      "type": "string"
+    },
+    "book_id": {
+      "type": "string"
+    },
+    "chapter": {
+      "type": "number"
+    },
+    "verse": {
+      "type": "number"
+    },
+    "highlight_color": {
+      "type": "string"
+    },
+    "note": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "translation_id",
+    "book_id",
+    "chapter",
+    "verse"
+  ],
+  "rls": {
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}
