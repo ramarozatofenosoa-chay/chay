@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import MediaUploader from "@/components/MediaUploader";
+import { useAudioPlayer } from "@/lib/AudioPlayerContext";
 import { Play, Pause, Headphones, Radio, Film, Music, Search, Upload, ExternalLink } from "lucide-react";
 
 const TABS = [
@@ -16,7 +17,7 @@ export default function Media() {
   const [sermons, setSermons] = useState([]);
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [playing, setPlaying] = useState(null);
+  const { currentTrack, isPlaying, play, toggle } = useAudioPlayer();
   const [user, setUser] = useState(null);
   const [showUploader, setShowUploader] = useState(false);
 
@@ -101,13 +102,13 @@ export default function Media() {
             <div key={t.id} className="group rounded-[1.5rem] border border-border bg-card p-4 hover:-translate-y-1 hover:shadow-lg transition-all">
               <div className="aspect-square rounded-2xl brand-gradient grid place-items-center mb-3 relative overflow-hidden">
                 <Music className="h-8 w-8 text-white/90" />
-                <button onClick={() => setPlaying(playing === t.id ? null : t.id)} className="absolute inset-0 grid place-items-center bg-black/0 group-hover:bg-black/20 transition">
-                  {playing === t.id ? <Pause className="h-8 w-8 text-white" /> : <Play className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition" />}
+                <button onClick={() => (currentTrack?.id === t.id ? toggle() : play(t))} className="absolute inset-0 grid place-items-center bg-black/0 group-hover:bg-black/20 transition">
+                  {currentTrack?.id === t.id && isPlaying ? <Pause className="h-8 w-8 text-white" /> : <Play className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition" />}
                 </button>
               </div>
               <div className="font-bold text-sm line-clamp-1">{t.title}</div>
               <div className="text-xs text-foreground/55">{t.artist}</div>
-              {t.audio_url && playing === t.id && <audio src={t.audio_url} autoPlay controls controlsList="nodownload" className="w-full mt-2 h-8" />}
+              {currentTrack?.id === t.id && <div className="mt-2 h-1.5 rounded-full bg-primary/20 overflow-hidden"><div className="h-full bg-primary" style={{ width: "100%" }} /></div>}
             </div>
           )) : <p className="col-span-full text-foreground/50">Aucune musique importée pour le moment.</p>}
         </div>

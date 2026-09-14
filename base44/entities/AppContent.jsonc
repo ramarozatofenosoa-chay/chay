@@ -1,0 +1,34 @@
+{
+  "name": "AppContent",
+  "type": "object",
+  "properties": {
+    "splash_text_mg": {
+      "type": "string"
+    },
+    "splash_text_fr": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "splash_text_mg",
+    "splash_text_fr"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": null,
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

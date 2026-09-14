@@ -4,6 +4,11 @@ import { Home, Users, BookOpen, PlayCircle, Gamepad2, Baby, Bell, User, ChevronL
 import ThemeToggle from "@/components/ThemeToggle";
 import AnimatedOutlet from "@/components/AnimatedOutlet";
 import SettingsModal from "@/components/SettingsModal";
+import MiniPlayer from "@/components/MiniPlayer";
+import { Image } from "@/components/ui/image";
+
+const LOGO_URL =
+  "https://media.base44.com/images/public/6aa138d0e963d9e5f59d838c/c26279d55_logo.png";
 
 const NAV = [
   { to: "/", label: "Home", icon: Home, end: true },
@@ -28,7 +33,7 @@ export default function Layout() {
       <header className="hidden md:flex sticky top-0 z-40 px-6 pt-5">
         <div className="mx-auto w-full max-w-6xl flex items-center justify-between rounded-full border border-border bg-background/70 backdrop-blur-xl px-6 py-3 glow-soft">
           <div className="flex items-center gap-2.5">
-            <div className="h-9 w-9 rounded-full brand-gradient grid place-items-center text-white font-display font-extrabold text-lg shadow-sm">C</div>
+            <Image src={LOGO_URL} alt="Chay" fittingType="fill" className="h-10 w-10 rounded-xl shadow-sm" />
             <span className="font-display font-extrabold tracking-tight text-lg">
               <span className="brand-gradient-text">ÉGLISE</span> CHAY
             </span>
@@ -82,7 +87,7 @@ export default function Layout() {
               </button>
             ) : (
               <>
-                <div className="h-8 w-8 rounded-full brand-gradient grid place-items-center text-white font-display font-extrabold text-sm">C</div>
+                <Image src={LOGO_URL} alt="Chay" fittingType="fill" className="h-8 w-8 rounded-lg shadow-sm" />
                 <span className="font-display font-extrabold tracking-tight">
                   <span className="brand-gradient-text">CHAY</span>
                 </span>
@@ -131,6 +136,7 @@ export default function Layout() {
         </div>
       </nav>
 
+      <MiniPlayer />
       <SettingsModal open={showSettings} onOpenChange={setShowSettings} />
     </div>
   );
