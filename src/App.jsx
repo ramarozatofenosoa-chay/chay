@@ -21,6 +21,7 @@ import Games from '@/pages/Games';
 import Kids from '@/pages/Kids';
 import Community from '@/pages/Community';
 import Donate from '@/pages/Donate';
+import Contact from '@/pages/Contact';
 import SplashScreen from '@/components/SplashScreen';
 import { AudioPlayerProvider } from '@/lib/AudioPlayerContext';
 
@@ -59,6 +60,7 @@ const AuthenticatedApp = () => {
           <Route path="/kids" element={<Kids />} />
           <Route path="/community" element={<Community />} />
           <Route path="/donate" element={<Donate />} />
+          <Route path="/contact" element={<Contact />} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />

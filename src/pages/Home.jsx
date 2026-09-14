@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
-import { Image } from "@/components/ui/image";
 import {
   BookOpen,
   Headphones,
@@ -18,13 +17,11 @@ import {
   Facebook,
   Youtube,
   Share2,
+  Mail,
 } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import WeatherCard from "@/components/WeatherCard";
-
-const LOGO_URL =
-  "https://media.base44.com/images/public/6aa138d0e963d9e5f59d838c/c26279d55_logo.png";
 
 const QUICK_TILES = [
   { to: "/bible", label: "Bible", icon: BookOpen, tone: "from-[#4A6CFE] to-[#8A56E2]" },
@@ -53,8 +50,8 @@ function ClockChip({ label, tz, flag }) {
   }).format(now);
   return (
     <div className="text-center flex-1">
-      <div className="text-xs font-bold uppercase tracking-wide text-foreground/50">
-        {flag} {label}
+      <div className="text-xl leading-none mb-1">
+        {flag}
       </div>
       <div className="font-display font-extrabold text-xl md:text-2xl tabular-nums">
         {time}
@@ -128,12 +125,6 @@ export default function Home() {
     <div className="mx-auto max-w-6xl px-6 md:px-8 py-8 md:py-12">
       {/* Welcome */}
       <section className="animate-float-in flex items-center gap-4">
-        <Image
-          src={LOGO_URL}
-          alt="Chay"
-          fittingType="fill"
-          className="h-16 w-16 md:h-20 md:w-20 rounded-2xl shadow-sm shrink-0"
-        />
         <div>
           <h1 className="font-display font-extrabold text-3xl md:text-4xl text-foreground">
             <span className="brand-gradient-text">ÉGLISE CHAY</span>
@@ -148,9 +139,6 @@ export default function Home() {
 
       <p className="mt-4 text-lg md:text-xl text-foreground/60 max-w-xl [font-family:'Gilroy',_sans-serif]">
         Tongasoa eto amin'ny Fiangonana Chay izay mitory ny Fanjakan'Andriamanitra.
-      </p>
-      <p className="mt-1 text-lg md:text-xl text-foreground/60 max-w-xl">
-        Bienvenue à l'église Chay, où l'on prêche le Royaume de Dieu.
       </p>
 
       {/* Date + Weather */}
@@ -238,7 +226,7 @@ export default function Home() {
                 )}
                 <Link
                   to="/bible"
-                  className="mt-6 inline-flex items-center gap-2 rounded-full bg-white text-foreground px-5 py-2.5 text-sm font-bold hover:scale-105 transition"
+                  className="mt-6 inline-flex items-center gap-2 rounded-full bg-white text-neutral-900 px-5 py-2.5 text-sm font-bold hover:scale-105 transition"
                 >
                   Lire le chapitre <ArrowRight className="h-4 w-4" />
                 </Link>
@@ -328,6 +316,12 @@ export default function Home() {
         >
           <Youtube className="h-5 w-5 text-primary" /> YouTube
         </a>
+        <Link
+          to="/contact"
+          className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-bold hover:scale-105 hover:border-primary transition"
+        >
+          <Mail className="h-5 w-5 text-primary" /> Contact
+        </Link>
       </footer>
     </div>
   );
