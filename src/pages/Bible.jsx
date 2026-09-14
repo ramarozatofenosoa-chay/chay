@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import {
   AlertTriangle,
   BookOpen,
@@ -55,6 +56,8 @@ function normalizeChapterResponse(data) {
 
 export default function Bible() {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const didInitRef = useRef(false);
   const [lang, setLang] = useState("fr");
   const [selectedVersion, setSelectedVersion] = useState(() => {
     const t = new URLSearchParams(window.location.search).get("translation");
@@ -111,7 +114,15 @@ export default function Bible() {
             }
           }
           setPendingRef(null);
+        } else if (!didInitRef.current) {
+          const savedBook =
+            user?.bible_last_book && loaded.find((b) => b.id === user.bible_last_book);
+          const savedChapter = Number(user?.bible_last_chapter);
+          if (savedBook) nextBookId = savedBook.id;
+          if (savedChapter >= 1 && savedChapter <= (savedBook?.numberOfChapters || 0))
+            nextChapter = savedChapter;
         }
+        didInitRef.current = true;
         setSelectedBookId(nextBookId);
         setSelectedChapter(nextChapter);
         setBooksStatus("ready");
@@ -165,6 +176,14 @@ export default function Bible() {
     loadAnnotations();
     return () => controller.abort();
   }, [booksStatus, selectedVersion, selectedBookId, selectedChapter]);
+
+  // Persist reading progress for "resume where you left off"
+  useEffect(() => {
+    if (chapterStatus !== "ready" || !user?.id) return;
+    base44.auth
+      .updateMe({ bible_last_book: selectedBookId, bible_last_chapter: selectedChapter })
+      .catch(() => {});
+  }, [chapterStatus, selectedBookId, selectedChapter, user?.id]);
 
   const loadAnnotations = async () => {
     if (!selectedVersion || !selectedBookId || !selectedChapter) return;
