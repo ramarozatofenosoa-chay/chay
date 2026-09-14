@@ -14,8 +14,19 @@
     "audio_url": {
       "type": "string"
     },
+    "video_url": {
+      "type": "string"
+    },
     "cover_url": {
       "type": "string"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "audio",
+        "video"
+      ],
+      "default": "audio"
     }
   },
   "required": [

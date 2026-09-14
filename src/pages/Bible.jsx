@@ -70,7 +70,7 @@ export default function Bible() {
   const [errorMessage, setErrorMessage] = useState("");
 
   const [annotations, setAnnotations] = useState({});
-  const [activeVerse, setActiveVerse] = useState(null);
+  const [selected, setSelected] = useState([]);
   const [sheetOpen, setSheetOpen] = useState(false);
 
   // Load books when version changes
@@ -177,47 +177,71 @@ export default function Bible() {
     setAnnotations(map);
   };
 
-  const openVerse = (verse) => {
-    setActiveVerse(verse);
-    setSheetOpen(true);
+  const toggleVerse = (n) =>
+    setSelected((prev) =>
+      prev.includes(n) ? prev.filter((x) => x !== n) : [...prev, n]
+    );
+
+  const selectedVerses = selected
+    .map((n) => verses.find((v) => v.number === n))
+    .filter(Boolean)
+    .sort((a, b) => a.number - b.number);
+
+  const copySelected = async () => {
+    if (selectedVerses.length === 0) return;
+    try {
+      await navigator.clipboard.writeText(
+        selectedVerses.map((v) => `${v.number}. ${v.text}`).join("\n")
+      );
+      toast({ title: `${selectedVerses.length} verset(s) copié(s)` });
+    } catch {
+      toast({ title: "Copie impossible" });
+    }
   };
 
-  const upsert = async (data) => {
-    if (!activeVerse) return;
-    const existing = annotations[activeVerse.number];
+  const upsertMany = async (data) => {
+    if (selectedVerses.length === 0) return;
     try {
-      if (existing) {
-        await base44.entities.BibleAnnotation.update(existing.id, data);
-      } else {
-        await base44.entities.BibleAnnotation.create({
-          translation_id: selectedVersion,
-          book_id: selectedBookId,
-          chapter: selectedChapter,
-          verse: activeVerse.number,
-          highlight_color: null,
-          note: null,
-          ...data,
-        });
-      }
+      await Promise.all(
+        selectedVerses.map(async (v) => {
+          const existing = annotations[v.number];
+          if (existing) {
+            await base44.entities.BibleAnnotation.update(existing.id, data);
+          } else {
+            await base44.entities.BibleAnnotation.create({
+              translation_id: selectedVersion,
+              book_id: selectedBookId,
+              chapter: selectedChapter,
+              verse: v.number,
+              highlight_color: null,
+              note: null,
+              ...data,
+            });
+          }
+        })
+      );
       await loadAnnotations();
+      setSelected([]);
+      setSheetOpen(false);
     } catch (e) {
       toast({ title: "Erreur", description: e.message, variant: "destructive" });
     }
   };
 
-  const onHighlight = (colorId) => upsert({ highlight_color: colorId });
+  const onHighlight = (colorId) => upsertMany({ highlight_color: colorId });
 
   const onNote = (text) => {
-    upsert({ note: text.trim() || null });
+    upsertMany({ note: text.trim() || null });
     toast({ title: "Note enregistrée" });
   };
 
-  const onRemove = async () => {
-    const existing = annotations[activeVerse?.number];
-    if (existing?.highlight_color) {
-      await upsert({ highlight_color: null });
-    }
-  };
+  const onRemove = async () => upsertMany({ highlight_color: null });
+
+  // Clear selection when navigating chapters
+  useEffect(() => {
+    setSelected([]);
+    setSheetOpen(false);
+  }, [selectedVersion, selectedBookId, selectedChapter]);
 
   function handleLangChange(newLang) {
     setLang(newLang);
@@ -341,7 +365,7 @@ export default function Bible() {
                   {selectedBook?.name} {selectedChapter}
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  Touchez un verset pour le surligner, prendre une note ou le copier.
+                  Touchez un ou plusieurs versets pour les sélectionner, puis surlignez, notez ou copiez.
                 </p>
               </div>
               {chapterStatus === "loading" && (
@@ -387,27 +411,31 @@ export default function Bible() {
                   const hl = ann?.highlight_color
                     ? HIGHLIGHT_COLORS.find((c) => c.id === ann.highlight_color)
                     : null;
+                  const isSelected = selected.includes(verse.number);
                   return (
-                    <p key={verse.number}>
+                    <p
+                      key={verse.number}
+                      onClick={() => toggleVerse(verse.number)}
+                      className={`cursor-pointer rounded px-0.5 transition hover:bg-muted ${
+                        isSelected ? "bg-primary/10" : ""
+                      }`}
+                    >
                       <sup className="mr-1.5 text-xs font-bold text-primary">
                         {verse.number}
                       </sup>
                       <span
-                        onClick={() => openVerse(verse)}
-                        className={`cursor-pointer rounded px-0.5 transition hover:bg-muted ${
-                          hl ? hl.verse : ""
+                        className={`rounded px-0.5 ${
+                          isSelected
+                            ? "bg-primary/20 ring-1 ring-primary/40"
+                            : hl
+                            ? hl.verse
+                            : ""
                         }`}
                       >
                         {verse.text}
                       </span>
                       {ann?.note && (
-                        <button
-                          onClick={() => openVerse(verse)}
-                          className="inline-flex items-center ml-1 align-middle"
-                          aria-label="Note"
-                        >
-                          <StickyNote className="h-3.5 w-3.5 text-primary" />
-                        </button>
+                        <StickyNote className="inline h-3.5 w-3.5 text-primary ml-1 align-middle" />
                       )}
                     </p>
                   );
@@ -438,12 +466,41 @@ export default function Bible() {
       <VerseActionsSheet
         open={sheetOpen}
         onOpenChange={setSheetOpen}
-        verse={activeVerse}
-        annotation={activeVerse ? annotations[activeVerse.number] : null}
+        verses={selectedVerses}
+        annotations={annotations}
         onHighlight={onHighlight}
         onNote={onNote}
         onRemove={onRemove}
       />
+
+      {selected.length > 0 && (
+        <div className="fixed left-0 right-0 z-30 px-4 bottom-[88px] md:bottom-6">
+          <div className="mx-auto max-w-3xl flex items-center gap-2 rounded-2xl border border-border bg-background/95 backdrop-blur-xl shadow-lg px-3 py-2.5">
+            <span className="text-sm font-bold flex-1">
+              {selected.length} verset{selected.length > 1 ? "s" : ""} sélectionné
+              {selected.length > 1 ? "s" : ""}
+            </span>
+            <button
+              onClick={() => setSheetOpen(true)}
+              className="rounded-full bg-primary text-primary-foreground px-4 py-2 text-sm font-bold"
+            >
+              Surligner / Note
+            </button>
+            <button
+              onClick={copySelected}
+              className="rounded-full border border-border px-4 py-2 text-sm font-bold hover:bg-muted"
+            >
+              Copier
+            </button>
+            <button
+              onClick={() => setSelected([])}
+              className="rounded-full px-3 py-2 text-sm font-bold text-foreground/60 hover:text-foreground"
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
