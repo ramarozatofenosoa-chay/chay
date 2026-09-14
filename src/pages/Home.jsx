@@ -18,6 +18,7 @@ import {
   Youtube,
   Share2,
   Mail,
+  Shield,
 } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -322,6 +323,14 @@ export default function Home() {
         >
           <Mail className="h-5 w-5 text-primary" /> Contact
         </Link>
+        {user?.role === "admin" && (
+          <Link
+            to="/admin"
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-bold hover:scale-105 hover:border-primary transition"
+          >
+            <Shield className="h-5 w-5 text-primary" /> Admin
+          </Link>
+        )}
       </footer>
     </div>
   );
