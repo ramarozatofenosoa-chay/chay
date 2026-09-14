@@ -3,6 +3,8 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import MediaUploader from "@/components/MediaUploader";
 import ContentAddModal from "@/components/media/ContentAddModal";
+import CreatePlaylistModal from "@/components/media/CreatePlaylistModal";
+import PlaylistPicker from "@/components/media/PlaylistPicker";
 import PullToRefresh from "@/components/PullToRefresh";
 import CategoryGrid from "@/components/media/CategoryGrid";
 import MediaCategory from "@/components/media/MediaCategory";
@@ -12,7 +14,7 @@ import { Upload, FileText, Loader2 } from "lucide-react";
 
 export default function Media() {
   const { toast } = useToast();
-  const { currentTrack, isPlaying, play, toggle } = useAudioPlayer();
+  const { currentTrack, isPlaying, play, playQueue, toggle } = useAudioPlayer();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const activeCat = searchParams.get("cat");
@@ -20,6 +22,9 @@ export default function Media() {
   const [loading, setLoading] = useState(true);
   const [showUploader, setShowUploader] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
+  const [showCreatePlaylist, setShowCreatePlaylist] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerTrack, setPickerTrack] = useState(null);
   const [query, setQuery] = useState("");
 
   const [tracks, setTracks] = useState([]);
@@ -29,9 +34,11 @@ export default function Media() {
   const [youtube, setYoutube] = useState([]);
   const [gallery, setGallery] = useState([]);
   const [playlist, setPlaylist] = useState([]);
+  const [playlists, setPlaylists] = useState([]);
+  const [playlistTracks, setPlaylistTracks] = useState([]);
 
   const loadAll = async () => {
-    const [t, s, v, a, y, g, p] = await Promise.all([
+    const [t, s, v, a, y, g, p, pl, pt] = await Promise.all([
       base44.entities.MusicTrack.list("-created_date", 30).catch(() => []),
       base44.entities.Sermon.list("-date", 30).catch(() => []),
       base44.entities.Video.list("-created_date", 30).catch(() => []),
@@ -39,6 +46,8 @@ export default function Media() {
       base44.entities.YouTubeVideo.list("-created_date", 20).catch(() => []),
       base44.entities.GalleryImage.list("-created_date", 30).catch(() => []),
       base44.entities.PlaylistItem.list("-created_date", 50).catch(() => []),
+      base44.entities.Playlist.list("-created_date", 50).catch(() => []),
+      base44.entities.PlaylistTrack.list("-created_date", 200).catch(() => []),
     ]);
     setTracks(Array.isArray(t) ? t : []);
     setSermons(Array.isArray(s) ? s : []);
@@ -47,6 +56,8 @@ export default function Media() {
     setYoutube(Array.isArray(y) ? y : []);
     setGallery(Array.isArray(g) ? g : []);
     setPlaylist(Array.isArray(p) ? p : []);
+    setPlaylists(Array.isArray(pl) ? pl : []);
+    setPlaylistTracks(Array.isArray(pt) ? pt : []);
   };
 
   useEffect(() => {
@@ -88,6 +99,37 @@ export default function Media() {
   const removeFromPlaylist = async (id) => {
     await base44.entities.PlaylistItem.delete(id).catch(() => {});
     setPlaylist((p) => p.filter((i) => i.id !== id));
+  };
+
+  const addToAdminPlaylist = (track) => {
+    setPickerTrack(track);
+    setPickerOpen(true);
+  };
+
+  const pickPlaylist = async (playlistId) => {
+    if (!pickerTrack) return;
+    try {
+      await base44.entities.PlaylistTrack.create({
+        playlist_id: playlistId,
+        track_id: pickerTrack.id,
+        title: pickerTrack.title,
+        artist: pickerTrack.artist || null,
+        audio_url: pickerTrack.audio_url || null,
+        cover_url: pickerTrack.cover_url || null,
+        kind: pickerTrack.kind || "audio",
+      });
+      toast({ title: "Ajouté à la playlist" });
+      await loadAll();
+    } catch (e) {
+      toast({ title: "Erreur", description: e.message, variant: "destructive" });
+    }
+    setPickerOpen(false);
+    setPickerTrack(null);
+  };
+
+  const removePlaylistTrack = async (id) => {
+    await base44.entities.PlaylistTrack.delete(id).catch(() => {});
+    setPlaylistTracks((p) => p.filter((i) => i.id !== id));
   };
 
   const playPlaylistItem = (item) => {
@@ -156,11 +198,18 @@ export default function Media() {
           currentTrack={currentTrack}
           isPlaying={isPlaying}
           play={play}
+          playQueue={playQueue}
           toggle={toggle}
           addToPlaylist={addToPlaylist}
           removeFromPlaylist={removeFromPlaylist}
           playPlaylistItem={playPlaylistItem}
           isPinned={isPinned}
+          playlists={playlists}
+          playlistTracks={playlistTracks}
+          onAddToAdminPlaylist={addToAdminPlaylist}
+          onCreatePlaylist={() => setShowCreatePlaylist(true)}
+          onRemovePlaylistTrack={removePlaylistTrack}
+          isAdmin={isAdmin}
         />
       ) : (
         <CategoryGrid onOpen={openCat} />
@@ -168,6 +217,10 @@ export default function Media() {
 
       {showUploader && <MediaUploader onClose={() => setShowUploader(false)} onSaved={loadAll} />}
       {showAdd && <ContentAddModal open={showAdd} onOpenChange={setShowAdd} onSaved={loadAll} />}
+      {showCreatePlaylist && (
+        <CreatePlaylistModal open={showCreatePlaylist} onOpenChange={setShowCreatePlaylist} onSaved={loadAll} />
+      )}
+      <PlaylistPicker open={pickerOpen} onOpenChange={setPickerOpen} playlists={playlists} onPick={pickPlaylist} />
     </div>
     </PullToRefresh>
   );

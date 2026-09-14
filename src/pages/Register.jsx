@@ -4,6 +4,11 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import DrawerSelect from "@/components/DrawerSelect";
+import { useToast } from "@/components/ui/use-toast";
+import { safeReturnTo } from "@/lib/authReturnTo";
 import {
   UserPlus,
   Mail,
@@ -11,48 +16,65 @@ import {
   Loader2,
   MapPin,
   Check,
-  User,
   Phone,
   CalendarDays,
-  Camera,
-  ShieldCheck,
+  User,
+  Home,
+  Droplet,
+  Heart,
   ChevronLeft,
 } from "lucide-react";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import AuthLayout from "@/components/AuthLayout";
-import GoogleIcon from "@/components/GoogleIcon";
-import { toast } from "@/components/ui/use-toast";
-import { safeReturnTo } from "@/lib/authReturnTo";
 
-// step 0 = method, 1 = credentials, 2 = OTP, 3-7 = profile wizard
-const TOTAL_PROFILE = 5;
+const GENDERS = [
+  { label: "Homme", value: "homme" },
+  { label: "Femme", value: "femme" },
+  { label: "Autre", value: "autre" },
+];
+
+function Field({ label, icon: Icon, children }) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs flex items-center gap-1">
+        {Icon && <Icon className="h-3 w-3" />} {label}
+      </Label>
+      {children}
+    </div>
+  );
+}
 
 export default function Register() {
-  const [step, setStep] = useState(0);
+  const { toast } = useToast();
+  const [step, setStep] = useState(0); // 0 = form, 1 = OTP
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
-  // credentials
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [otpCode, setOtpCode] = useState("");
 
-  // profile
+  // required
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [birthDate, setBirthDate] = useState("");
+  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [gender, setGender] = useState("");
+  const [country, setCountry] = useState("");
   const [city, setCity] = useState("");
-  const [loc, setLoc] = useState(null);
-  const [locStatus, setLocStatus] = useState("");
-  const [photoFile, setPhotoFile] = useState(null);
-  const [photoUrl, setPhotoUrl] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  // optional — to know you better
+  const [birthDate, setBirthDate] = useState("");
+  const [birthPlace, setBirthPlace] = useState("");
+  const [conversionDate, setConversionDate] = useState("");
+  const [baptized, setBaptized] = useState(false);
+  const [baptismDate, setBaptismDate] = useState("");
+  const [church, setChurch] = useState("");
+  const [bio, setBio] = useState("");
+  const [spiritualJourney, setSpiritualJourney] = useState("");
+  const [knownChaySince, setKnownChaySince] = useState("");
 
   // consents
-  const [consentPrivacy, setConsentPrivacy] = useState(false);
-  const [consentCookies, setConsentCookies] = useState(false);
-  const [consentTerms, setConsentTerms] = useState(false);
+  const [respectConsent, setRespectConsent] = useState(false);
+  const [loc, setLoc] = useState(null);
+  const [locStatus, setLocStatus] = useState("");
 
   const getLocation = () => {
     if (!navigator.geolocation) {
@@ -70,26 +92,29 @@ export default function Register() {
     );
   };
 
-  const handleGoogle = () => {
-    base44.auth.loginWithProvider("google", safeReturnTo());
-  };
-
-  // Step 1 -> register
-  const submitCredentials = async (e) => {
+  const submitForm = async (e) => {
     e.preventDefault();
     setError("");
-    if (password !== confirmPassword) {
-      setError("Les mots de passe ne correspondent pas");
-      return;
-    }
-    if (password.length < 6) {
-      setError("Le mot de passe doit contenir au moins 6 caractères");
-      return;
-    }
+    if (!firstName.trim() || !lastName.trim())
+      return setError("Veuillez indiquer votre prénom et votre nom");
+    if (!email.trim()) return setError("Veuillez indiquer votre e-mail");
+    if (!phone.trim()) return setError("Veuillez indiquer votre téléphone");
+    if (!gender) return setError("Veuillez indiquer votre genre");
+    if (!country.trim()) return setError("Veuillez indiquer votre pays");
+    if (!city.trim()) return setError("Veuillez indiquer votre ville");
+    if (password !== confirmPassword)
+      return setError("Les mots de passe ne correspondent pas");
+    if (password.length < 6)
+      return setError("Le mot de passe doit contenir au moins 6 caractères");
+    if (!respectConsent)
+      return setError("Veuillez accepter la charte de respect des commentaires");
+    if (locStatus !== "granted" || !loc)
+      return setError("Veuillez activer votre localisation pour finaliser l'inscription");
+
     setLoading(true);
     try {
       await base44.auth.register({ email, password });
-      setStep(2);
+      setStep(1);
     } catch (err) {
       setError(err.message || "Échec de l'inscription");
     } finally {
@@ -97,14 +122,36 @@ export default function Register() {
     }
   };
 
-  // Step 2 -> verify OTP, setToken, go to profile
   const verifyOtp = async () => {
     setError("");
     setLoading(true);
     try {
       const result = await base44.auth.verifyOtp({ email, otpCode });
       if (result?.access_token) base44.auth.setToken(result.access_token);
-      setStep(3);
+      await base44.auth.updateMe({
+        first_name: firstName,
+        last_name: lastName,
+        phone,
+        gender,
+        country,
+        city,
+        location_lat: loc.lat,
+        location_lng: loc.lng,
+        location_label: `${city}, ${country}`,
+        birth_date: birthDate || null,
+        birth_place: birthPlace || null,
+        conversion_date: conversionDate || null,
+        baptized,
+        baptism_date: baptized ? baptismDate || null : null,
+        church: baptized ? church || null : null,
+        bio: bio || null,
+        spiritual_journey: spiritualJourney || null,
+        known_chay_since: knownChaySince || null,
+        respect_consent: respectConsent,
+        consents_accepted: true,
+      });
+      toast({ title: "Bienvenue sur CHAY", description: "Votre compte a été créé." });
+      window.location.href = safeReturnTo();
     } catch (err) {
       setError(err.message || "Code de vérification invalide");
     } finally {
@@ -122,468 +169,383 @@ export default function Register() {
     }
   };
 
-  // Step 5 -> upload photo
-  const uploadPhoto = async () => {
-    if (!photoFile) return;
-    setLoading(true);
-    setError("");
-    try {
-      const { file_url } = await base44.integrations.Core.UploadPublicFile({
-        file: photoFile,
-      });
-      setPhotoUrl(file_url);
-    } catch (err) {
-      setError(err.message || "Échec de l'upload");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const loginLink =
+    "/login" +
+    (safeReturnTo() !== "/"
+      ? "?returnTo=" + encodeURIComponent(safeReturnTo())
+      : "");
 
-  // Step 7 -> finish: save profile + redirect
-  const finish = async () => {
-    setError("");
-    if (!consentPrivacy || !consentCookies || !consentTerms) {
-      setError("Veuillez accepter les trois conditions pour terminer.");
-      return;
-    }
-    setLoading(true);
-    try {
-      await base44.auth.updateMe({
-        first_name: firstName,
-        last_name: lastName,
-        birth_date: birthDate || null,
-        phone,
-        profile_photo_url: photoUrl || null,
-        location_lat: loc?.lat ?? null,
-        location_lng: loc?.lng ?? null,
-        location_label: city,
-        consents_accepted: true,
-      });
-      window.location.href = safeReturnTo();
-    } catch (err) {
-      setError(err.message || "Échec de l'enregistrement du profil");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const next = () => {
-    setError("");
-    if (step === 3 && (!firstName.trim() || !lastName.trim())) {
-      setError("Veuillez indiquer votre prénom et votre nom");
-      return;
-    }
-    if (step === 4 && !birthDate) {
-      setError("Veuillez indiquer votre date de naissance");
-      return;
-    }
-    setStep((s) => s + 1);
-  };
-  const back = () => {
-    setError("");
-    setStep((s) => Math.max(0, s - 1));
-  };
-
-  const profileStepNumber = step >= 3 ? step - 2 : 0; // 1..5
-
-  // ---------- STEP 0: method ----------
-  if (step === 0) {
-    return (
-      <AuthLayout
-        icon={UserPlus}
-        title="Rejoignez CHAY"
-        subtitle="Créez votre compte pour rejoindre la communauté"
-        footer={
-          <>
-            Déjà un compte ?{" "}
-            <Link
-              to={"/login" + (safeReturnTo() !== "/" ? "?returnTo=" + encodeURIComponent(safeReturnTo()) : "")}
-              className="text-primary font-medium hover:underline"
-            >
-              Se connecter
-            </Link>
-          </>
-        }
-      >
-        <Button
-          variant="outline"
-          className="w-full h-12 text-sm font-medium mb-6"
-          onClick={handleGoogle}
-        >
-          <GoogleIcon className="w-5 h-5 mr-2" /> Continuer avec Google
-        </Button>
-        <div className="relative mb-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-border" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-card px-3 text-muted-foreground">ou</span>
-          </div>
-        </div>
-        <Button
-          className="w-full h-12 font-medium brand-gradient text-white border-0"
-          onClick={() => setStep(1)}
-        >
-          S'inscrire avec mon e-mail
-        </Button>
-      </AuthLayout>
-    );
-  }
-
-  // ---------- STEP 1: credentials ----------
+  // ---------- OTP step ----------
   if (step === 1) {
     return (
-      <AuthLayout icon={Mail} title="Vos identifiants" subtitle="Créez votre accès sécurisé">
-        {error && (
-          <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">{error}</div>
-        )}
-        <form onSubmit={submitCredentials} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">E-mail</Label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+        <div className="w-full max-w-md rounded-3xl border border-border bg-card p-6 md:p-8 shadow-sm">
+          <div className="text-center mb-6">
+            <div className="mx-auto mb-3 h-14 w-14 rounded-2xl brand-gradient grid place-items-center text-white">
+              <Mail className="h-7 w-7" />
+            </div>
+            <h1 className="font-display font-extrabold text-2xl">Vérifiez votre e-mail</h1>
+            <p className="text-sm text-foreground/60 mt-1">
+              Nous avons envoyé un code à {email}
+            </p>
+          </div>
+          {error && (
+            <div className="mb-4 p-3 rounded-xl bg-destructive/10 text-destructive text-sm">
+              {error}
+            </div>
+          )}
+          <div className="flex justify-center mb-6">
+            <InputOTP
+              maxLength={6}
+              value={otpCode}
+              onChange={setOtpCode}
+              autoFocus
+              autoComplete="one-time-code"
+            >
+              <InputOTPGroup>
+                <InputOTPSlot index={0} />
+                <InputOTPSlot index={1} />
+                <InputOTPSlot index={2} />
+                <InputOTPSlot index={3} />
+                <InputOTPSlot index={4} />
+                <InputOTPSlot index={5} />
+              </InputOTPGroup>
+            </InputOTP>
+          </div>
+          <Button
+            className="w-full h-12 font-medium brand-gradient text-white border-0"
+            onClick={verifyOtp}
+            disabled={loading || otpCode.length < 6}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Vérification…
+              </>
+            ) : (
+              "Vérifier"
+            )}
+          </Button>
+          <div className="flex items-center justify-between mt-4">
+            <button
+              onClick={() => setStep(0)}
+              className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+            >
+              <ChevronLeft className="h-4 w-4" /> Modifier le formulaire
+            </button>
+            <button
+              onClick={resendOtp}
+              className="text-sm text-primary font-medium hover:underline"
+            >
+              Renvoyer le code
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ---------- Form step ----------
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto max-w-2xl px-4 py-8 md:py-12">
+        <header className="mb-6 text-center">
+          <div className="mx-auto mb-3 h-14 w-14 rounded-2xl brand-gradient grid place-items-center text-white">
+            <UserPlus className="h-7 w-7" />
+          </div>
+          <h1 className="font-display font-extrabold text-3xl">
+            <span className="brand-gradient-text">Rejoignez CHAY</span>
+          </h1>
+          <p className="mt-2 text-foreground/60">
+            Créez votre compte pour rejoindre la communauté
+          </p>
+        </header>
+
+        <form onSubmit={submitForm} className="space-y-5">
+          {error && (
+            <div className="p-3 rounded-xl bg-destructive/10 text-destructive text-sm">
+              {error}
+            </div>
+          )}
+
+          {/* Required */}
+          <section className="rounded-2xl border border-border bg-card p-5 space-y-4">
+            <div className="text-xs font-bold uppercase tracking-wide text-foreground/50 flex items-center gap-1">
+              <User className="h-3.5 w-3.5" /> Informations obligatoires
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Prénom" icon={User}>
+                <Input
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="Jean"
+                  className="h-11"
+                  required
+                />
+              </Field>
+              <Field label="Nom" icon={User}>
+                <Input
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Rakoto"
+                  className="h-11"
+                  required
+                />
+              </Field>
+            </div>
+            <Field label="E-mail" icon={Mail}>
               <Input
-                id="email"
                 type="email"
-                autoComplete="email"
-                placeholder="vous@exemple.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="pl-10 h-12"
+                placeholder="vous@exemple.com"
+                className="h-11"
                 required
               />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Téléphone" icon={Phone}>
+                <Input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="+261 …"
+                  className="h-11"
+                  required
+                />
+              </Field>
+              <Field label="Genre">
+                <DrawerSelect
+                  value={gender}
+                  onChange={setGender}
+                  title="Genre"
+                  options={GENDERS}
+                  placeholder="Sélectionner…"
+                  triggerClassName="w-full h-11"
+                />
+              </Field>
             </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Mot de passe</Label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Pays" icon={MapPin}>
+                <Input
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  placeholder="Madagascar"
+                  className="h-11"
+                  required
+                />
+              </Field>
+              <Field label="Ville" icon={MapPin}>
+                <Input
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="Antananarivo"
+                  className="h-11"
+                  required
+                />
+              </Field>
+            </div>
+            <Field label="Mot de passe" icon={Lock}>
               <Input
-                id="password"
                 type="password"
                 autoComplete="new-password"
-                placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="pl-10 h-12"
+                placeholder="••••••••"
+                className="h-11"
                 required
               />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="confirm">Confirmer le mot de passe</Label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            </Field>
+            <Field label="Confirmer le mot de passe" icon={Lock}>
               <Input
-                id="confirm"
                 type="password"
                 autoComplete="new-password"
-                placeholder="••••••••"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="pl-10 h-12"
+                placeholder="••••••••"
+                className="h-11"
                 required
               />
+            </Field>
+          </section>
+
+          {/* Optional — about you */}
+          <section className="rounded-2xl border border-border bg-card p-5 space-y-4">
+            <div>
+              <div className="text-xs font-bold uppercase tracking-wide text-foreground/50">
+                Pour mieux vous connaître
+              </div>
+              <p className="text-xs text-foreground/40 mt-1">
+                Les champs suivants ne sont pas obligatoires, mais ils nous aident
+                à mieux vous connaître.
+              </p>
             </div>
-          </div>
-          <Button type="submit" className="w-full h-12 font-medium brand-gradient text-white border-0" disabled={loading}>
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Création…
-              </>
-            ) : (
-              "Continuer"
-            )}
-          </Button>
-        </form>
-        <button
-          onClick={back}
-          className="mt-4 w-full text-sm text-muted-foreground hover:text-foreground inline-flex items-center justify-center gap-1"
-        >
-          <ChevronLeft className="h-4 w-4" /> Retour
-        </button>
-      </AuthLayout>
-    );
-  }
-
-  // ---------- STEP 2: OTP ----------
-  if (step === 2) {
-    return (
-      <AuthLayout icon={Mail} title="Vérifiez votre e-mail" subtitle={`Nous avons envoyé un code à ${email}`}>
-        {error && (
-          <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">{error}</div>
-        )}
-        <div className="flex justify-center mb-6">
-          <InputOTP maxLength={6} value={otpCode} onChange={setOtpCode} autoFocus autoComplete="one-time-code">
-            <InputOTPGroup>
-              <InputOTPSlot index={0} />
-              <InputOTPSlot index={1} />
-              <InputOTPSlot index={2} />
-              <InputOTPSlot index={3} />
-              <InputOTPSlot index={4} />
-              <InputOTPSlot index={5} />
-            </InputOTPGroup>
-          </InputOTP>
-        </div>
-        <Button className="w-full h-12 font-medium brand-gradient text-white border-0" onClick={verifyOtp} disabled={loading || otpCode.length < 6}>
-          {loading ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Vérification…
-            </>
-          ) : (
-            "Vérifier"
-          )}
-        </Button>
-        <p className="text-center text-sm text-muted-foreground mt-4">
-          Pas reçu de code ?{" "}
-          <button onClick={resendOtp} className="text-primary font-medium hover:underline">
-            Renvoyer
-          </button>
-        </p>
-      </AuthLayout>
-    );
-  }
-
-  // ---------- STEPS 3-7: profile wizard ----------
-  const StepShell = ({ icon: Icon, title, subtitle, children }) => (
-    <AuthLayout icon={Icon} title={title} subtitle={subtitle}>
-      {/* progress */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between text-xs font-bold text-muted-foreground mb-2">
-          <span>Étape {profileStepNumber} / {TOTAL_PROFILE}</span>
-          <span>{Math.round((profileStepNumber / TOTAL_PROFILE) * 100)}%</span>
-        </div>
-        <div className="h-2 rounded-full bg-muted overflow-hidden">
-          <div
-            className="h-full brand-gradient transition-all"
-            style={{ width: `${(profileStepNumber / TOTAL_PROFILE) * 100}%` }}
-          />
-        </div>
-      </div>
-      {error && (
-        <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">{error}</div>
-      )}
-      {children}
-      <div className="flex gap-3 mt-6">
-        <Button variant="outline" className="flex-1 h-12" onClick={back}>
-          <ChevronLeft className="h-4 w-4 mr-1" /> Retour
-        </Button>
-        {step < 7 && (
-          <Button className="flex-1 h-12 font-medium brand-gradient text-white border-0" onClick={next}>
-            Continuer
-          </Button>
-        )}
-        {step === 7 && (
-          <Button className="flex-1 h-12 font-medium brand-gradient text-white border-0" onClick={finish} disabled={loading}>
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Finalisation…
-              </>
-            ) : (
-              "Terminer"
-            )}
-          </Button>
-        )}
-      </div>
-    </AuthLayout>
-  );
-
-  if (step === 3) {
-    return (
-      <StepShell icon={User} title="Votre nom" subtitle="Comment vous appelez-vous ?">
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-2">
-            <Label htmlFor="firstName">Prénom</Label>
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Date de naissance" icon={CalendarDays}>
+                <Input
+                  type="date"
+                  value={birthDate}
+                  onChange={(e) => setBirthDate(e.target.value)}
+                  className="h-11"
+                />
+              </Field>
+              <Field label="Lieu de naissance" icon={Home}>
+                <Input
+                  value={birthPlace}
+                  onChange={(e) => setBirthPlace(e.target.value)}
+                  placeholder="Ville"
+                  className="h-11"
+                />
+              </Field>
+            </div>
+            <Field label="Date de conversion" icon={Heart}>
               <Input
-                id="firstName"
-                placeholder="Jean"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                className="pl-10 h-12"
+                type="date"
+                value={conversionDate}
+                onChange={(e) => setConversionDate(e.target.value)}
+                className="h-11"
               />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="lastName">Nom</Label>
-            <Input
-              id="lastName"
-              placeholder="Rakoto"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              className="h-12"
-            />
-          </div>
-        </div>
-      </StepShell>
-    );
-  }
-
-  if (step === 4) {
-    return (
-      <StepShell icon={CalendarDays} title="Date de naissance" subtitle="Pour personnaliser votre expérience">
-        <div className="space-y-2">
-          <Label htmlFor="birthDate">Date de naissance</Label>
-          <div className="relative">
-            <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              id="birthDate"
-              type="date"
-              value={birthDate}
-              onChange={(e) => setBirthDate(e.target.value)}
-              className="pl-10 h-12"
-            />
-          </div>
-        </div>
-      </StepShell>
-    );
-  }
-
-  if (step === 5) {
-    return (
-      <StepShell icon={Camera} title="Photo de profil" subtitle="Ajoutez votre photo (optionnel)">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-28 w-28 rounded-full overflow-hidden border-2 border-border bg-muted grid place-items-center">
-            {photoUrl ? (
-              <img src={photoUrl} alt="Profil" className="w-full h-full object-cover" />
-            ) : (
-              <User className="h-12 w-12 text-muted-foreground" />
+            </Field>
+            <label className="flex items-center gap-3 rounded-xl border border-border p-3 cursor-pointer">
+              <button
+                type="button"
+                onClick={() => setBaptized((b) => !b)}
+                className={`h-5 w-5 rounded-md border-2 grid place-items-center shrink-0 transition ${
+                  baptized
+                    ? "bg-primary border-primary text-primary-foreground"
+                    : "border-border"
+                }`}
+              >
+                {baptized && <Check className="h-3.5 w-3.5" />}
+              </button>
+              <span className="text-sm font-semibold">J'ai été baptisé(e)</span>
+            </label>
+            {baptized && (
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Date de baptême" icon={Droplet}>
+                  <Input
+                    type="date"
+                    value={baptismDate}
+                    onChange={(e) => setBaptismDate(e.target.value)}
+                    className="h-11"
+                  />
+                </Field>
+                <Field label="Église" icon={Home}>
+                  <Input
+                    value={church}
+                    onChange={(e) => setChurch(e.target.value)}
+                    placeholder="Nom de l'église"
+                    className="h-11"
+                  />
+                </Field>
+              </div>
             )}
-          </div>
-          <label className="inline-flex items-center gap-2 rounded-full border border-border px-5 py-2.5 text-sm font-bold cursor-pointer hover:bg-muted transition">
-            <Camera className="h-4 w-4" />
-            {photoFile ? "Changer la photo" : "Choisir une photo"}
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={async (e) => {
-                const f = e.target.files?.[0];
-                if (!f) return;
-                setPhotoFile(f);
-                setPhotoUrl(URL.createObjectURL(f));
-                setLoading(true);
-                setError("");
-                try {
-                  const { file_url } = await base44.integrations.Core.UploadPublicFile({ file: f });
-                  setPhotoUrl(file_url);
-                } catch (err) {
-                  setError(err.message || "Échec de l'upload de la photo");
-                } finally {
-                  setLoading(false);
-                }
-              }}
-            />
-          </label>
-          {photoFile && !photoUrl?.startsWith("http") && (
-            <Button variant="secondary" className="h-10" onClick={uploadPhoto} disabled={loading}>
-              {loading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Envoi…
-                </>
-              ) : (
-                "Enregistrer la photo"
-              )}
-            </Button>
-          )}
-          <p className="text-xs text-muted-foreground text-center">
-            Vous pouvez passer cette étape et ajouter votre photo plus tard.
-          </p>
-        </div>
-      </StepShell>
-    );
-  }
+            <Field label="Bio">
+              <Textarea
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                rows={2}
+                placeholder="Quelques mots sur vous…"
+              />
+            </Field>
+            <Field label="Parcours spirituel">
+              <Textarea
+                value={spiritualJourney}
+                onChange={(e) => setSpiritualJourney(e.target.value)}
+                rows={2}
+                placeholder="Votre cheminement avec Dieu…"
+              />
+            </Field>
+            <Field label="Depuis quand avez-vous connu l'Église Chay ?" icon={CalendarDays}>
+              <Input
+                type="date"
+                value={knownChaySince}
+                onChange={(e) => setKnownChaySince(e.target.value)}
+                className="h-11"
+              />
+            </Field>
+          </section>
 
-  if (step === 6) {
-    return (
-      <StepShell icon={MapPin} title="Localisation" subtitle="Pour trouver une église près de vous">
-        <div className="space-y-4">
-          <div className="rounded-2xl border border-border bg-background p-4 space-y-3">
-            <div className="flex items-center gap-3">
+          {/* Location */}
+          <section className="rounded-2xl border border-border bg-card p-5 space-y-3">
+            <div className="text-xs font-bold uppercase tracking-wide text-foreground/50 flex items-center gap-1">
+              <MapPin className="h-3.5 w-3.5" /> Localisation
+            </div>
+            <p className="text-xs text-foreground/50">
+              L'activation de la localisation est obligatoire pour valider votre
+              inscription.
+            </p>
+            <div className="flex items-center gap-3 flex-wrap">
               <Button
                 type="button"
                 variant={locStatus === "granted" ? "secondary" : "default"}
                 onClick={getLocation}
-                className="h-10"
+                className="h-11"
               >
                 {locStatus === "loading" ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : locStatus === "granted" ? (
-                  <Check className="w-4 h-4 mr-2" />
+                  <Check className="h-4 w-4 mr-2" />
                 ) : (
-                  <MapPin className="w-4 h-4 mr-2" />
+                  <MapPin className="h-4 w-4 mr-2" />
                 )}
-                {locStatus === "granted" ? "Localisation activée" : "Activer ma localisation"}
+                {locStatus === "granted"
+                  ? "Localisation activée"
+                  : "Activer ma localisation"}
               </Button>
               {locStatus === "denied" && (
                 <span className="text-xs text-destructive font-medium">
-                  Accès refusé — indiquez votre ville
+                  Accès refusé — réessayez
+                </span>
+              )}
+              {locStatus === "unsupported" && (
+                <span className="text-xs text-destructive font-medium">
+                  Non supporté sur cet appareil
                 </span>
               )}
             </div>
-            <Input
-              placeholder="Votre ville (ex. Antananarivo, Paris)"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              className="h-11"
-            />
-            {loc && (
-              <p className="text-xs text-muted-foreground">
-                Coordonnées : {loc.lat.toFixed(3)}, {loc.lng.toFixed(3)}
-              </p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="phone">Téléphone (optionnel)</Label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="+261 …"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="pl-10 h-12"
-              />
-            </div>
-          </div>
-        </div>
-      </StepShell>
-    );
-  }
+          </section>
 
-  // step 7: consents
-  return (
-    <StepShell icon={ShieldCheck} title="Vos consentements" subtitle="Acceptez les conditions pour terminer">
-      <div className="space-y-3">
-        {[
-          { state: consentPrivacy, set: setConsentPrivacy, label: "Politique de confidentialité", desc: "J'accepte que mes données soient traitées conformément à la politique de confidentialité de CHAY." },
-          { state: consentCookies, set: setConsentCookies, label: "Cookies", desc: "J'autorise l'utilisation de cookies pour améliorer mon expérience sur l'application." },
-          { state: consentTerms, set: setConsentTerms, label: "Conditions d'utilisation", desc: "J'accepte les conditions générales d'utilisation de la communauté CHAY." },
-        ].map((c, i) => (
-          <label
-            key={i}
-            className={`flex items-start gap-3 rounded-2xl border p-4 cursor-pointer transition ${
-              c.state ? "border-primary bg-primary/5" : "border-border"
-            }`}
-          >
+          {/* Respect consent */}
+          <label className="flex items-start gap-3 rounded-2xl border border-border bg-card p-4 cursor-pointer">
             <button
               type="button"
-              onClick={() => c.set(!c.state)}
+              onClick={() => setRespectConsent((v) => !v)}
               className={`mt-0.5 h-5 w-5 rounded-md border-2 grid place-items-center shrink-0 transition ${
-                c.state ? "bg-primary border-primary text-primary-foreground" : "border-border"
+                respectConsent
+                  ? "bg-primary border-primary text-primary-foreground"
+                  : "border-border"
               }`}
             >
-              {c.state && <Check className="h-3.5 w-3.5" />}
+              {respectConsent && <Check className="h-3.5 w-3.5" />}
             </button>
-            <div>
-              <div className="font-bold text-sm">{c.label}</div>
-              <div className="text-xs text-muted-foreground mt-0.5">{c.desc}</div>
-            </div>
+            <span className="text-sm text-foreground/80 selectable">
+              Malalaka ny fanehoan-kevitra sy "commentaires" amin'ny "actualités"
+              ato amin'ny Application Chay fa atao am-panajana tanteraka.
+            </span>
           </label>
-        ))}
+
+          <Button
+            type="submit"
+            className="w-full h-12 font-medium brand-gradient text-white border-0"
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Création…
+              </>
+            ) : (
+              "Créer mon compte"
+            )}
+          </Button>
+
+          <p className="text-center text-sm text-foreground/60">
+            Déjà un compte ?{" "}
+            <Link to={loginLink} className="text-primary font-medium hover:underline">
+              Se connecter
+            </Link>
+          </p>
+        </form>
       </div>
-    </StepShell>
+    </div>
   );
 }

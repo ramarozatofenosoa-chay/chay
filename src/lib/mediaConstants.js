@@ -7,6 +7,7 @@ import {
   Youtube,
   Image as ImageIcon,
   ListMusic,
+  Library,
 } from "lucide-react";
 
 export const RADIO_URL = "https://link/radioking.com/chay-fr";
@@ -20,4 +21,5 @@ export const CATEGORIES = [
   { id: "youtube", label: "YouTube", icon: Youtube, tone: "from-[#FF4D2D] to-[#FF57B2]" },
   { id: "gallery", label: "Galerie", icon: ImageIcon, tone: "from-[#4A6CFE] to-[#2E6F40]" },
   { id: "playlist", label: "Votre Playlist", icon: ListMusic, tone: "from-[#8A56E2] to-[#4A6CFE]" },
+  { id: "playlists", label: "Playlists", icon: Library, tone: "from-[#2E6F40] to-[#8A56E2]" },
 ];

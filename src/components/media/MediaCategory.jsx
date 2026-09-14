@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   ChevronLeft,
   Search,
@@ -10,6 +10,8 @@ import {
   Plus,
   Trash2,
   Radio,
+  ListPlus,
+  Library,
 } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import ArticleCard from "@/components/media/ArticleCard";
@@ -25,6 +27,7 @@ const TITLES = {
   youtube: "YouTube",
   gallery: "Galerie",
   playlist: "Votre Playlist",
+  playlists: "Playlists",
 };
 
 function SearchBar({ query, setQuery, placeholder }) {
@@ -50,13 +53,21 @@ export default function MediaCategory({
   currentTrack,
   isPlaying,
   play,
+  playQueue,
   toggle,
   addToPlaylist,
   removeFromPlaylist,
   playPlaylistItem,
   isPinned,
+  playlists = [],
+  playlistTracks = [],
+  onAddToAdminPlaylist,
+  onCreatePlaylist,
+  onRemovePlaylistTrack,
+  isAdmin,
 }) {
   const { tracks, sermons, videos, articles, youtube, gallery, playlist } = data;
+  const [openPlaylist, setOpenPlaylist] = useState(null);
   const q = query.trim().toLowerCase();
   const match = (t) => (q ? (t || "").toLowerCase().includes(q) : true);
   const fTracks = tracks.filter((t) => match(t.title) || match(t.artist));
@@ -110,7 +121,10 @@ export default function MediaCategory({
                   <div className="aspect-square rounded-2xl brand-gradient grid place-items-center mb-3 relative overflow-hidden">
                     <Music className="h-8 w-8 text-white/90" />
                     <button
-                      onClick={() => (currentTrack?.id === t.id ? toggle() : play(t))}
+                      onClick={() => {
+                        const i = fTracks.indexOf(t);
+                        currentTrack?.id === t.id ? toggle() : playQueue(fTracks, i);
+                      }}
                       className="absolute inset-0 grid place-items-center bg-black/0 group-hover:bg-black/20 transition"
                     >
                       {currentTrack?.id === t.id && isPlaying ? (
@@ -129,6 +143,17 @@ export default function MediaCategory({
                     >
                       ＋
                     </button>
+                    {isAdmin && onAddToAdminPlaylist && (
+                      <button
+                        onClick={() =>
+                          onAddToAdminPlaylist({ id: t.id, title: t.title, artist: t.artist, audio_url: t.audio_url, cover_url: t.cover_url, kind: "audio" })
+                        }
+                        className="absolute top-2 left-2 h-7 w-7 grid place-items-center rounded-full bg-black/30 text-white opacity-0 group-hover:opacity-100 hover:bg-black/50 transition"
+                        title="Ajouter à une playlist"
+                      >
+                        <ListPlus className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                   <div className="font-bold text-sm line-clamp-1">{t.title}</div>
                   <div className="text-xs text-foreground/55">{t.artist}</div>
@@ -362,6 +387,133 @@ export default function MediaCategory({
             <p className="text-foreground/50 text-sm">
               Votre playlist est vide. Ajoutez des titres depuis Musique, Prédication ou Vidéos.
             </p>
+          )}
+        </>
+      )}
+
+      {cat === "playlists" && (
+        <>
+          {openPlaylist ? (
+            <div>
+              <div className="flex items-center gap-3 mb-5">
+                <button
+                  onClick={() => setOpenPlaylist(null)}
+                  className="h-9 w-9 grid place-items-center rounded-full border border-border hover:bg-muted"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <h2 className="font-display font-extrabold text-2xl truncate">
+                  {openPlaylist.name}
+                </h2>
+              </div>
+              {(() => {
+                const pts = playlistTracks.filter(
+                  (pt) => pt.playlist_id === openPlaylist.id
+                );
+                const audioPts = pts.filter(
+                  (pt) => pt.kind !== "video" && pt.audio_url
+                );
+                if (!pts.length)
+                  return (
+                    <p className="text-foreground/50 text-sm">
+                      Aucun titre dans cette playlist.
+                    </p>
+                  );
+                return (
+                  <div className="space-y-3">
+                    {pts.map((pt) => (
+                      <div
+                        key={pt.id}
+                        className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3"
+                      >
+                        <div className="h-12 w-12 rounded-xl brand-gradient grid place-items-center text-white shrink-0">
+                          <Music className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-bold truncate">{pt.title}</div>
+                          <div className="text-xs text-foreground/55">
+                            {pt.artist || "Audio"}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const i = audioPts.findIndex((a) => a.id === pt.id);
+                            if (i >= 0)
+                              playQueue(
+                                audioPts.map((a) => ({
+                                  id: a.track_id,
+                                  title: a.title,
+                                  artist: a.artist,
+                                  audio_url: a.audio_url,
+                                  cover_url: a.cover_url,
+                                })),
+                                i
+                              );
+                          }}
+                          className="h-10 w-10 rounded-full bg-primary text-primary-foreground grid place-items-center"
+                        >
+                          {currentTrack?.id === pt.track_id && isPlaying ? (
+                            <Pause className="h-4 w-4" />
+                          ) : (
+                            <Play className="h-4 w-4" />
+                          )}
+                        </button>
+                        {isAdmin && onRemovePlaylistTrack && (
+                          <button
+                            onClick={() => onRemovePlaylistTrack(pt.id)}
+                            className="h-9 w-9 grid place-items-center rounded-full text-foreground/50 hover:text-destructive hover:bg-muted"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="font-display font-extrabold text-2xl">Playlists</h2>
+                {isAdmin && onCreatePlaylist && (
+                  <button
+                    onClick={onCreatePlaylist}
+                    className="inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-4 py-2.5 text-sm font-bold hover:scale-105 transition"
+                  >
+                    <Plus className="h-4 w-4" /> Créer une playlist
+                  </button>
+                )}
+              </div>
+              {playlists.length ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {playlists.map((p) => {
+                    const count = playlistTracks.filter(
+                      (pt) => pt.playlist_id === p.id
+                    ).length;
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => setOpenPlaylist(p)}
+                        className="group rounded-[1.5rem] border border-border bg-card p-4 text-left hover:-translate-y-1 hover:shadow-lg transition-all"
+                      >
+                        <div className="aspect-square rounded-2xl brand-gradient grid place-items-center mb-3">
+                          <Library className="h-8 w-8 text-white/90" />
+                        </div>
+                        <div className="font-bold text-sm line-clamp-1">{p.name}</div>
+                        <div className="text-xs text-foreground/55">
+                          {count} titre(s)
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-foreground/50 text-sm">
+                  Aucune playlist pour le moment.
+                </p>
+              )}
+            </>
           )}
         </>
       )}

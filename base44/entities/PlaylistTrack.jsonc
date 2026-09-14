@@ -1,0 +1,59 @@
+{
+  "name": "PlaylistTrack",
+  "type": "object",
+  "properties": {
+    "playlist_id": {
+      "type": "string"
+    },
+    "track_id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "artist": {
+      "type": "string"
+    },
+    "audio_url": {
+      "type": "string"
+    },
+    "cover_url": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "audio",
+        "video"
+      ],
+      "default": "audio"
+    },
+    "order": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "playlist_id",
+    "track_id",
+    "title"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": null,
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
