@@ -38,6 +38,8 @@ export default function Messages() {
 
   useEffect(() => {
     loadAll();
+    const t = setInterval(loadAll, 5000);
+    return () => clearInterval(t);
   }, []);
 
   // Realtime updates
@@ -96,6 +98,7 @@ export default function Messages() {
           user={user}
           profiles={profiles}
           onBack={goBack}
+          onRefresh={loadAll}
         />
       ) : (
         <ConversationList

@@ -20,6 +20,12 @@
     "text": {
       "type": "string"
     },
+    "image_url": {
+      "type": "string"
+    },
+    "reply_to_id": {
+      "type": "string"
+    },
     "read_by": {
       "type": "array",
       "items": {

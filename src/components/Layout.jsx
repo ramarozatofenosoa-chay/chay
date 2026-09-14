@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { NavLink, Link, useLocation, useNavigate } from "react-router-dom";
-import { Home, Users, BookOpen, PlayCircle, Gamepad2, Baby, Bell, User, ChevronLeft, Settings, MessageCircle } from "lucide-react";
+import { Home, Users, BookOpen, PlayCircle, Gamepad2, Bell, User, ChevronLeft, Settings, MessageCircle } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import AnimatedOutlet from "@/components/AnimatedOutlet";
 import SettingsModal from "@/components/SettingsModal";
@@ -16,7 +16,6 @@ const NAV = [
   { to: "/bible", label: "Bible", icon: BookOpen },
   { to: "/media", label: "Media", icon: PlayCircle },
   { to: "/games", label: "Games", icon: Gamepad2 },
-  { to: "/kids", label: "Kids", icon: Baby },
 ];
 
 const ROOT_TABS = NAV.map((n) => n.to);

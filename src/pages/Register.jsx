@@ -221,7 +221,7 @@ export default function Register() {
           </div>
         </div>
         <Button
-          className="w-full h-12 font-medium"
+          className="w-full h-12 font-medium brand-gradient text-white border-0"
           onClick={() => setStep(1)}
         >
           S'inscrire avec mon e-mail
@@ -286,7 +286,7 @@ export default function Register() {
               />
             </div>
           </div>
-          <Button type="submit" className="w-full h-12 font-medium" disabled={loading}>
+          <Button type="submit" className="w-full h-12 font-medium brand-gradient text-white border-0" disabled={loading}>
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Création…
@@ -325,7 +325,7 @@ export default function Register() {
             </InputOTPGroup>
           </InputOTP>
         </div>
-        <Button className="w-full h-12 font-medium" onClick={verifyOtp} disabled={loading || otpCode.length < 6}>
+        <Button className="w-full h-12 font-medium brand-gradient text-white border-0" onClick={verifyOtp} disabled={loading || otpCode.length < 6}>
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Vérification…
@@ -369,12 +369,12 @@ export default function Register() {
           <ChevronLeft className="h-4 w-4 mr-1" /> Retour
         </Button>
         {step < 7 && (
-          <Button className="flex-1 h-12 font-medium" onClick={next}>
+          <Button className="flex-1 h-12 font-medium brand-gradient text-white border-0" onClick={next}>
             Continuer
           </Button>
         )}
         {step === 7 && (
-          <Button className="flex-1 h-12 font-medium" onClick={finish} disabled={loading}>
+          <Button className="flex-1 h-12 font-medium brand-gradient text-white border-0" onClick={finish} disabled={loading}>
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Finalisation…

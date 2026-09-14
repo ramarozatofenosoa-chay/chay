@@ -24,9 +24,11 @@ import {
   MapPin,
   Camera,
   LogOut,
+  KeyRound,
 } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import { Image } from "@/components/ui/image";
+import DailyVerseCard from "@/components/notifications/DailyVerseCard";
 
 export default function SettingsModal({ open, onOpenChange }) {
   const { user, deleteAccount } = useAuth();
@@ -37,6 +39,7 @@ export default function SettingsModal({ open, onOpenChange }) {
   const [profile, setProfile] = useState({});
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -97,6 +100,21 @@ export default function SettingsModal({ open, onOpenChange }) {
     await base44.auth.logout();
   };
 
+  const sendResetEmail = async () => {
+    if (!user?.email) return;
+    setResetting(true);
+    try {
+      await base44.auth.resetPasswordRequest(user.email);
+      toast({
+        title: "E-mail envoyé",
+        description: "Vérifiez votre boîte de réception pour réinitialiser votre mot de passe.",
+      });
+    } catch (e) {
+      toast({ title: "Erreur", description: e.message, variant: "destructive" });
+    }
+    setResetting(false);
+  };
+
   const handleOpenChange = (v) => {
     if (!v) {
       setConfirming(false);
@@ -130,6 +148,21 @@ export default function SettingsModal({ open, onOpenChange }) {
             <div className="text-xs text-foreground/50 mt-1 capitalize">
               {user?.role || "user"}
             </div>
+          </div>
+
+          {/* Security */}
+          <div className="rounded-2xl border border-border bg-card p-4 space-y-2">
+            <div className="text-xs font-bold uppercase tracking-wide text-foreground/50">
+              Sécurité
+            </div>
+            <Button variant="outline" className="w-full" onClick={sendResetEmail} disabled={resetting}>
+              {resetting ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <KeyRound className="h-4 w-4 mr-2" />
+              )}
+              Mot de passe oublié
+            </Button>
           </div>
 
           {/* Profile */}
@@ -249,6 +282,7 @@ export default function SettingsModal({ open, onOpenChange }) {
               )}
               Enregistrer le profil
             </Button>
+            <DailyVerseCard user={user} />
           </div>
 
           {/* Preferences */}

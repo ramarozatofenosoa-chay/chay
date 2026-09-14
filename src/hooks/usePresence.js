@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 
-const ONLINE_WINDOW_MS = 60 * 1000;
+const ONLINE_WINDOW_MS = 2 * 60 * 1000;
 
 export function isOnline(lastSeenAt) {
   if (!lastSeenAt) return false;

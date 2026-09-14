@@ -1,5 +1,5 @@
-import React from "react";
-import { MessageCircle, PenSquare, Loader2 } from "lucide-react";
+import React, { useState } from "react";
+import { MessageCircle, PenSquare, Loader2, Search } from "lucide-react";
 import Avatar from "@/components/messages/Avatar";
 import { isOnline, relTime } from "@/hooks/usePresence";
 import PullToRefresh from "@/components/PullToRefresh";
@@ -14,6 +14,7 @@ export default function ConversationList({
   onNew,
   onRefresh,
 }) {
+  const [query, setQuery] = useState("");
   const profileOf = (uid) => profiles.find((p) => p.created_by_id === uid);
 
   const items = conversations.map((c) => {
@@ -36,6 +37,15 @@ export default function ConversationList({
     return { c, title, avatar, online, unread, preview, time };
   });
 
+  const q = query.trim().toLowerCase();
+  const filtered = q
+    ? items.filter(
+        (it) =>
+          (it.title || "").toLowerCase().includes(q) ||
+          (it.preview || "").toLowerCase().includes(q)
+      )
+    : items;
+
   return (
     <PullToRefresh mode="window" onRefresh={onRefresh}>
     <div>
@@ -52,11 +62,21 @@ export default function ConversationList({
         </button>
       </header>
 
+      <div className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2 mb-3">
+        <Search className="h-4 w-4 text-foreground/40" />
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Rechercher une conversation…"
+          className="bg-transparent outline-none text-sm font-medium flex-1"
+        />
+      </div>
+
       {loading ? (
         <div className="flex justify-center py-16">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      ) : items.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <div className="text-center py-16">
           <MessageCircle className="h-10 w-10 mx-auto text-foreground/30 mb-3" />
           <p className="text-foreground/50">
@@ -65,7 +85,7 @@ export default function ConversationList({
         </div>
       ) : (
         <div className="space-y-1">
-          {items.map((it) => (
+          {filtered.map((it) => (
             <button
               key={it.c.id}
               onClick={() => onOpen(it.c.id)}

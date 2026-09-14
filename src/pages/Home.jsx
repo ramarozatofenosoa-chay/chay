@@ -20,10 +20,7 @@ import {
   Mail,
   Shield,
 } from "lucide-react";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import WeatherCard from "@/components/WeatherCard";
-import DailyVerseCard from "@/components/notifications/DailyVerseCard";
 import PullToRefresh from "@/components/PullToRefresh";
 
 const QUICK_TILES = [
@@ -69,8 +66,6 @@ export default function Home() {
   const [devotional, setDevotional] = useState(null);
   const [reunion, setReunion] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [calOpen, setCalOpen] = useState(false);
 
   const loadHome = async () => {
     try {
@@ -154,41 +149,8 @@ export default function Home() {
         Tongasoa eto amin'ny Fiangonana Chay izay mitory ny Fanjakan'Andriamanitra.
       </p>
 
-      {/* Date + Weather */}
-      <section className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Popover open={calOpen} onOpenChange={setCalOpen}>
-          <PopoverTrigger asChild>
-            <button className="rounded-[1.5rem] border border-border bg-card p-5 flex items-center gap-4 text-left hover:border-primary transition w-full">
-              <div className="h-12 w-12 rounded-2xl brand-gradient grid place-items-center text-white shrink-0">
-                <CalendarDays className="h-6 w-6" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-xs font-bold uppercase tracking-wide text-foreground/50">
-                  Date du jour
-                </div>
-                <div className="font-display font-bold text-base md:text-lg capitalize leading-tight">
-                  {new Date().toLocaleDateString("fr-FR", {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </div>
-              </div>
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={(d) => d && setSelectedDate(d)}
-              captionLayout="dropdown"
-              fromYear={1990}
-              toYear={2035}
-              className="rounded-2xl"
-            />
-          </PopoverContent>
-        </Popover>
+      {/* Weather */}
+      <section className="mt-8">
         <WeatherCard />
       </section>
 
@@ -201,10 +163,6 @@ export default function Home() {
           <div className="h-10 w-px bg-border" />
           <ClockChip label="Seattle" tz="America/Los_Angeles" flag="🇺🇸" />
         </div>
-      </section>
-
-      <section className="mt-4">
-        <DailyVerseCard user={user} />
       </section>
 
       {/* Verse of the day */}
