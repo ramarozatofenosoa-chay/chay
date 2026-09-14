@@ -4,6 +4,7 @@ import { ImagePlus, Send, Loader2, X } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import { useToast } from "@/components/ui/use-toast";
 import PostCard from "@/components/community/PostCard";
+import ChatRoom from "@/components/community/ChatRoom";
 
 export default function Community() {
   const { toast } = useToast();
@@ -21,6 +22,7 @@ export default function Community() {
       return [];
     }
   });
+  const [tab, setTab] = useState("feed");
 
   const loadPosts = async () => {
     const p = await base44.entities.CommunityPost
@@ -107,6 +109,16 @@ export default function Community() {
         </p>
       </header>
 
+      {/* Tabs */}
+      <div className="flex gap-2 mb-6">
+        <button onClick={() => setTab("feed")} className={`px-5 py-2 rounded-full text-sm font-bold transition ${tab === "feed" ? "bg-primary text-primary-foreground" : "border border-border bg-card hover:bg-muted"}`}>Fil</button>
+        <button onClick={() => setTab("chat")} className={`px-5 py-2 rounded-full text-sm font-bold transition ${tab === "chat" ? "bg-primary text-primary-foreground" : "border border-border bg-card hover:bg-muted"}`}>Chat</button>
+      </div>
+
+      {tab === "chat" ? (
+        <ChatRoom user={user} />
+      ) : (
+      <>
       {/* Composer */}
       <div className="rounded-[1.5rem] border border-border bg-card p-5 mb-6">
         <textarea
@@ -182,6 +194,8 @@ export default function Community() {
           </p>
         )}
       </div>
+      </>
+      )}
     </div>
   );
 }

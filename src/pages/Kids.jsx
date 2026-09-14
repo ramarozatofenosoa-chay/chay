@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Baby, BookOpen, Gamepad2, Film, Palette } from "lucide-react";
+import ColoringBook from "@/components/kids/ColoringBook";
 
 const ZONES = [
   { id: "learn", label: "Apprendre la Bible", desc: "Leçons & quiz", icon: BookOpen, tone: "from-[#4A6CFE] to-[#8A56E2]" },
@@ -31,6 +32,11 @@ export default function Kids() {
           );
         })}
       </div>
+
+      <section className="mt-8">
+        <h2 className="font-display font-extrabold text-2xl mb-4">Colorier</h2>
+        <ColoringBook />
+      </section>
 
       <div className="mt-8 rounded-[2rem] brand-gradient p-8 md:p-10 text-white flex items-center gap-5 glow-primary">
         <Baby className="h-12 w-12 shrink-0" />

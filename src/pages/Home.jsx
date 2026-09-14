@@ -23,6 +23,7 @@ import {
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import WeatherCard from "@/components/WeatherCard";
+import DailyVerseCard from "@/components/notifications/DailyVerseCard";
 
 const QUICK_TILES = [
   { to: "/bible", label: "Bible", icon: BookOpen, tone: "from-[#4A6CFE] to-[#8A56E2]" },
@@ -189,6 +190,10 @@ export default function Home() {
           <div className="h-10 w-px bg-border" />
           <ClockChip label="Seattle" tz="America/Los_Angeles" flag="🇺🇸" />
         </div>
+      </section>
+
+      <section className="mt-4">
+        <DailyVerseCard user={user} />
       </section>
 
       {/* Verse of the day */}
