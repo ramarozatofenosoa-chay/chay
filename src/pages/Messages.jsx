@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 import { base44 } from "@/api/base44Client";
 import { usePresenceHeartbeat, useProfiles } from "@/hooks/usePresence";
@@ -10,6 +10,7 @@ import NewChatSheet from "@/components/messages/NewChatSheet";
 export default function Messages() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const activeId = searchParams.get("c");
   const [conversations, setConversations] = useState([]);
   const [messagesByConv, setMessagesByConv] = useState({});
@@ -81,7 +82,10 @@ export default function Messages() {
   const activeConv = conversations.find((c) => c.id === activeId) || null;
 
   const openConversation = (id) => setSearchParams({ c: id });
-  const goBack = () => setSearchParams({}, { replace: true });
+  const goBack = () => {
+    if (window.history.length > 1) navigate(-1);
+    else setSearchParams({});
+  };
 
   return (
     <div className="mx-auto max-w-3xl px-4 md:px-6 py-4 md:py-8">
@@ -102,6 +106,7 @@ export default function Messages() {
           loading={loading}
           onOpen={openConversation}
           onNew={() => setNewOpen(true)}
+          onRefresh={loadAll}
         />
       )}
 

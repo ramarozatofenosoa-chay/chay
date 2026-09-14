@@ -24,6 +24,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import WeatherCard from "@/components/WeatherCard";
 import DailyVerseCard from "@/components/notifications/DailyVerseCard";
+import PullToRefresh from "@/components/PullToRefresh";
 
 const QUICK_TILES = [
   { to: "/bible", label: "Bible", icon: BookOpen, tone: "from-[#4A6CFE] to-[#8A56E2]" },
@@ -71,34 +72,36 @@ export default function Home() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [calOpen, setCalOpen] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const todayISO = new Date().toISOString().split("T")[0];
-        const [todayDevs, allDevs, anns] = await Promise.all([
-          base44.entities.Devotional
-            .filter({ reading_date: todayISO }, "-reading_date", 1)
-            .catch(() => []),
-          base44.entities.Devotional.list("-reading_date", 1).catch(() => []),
-          base44.entities.Announcement.list("-date", 30).catch(() => []),
-        ]);
-        const todayDev =
-          Array.isArray(todayDevs) && todayDevs.length ? todayDevs[0] : null;
-        const fallback = Array.isArray(allDevs) ? allDevs[0] : null;
-        setDevotional(todayDev || fallback || null);
+  const loadHome = async () => {
+    try {
+      const todayISO = new Date().toISOString().split("T")[0];
+      const [todayDevs, allDevs, anns] = await Promise.all([
+        base44.entities.Devotional
+          .filter({ reading_date: todayISO }, "-reading_date", 1)
+          .catch(() => []),
+        base44.entities.Devotional.list("-reading_date", 1).catch(() => []),
+        base44.entities.Announcement.list("-date", 30).catch(() => []),
+      ]);
+      const todayDev =
+        Array.isArray(todayDevs) && todayDevs.length ? todayDevs[0] : null;
+      const fallback = Array.isArray(allDevs) ? allDevs[0] : null;
+      setDevotional(todayDev || fallback || null);
 
-        const all = Array.isArray(anns) ? anns : [];
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const events = all.filter((a) => a.type === "event");
-        const upcoming = events
-          .filter((a) => a.date && new Date(a.date) >= today)
-          .sort((a, b) => new Date(a.date) - new Date(b.date));
-        setReunion(upcoming[0] || events[0] || all[0] || null);
-      } finally {
-        setLoading(false);
-      }
-    })();
+      const all = Array.isArray(anns) ? anns : [];
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const events = all.filter((a) => a.type === "event");
+      const upcoming = events
+        .filter((a) => a.date && new Date(a.date) >= today)
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+      setReunion(upcoming[0] || events[0] || all[0] || null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadHome();
   }, []);
 
   const firstName =
@@ -131,6 +134,7 @@ export default function Home() {
     : "/bible";
 
   return (
+    <PullToRefresh mode="window" onRefresh={loadHome}>
     <div className="mx-auto max-w-6xl px-6 md:px-8 py-8 md:py-12">
       {/* Welcome */}
       <section className="animate-float-in flex items-center gap-4">
@@ -349,5 +353,6 @@ export default function Home() {
         </div>
       </footer>
     </div>
+    </PullToRefresh>
   );
 }

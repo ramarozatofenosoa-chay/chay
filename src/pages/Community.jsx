@@ -5,6 +5,7 @@ import { Image } from "@/components/ui/image";
 import { useToast } from "@/components/ui/use-toast";
 import PostCard from "@/components/community/PostCard";
 import ChatRoom from "@/components/community/ChatRoom";
+import PullToRefresh from "@/components/PullToRefresh";
 
 export default function Community() {
   const { toast } = useToast();
@@ -123,6 +124,7 @@ export default function Community() {
       {tab === "chat" ? (
         <ChatRoom user={user} />
       ) : (
+      <PullToRefresh mode="window" onRefresh={loadPosts}>
       <>
       {/* Composer */}
       <div className="rounded-[1.5rem] border border-border bg-card p-5 mb-6">
@@ -200,6 +202,7 @@ export default function Community() {
         )}
       </div>
       </>
+      </PullToRefresh>
       )}
     </div>
   );

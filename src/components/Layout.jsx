@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { NavLink, Link, useLocation, useNavigate } from "react-router-dom";
 import { Home, Users, BookOpen, PlayCircle, Gamepad2, Baby, Bell, User, ChevronLeft, Settings, MessageCircle } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -23,9 +23,29 @@ const ROOT_TABS = NAV.map((n) => n.to);
 
 export default function Layout() {
   const [showSettings, setShowSettings] = useState(false);
+  const [lastParams, setLastParams] = useState({});
   const location = useLocation();
   const navigate = useNavigate();
   const showBack = !ROOT_TABS.includes(location.pathname);
+
+  // Preserve per-tab sub-view params (?cat=, ?c=, ?game=) so switching tabs restores them
+  useEffect(() => {
+    if (location.search) {
+      setLastParams((p) => ({ ...p, [location.pathname]: location.search }));
+    }
+  }, [location.pathname, location.search]);
+
+  const navTarget = (path, end = false) => {
+    const isActive = end
+      ? location.pathname === path
+      : location.pathname === path || location.pathname.startsWith(path + "/");
+    if (isActive) return path; // tapping the active tab resets to its root
+    const stored = lastParams[path];
+    return stored ? `${path}${stored}` : path;
+  };
+
+  const urlParams = new URLSearchParams(location.search);
+  const hasSubView = urlParams.get("cat") || urlParams.get("c") || urlParams.get("game");
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
@@ -43,7 +63,7 @@ export default function Layout() {
             {NAV.map((item) => (
               <NavLink
                 key={item.to}
-                to={item.to}
+                to={navTarget(item.to, item.end)}
                 end={item.end}
                 className={({ isActive }) =>
                   `px-4 py-2 rounded-full text-sm font-semibold transition-all ${
@@ -60,20 +80,21 @@ export default function Layout() {
 
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <button className="h-9 w-9 grid place-items-center rounded-full border border-border hover:bg-muted transition">
+            <button className="h-11 w-11 grid place-items-center rounded-full border border-border hover:bg-muted transition">
               <Bell className="h-4 w-4" />
             </button>
-            <Link to="/messages" className="h-9 w-9 grid place-items-center rounded-full border border-border hover:bg-muted transition" aria-label="Messages">
+            <Link to={navTarget("/messages")} className="h-11 w-11 grid place-items-center rounded-full border border-border hover:bg-muted transition" aria-label="Messages">
               <MessageCircle className="h-4 w-4" />
             </Link>
-            <button onClick={() => setShowSettings(true)} className="h-9 w-9 grid place-items-center rounded-full brand-gradient text-white shadow-sm">
+            <button onClick={() => setShowSettings(true)} className="h-11 w-11 grid place-items-center rounded-full brand-gradient text-white shadow-sm">
               <User className="h-4 w-4" />
             </button>
           </div>
         </div>
       </header>
 
-      {/* Mobile top bar */}
+      {/* Mobile top bar — hidden on sub-views to avoid double headers */}
+      {!hasSubView && (
       <header
         className="md:hidden sticky top-0 z-40 px-4 bg-background/80 backdrop-blur-xl"
         style={{ paddingTop: "max(1rem, env(safe-area-inset-top))" }}
@@ -83,7 +104,7 @@ export default function Layout() {
             {showBack ? (
               <button
                 onClick={() => navigate(-1)}
-                className="h-9 w-9 grid place-items-center rounded-full border border-border hover:bg-muted transition"
+                className="h-11 w-11 grid place-items-center rounded-full border border-border hover:bg-muted transition"
                 aria-label="Retour"
               >
                 <ChevronLeft className="h-5 w-5" />
@@ -98,21 +119,25 @@ export default function Layout() {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Link to="/messages" className="h-9 w-9 grid place-items-center rounded-full border border-border" aria-label="Messages">
+            <Link to={navTarget("/messages")} className="h-11 w-11 grid place-items-center rounded-full border border-border" aria-label="Messages">
               <MessageCircle className="h-4 w-4" />
             </Link>
             <ThemeToggle />
             <button
               onClick={() => setShowSettings(true)}
-              className="h-9 w-9 grid place-items-center rounded-full border border-border"
+              className="h-11 w-11 grid place-items-center rounded-full border border-border"
             >
               <Settings className="h-4 w-4" />
             </button>
           </div>
         </div>
       </header>
+      )}
 
       <main className="pb-28 md:pb-12">
+        {hasSubView && (
+          <div className="md:hidden" style={{ height: "env(safe-area-inset-top)" }} />
+        )}
         <AnimatedOutlet />
       </main>
 
@@ -125,16 +150,16 @@ export default function Layout() {
             return (
               <NavLink
                 key={item.to}
-                to={item.to}
+                to={navTarget(item.to, item.end)}
                 end={item.end}
-                className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-full transition"
+                className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-full transition"
               >
                 <span
-                  className={`grid place-items-center h-9 w-9 rounded-full transition-all ${
+                  className={`grid place-items-center h-11 w-11 rounded-full transition-all ${
                     active ? "brand-gradient text-white shadow-md scale-105" : "text-foreground/55"
                   }`}
                 >
-                  <Icon className="h-4.5 w-4.5" strokeWidth={active ? 2.5 : 2} />
+                  <Icon className="h-5 w-5" strokeWidth={active ? 2.5 : 2} />
                 </span>
               </NavLink>
             );

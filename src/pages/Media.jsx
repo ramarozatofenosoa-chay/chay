@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import MediaUploader from "@/components/MediaUploader";
 import ContentAddModal from "@/components/media/ContentAddModal";
+import PullToRefresh from "@/components/PullToRefresh";
 import CategoryGrid from "@/components/media/CategoryGrid";
 import MediaCategory from "@/components/media/MediaCategory";
 import { useAudioPlayer } from "@/lib/AudioPlayerContext";
@@ -13,6 +14,7 @@ export default function Media() {
   const { toast } = useToast();
   const { currentTrack, isPlaying, play, toggle } = useAudioPlayer();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const activeCat = searchParams.get("cat");
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -105,9 +107,13 @@ export default function Media() {
   const isPinned = (id) => playlist.some((p) => p.track_id === id);
 
   const openCat = (id) => setSearchParams({ cat: id });
-  const back = () => setSearchParams({}, { replace: true });
+  const back = () => {
+    if (window.history.length > 1) navigate(-1);
+    else setSearchParams({});
+  };
 
   return (
+    <PullToRefresh mode="window" onRefresh={loadAll}>
     <div className="mx-auto max-w-6xl px-4 md:px-8 py-6 md:py-12">
       <header className="mb-6 flex items-end justify-between flex-wrap gap-4">
         <div>
@@ -163,5 +169,6 @@ export default function Media() {
       {showUploader && <MediaUploader onClose={() => setShowUploader(false)} onSaved={loadAll} />}
       {showAdd && <ContentAddModal open={showAdd} onOpenChange={setShowAdd} onSaved={loadAll} />}
     </div>
+    </PullToRefresh>
   );
 }

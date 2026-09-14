@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Gamepad2, Trophy, Flame, Check, X, RefreshCw, ArrowRight } from "lucide-react";
 
 const GAMES = [
@@ -20,6 +20,7 @@ const QUESTIONS = [
 
 export default function Games() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const active = searchParams.get("game");
   const [qIdx, setQIdx] = useState(0);
   const [picked, setPicked] = useState(null);
@@ -57,7 +58,7 @@ export default function Games() {
     return (
       <div className="mx-auto max-w-2xl px-6 md:px-8 py-8 md:py-12">
         <div className="flex items-center justify-between mb-6">
-          <button onClick={() => setSearchParams({}, { replace: true })} className="text-sm font-bold text-foreground/60 hover:text-foreground">← Back</button>
+          <button onClick={() => { if (window.history.length > 1) navigate(-1); else setSearchParams({}); }} className="text-sm font-bold text-foreground/60 hover:text-foreground">← Back</button>
           <div className="flex items-center gap-3">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-sm font-bold"><Trophy className="h-4 w-4 text-primary" /> {score}/{QUESTIONS.length}</span>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-sm font-bold"><Flame className="h-4 w-4 text-primary" /> {streak}</span>

@@ -2,6 +2,7 @@ import React from "react";
 import { MessageCircle, PenSquare, Loader2 } from "lucide-react";
 import Avatar from "@/components/messages/Avatar";
 import { isOnline, relTime } from "@/hooks/usePresence";
+import PullToRefresh from "@/components/PullToRefresh";
 
 export default function ConversationList({
   user,
@@ -11,6 +12,7 @@ export default function ConversationList({
   loading,
   onOpen,
   onNew,
+  onRefresh,
 }) {
   const profileOf = (uid) => profiles.find((p) => p.created_by_id === uid);
 
@@ -35,6 +37,7 @@ export default function ConversationList({
   });
 
   return (
+    <PullToRefresh mode="window" onRefresh={onRefresh}>
     <div>
       <header className="flex items-center justify-between mb-5">
         <h1 className="font-display font-extrabold text-3xl">
@@ -90,5 +93,6 @@ export default function ConversationList({
         </div>
       )}
     </div>
+    </PullToRefresh>
   );
 }
