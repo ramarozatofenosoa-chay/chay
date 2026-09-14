@@ -24,6 +24,7 @@ import Community from '@/pages/Community';
 import Donate from '@/pages/Donate';
 import Contact from '@/pages/Contact';
 import Admin from '@/pages/Admin';
+import Messages from '@/pages/Messages';
 import SplashScreen from '@/components/SplashScreen';
 import { AudioPlayerProvider } from '@/lib/AudioPlayerContext';
 
@@ -70,6 +71,7 @@ const AuthenticatedApp = () => {
           <Route path="/donate" element={<Donate />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/messages" element={<Messages />} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />

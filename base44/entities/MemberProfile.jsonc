@@ -1,0 +1,30 @@
+{
+  "name": "MemberProfile",
+  "type": "object",
+  "properties": {
+    "display_name": {
+      "type": "string"
+    },
+    "avatar_url": {
+      "type": "string"
+    },
+    "last_seen_at": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "display_name"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

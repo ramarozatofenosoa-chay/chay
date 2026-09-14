@@ -116,7 +116,7 @@ export default function Community() {
 
       {/* Tabs */}
       <div className="flex gap-2 mb-6">
-        <button onClick={() => setTab("feed")} className={`px-5 py-2 rounded-full text-sm font-bold transition ${tab === "feed" ? "bg-primary text-primary-foreground" : "border border-border bg-card hover:bg-muted"}`}>Fil</button>
+        <button onClick={() => setTab("feed")} className={`px-5 py-2 rounded-full text-sm font-bold transition ${tab === "feed" ? "bg-primary text-primary-foreground" : "border border-border bg-card hover:bg-muted"}`}>Actualité</button>
         <button onClick={() => setTab("chat")} className={`px-5 py-2 rounded-full text-sm font-bold transition ${tab === "chat" ? "bg-primary text-primary-foreground" : "border border-border bg-card hover:bg-muted"}`}>Chat</button>
       </div>
 

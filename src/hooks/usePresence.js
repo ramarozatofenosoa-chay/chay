@@ -1,0 +1,109 @@
+import { useEffect, useState } from "react";
+import { base44 } from "@/api/base44Client";
+
+const ONLINE_WINDOW_MS = 60 * 1000;
+
+export function isOnline(lastSeenAt) {
+  if (!lastSeenAt) return false;
+  const t = new Date(lastSeenAt).getTime();
+  return Date.now() - t < ONLINE_WINDOW_MS;
+}
+
+export function lastSeenLabel(lastSeenAt) {
+  if (!lastSeenAt) return "hors ligne";
+  if (isOnline(lastSeenAt)) return "en ligne";
+  const d = new Date(lastSeenAt);
+  return `vu à ${d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
+}
+
+// Heartbeat: ensure a MemberProfile exists for the user, then refresh last_seen_at periodically.
+export function usePresenceHeartbeat(user) {
+  useEffect(() => {
+    if (!user?.id) return;
+    let profileId = null;
+    let interval = null;
+    let stopped = false;
+
+    const ensure = async () => {
+      const existing = await base44.entities.MemberProfile
+        .filter({ created_by_id: user.id }, "-created_date", 1)
+        .catch(() => []);
+      if (existing && existing[0]) {
+        profileId = existing[0].id;
+        return;
+      }
+      const name =
+        user.full_name ||
+        [user.first_name, user.last_name].filter(Boolean).join(" ") ||
+        (user.email ? user.email.split("@")[0] : "Membre");
+      const created = await base44.entities.MemberProfile
+        .create({ display_name: name, last_seen_at: new Date().toISOString() })
+        .catch(() => null);
+      profileId = created?.id || null;
+    };
+
+    const beat = () => {
+      if (profileId) {
+        base44.entities.MemberProfile
+          .update(profileId, { last_seen_at: new Date().toISOString() })
+          .catch(() => {});
+      }
+    };
+
+    (async () => {
+      await ensure();
+      if (stopped) return;
+      beat();
+      interval = setInterval(beat, 30000);
+      const onUnload = () => beat();
+      window.addEventListener("beforeunload", onUnload);
+      window.__chayUnload = onUnload;
+    })();
+
+    return () => {
+      stopped = true;
+      if (interval) clearInterval(interval);
+      if (window.__chayUnload) {
+        window.removeEventListener("beforeunload", window.__chayUnload);
+        delete window.__chayUnload;
+      }
+    };
+  }, [user?.id]);
+}
+
+// Loads all member profiles and live-updates them via realtime subscription.
+export function useProfiles() {
+  const [profiles, setProfiles] = useState([]);
+
+  useEffect(() => {
+    const load = async () => {
+      const all = await base44.entities.MemberProfile
+        .list("-last_seen_at", 200)
+        .catch(() => []);
+      setProfiles(Array.isArray(all) ? all : []);
+    };
+    load();
+    const unsub = base44.entities.MemberProfile.subscribe((event) => {
+      setProfiles((prev) => {
+        const map = new Map(prev.map((p) => [p.id, p]));
+        if (event.type === "delete") map.delete(event.data.id);
+        else map.set(event.data.id, event.data);
+        return Array.from(map.values());
+      });
+    });
+    return unsub;
+  }, []);
+
+  return profiles;
+}
+
+export function relTime(d) {
+  if (!d) return "";
+  const date = new Date(d);
+  const diff = Date.now() - date.getTime();
+  if (diff < 60000) return "à l'instant";
+  if (diff < 3600000) return `${Math.floor(diff / 60000)} min`;
+  if (diff < 86400000)
+    return date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  return date.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+}

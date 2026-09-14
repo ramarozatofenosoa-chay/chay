@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { Home, Users, BookOpen, PlayCircle, Gamepad2, Baby, Bell, User, ChevronLeft, Settings } from "lucide-react";
+import { NavLink, Link, useLocation, useNavigate } from "react-router-dom";
+import { Home, Users, BookOpen, PlayCircle, Gamepad2, Baby, Bell, User, ChevronLeft, Settings, MessageCircle } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import AnimatedOutlet from "@/components/AnimatedOutlet";
 import SettingsModal from "@/components/SettingsModal";
@@ -63,6 +63,9 @@ export default function Layout() {
             <button className="h-9 w-9 grid place-items-center rounded-full border border-border hover:bg-muted transition">
               <Bell className="h-4 w-4" />
             </button>
+            <Link to="/messages" className="h-9 w-9 grid place-items-center rounded-full border border-border hover:bg-muted transition" aria-label="Messages">
+              <MessageCircle className="h-4 w-4" />
+            </Link>
             <button onClick={() => setShowSettings(true)} className="h-9 w-9 grid place-items-center rounded-full brand-gradient text-white shadow-sm">
               <User className="h-4 w-4" />
             </button>
@@ -95,6 +98,9 @@ export default function Layout() {
             )}
           </div>
           <div className="flex items-center gap-2">
+            <Link to="/messages" className="h-9 w-9 grid place-items-center rounded-full border border-border" aria-label="Messages">
+              <MessageCircle className="h-4 w-4" />
+            </Link>
             <ThemeToggle />
             <button
               onClick={() => setShowSettings(true)}
