@@ -3,7 +3,6 @@ import { NavLink, Link, useLocation, useNavigate } from "react-router-dom";
 import { Home, Users, BookOpen, PlayCircle, Gamepad2, Bell, User, ChevronLeft, Settings, MessageCircle } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import AnimatedOutlet from "@/components/AnimatedOutlet";
-import SettingsModal from "@/components/SettingsModal";
 import MiniPlayer from "@/components/MiniPlayer";
 import { Image } from "@/components/ui/image";
 import { useAuth } from "@/lib/AuthContext";
@@ -27,7 +26,6 @@ export default function Layout() {
   const { user } = useAuth();
   usePresenceHeartbeat(user);
   const unread = useUnreadMessages(user);
-  const [showSettings, setShowSettings] = useState(false);
   const [lastParams, setLastParams] = useState({});
   const location = useLocation();
   const navigate = useNavigate();
@@ -96,9 +94,9 @@ export default function Layout() {
                 </span>
               )}
             </Link>
-            <button onClick={() => setShowSettings(true)} className="h-11 w-11 grid place-items-center rounded-full brand-gradient text-white shadow-sm">
+            <Link to="/settings" className="h-11 w-11 grid place-items-center rounded-full brand-gradient text-white shadow-sm" aria-label="Paramètres">
               <User className="h-4 w-4" />
-            </button>
+            </Link>
           </div>
         </div>
       </header>
@@ -138,12 +136,13 @@ export default function Layout() {
               )}
             </Link>
             <ThemeToggle />
-            <button
-              onClick={() => setShowSettings(true)}
+            <Link
+              to="/settings"
               className="h-11 w-11 grid place-items-center rounded-full border border-border"
+              aria-label="Paramètres"
             >
               <Settings className="h-4 w-4" />
-            </button>
+            </Link>
           </div>
         </div>
       </header>
@@ -183,7 +182,6 @@ export default function Layout() {
       </nav>
 
       <MiniPlayer />
-      <SettingsModal open={showSettings} onOpenChange={setShowSettings} />
     </div>
   );
 }

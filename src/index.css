@@ -153,4 +153,20 @@
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   .selectable { user-select: text; -webkit-user-select: text; }
+
+  /* Préférences d'affichage (appliquées via data-attributs sur <html>) */
+  html[data-text-size="sm"] { font-size: 14px; }
+  html[data-text-size="md"] { font-size: 16px; }
+  html[data-text-size="lg"] { font-size: 18px; }
+  html[data-text-size="xl"] { font-size: 20px; }
+  html[data-contrast="high"] { --muted-foreground: 30 10% 25%; --border: 35 15% 70%; }
+  html.dark[data-contrast="high"] { --muted-foreground: 40 30% 85%; --border: 36 15% 45%; }
+  .reduce-animations *, .reduce-animations *::before, .reduce-animations *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  html[data-density="compact"] { --radius: 1rem; }
+  html[data-density="comfortable"] { --radius: 1.5rem; }
 }

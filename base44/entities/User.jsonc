@@ -98,6 +98,11 @@
     },
     "bible_last_chapter": {
       "type": "number"
+    },
+    "settings": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Pr\u00e9f\u00e9rences de l'utilisateur (affichage, notifications, confidentialit\u00e9) \u2014 persist\u00e9es sur le compte."
     }
   },
   "required": [

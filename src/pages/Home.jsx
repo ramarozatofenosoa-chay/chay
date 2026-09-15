@@ -17,7 +17,6 @@ import {
   Facebook,
   Youtube,
   Share2,
-  Mail,
   Shield,
 } from "lucide-react";
 import WeatherCard from "@/components/WeatherCard";
@@ -293,22 +292,16 @@ export default function Home() {
             <Youtube className="h-5 w-5 text-primary" /> YouTube
           </a>
         </div>
-        <div className="flex items-center justify-center gap-3 flex-wrap">
-          <Link
-            to="/contact"
-            className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-bold hover:scale-105 hover:border-primary transition"
-          >
-            <Mail className="h-5 w-5 text-primary" /> Contact
-          </Link>
-          {user?.role === "admin" && (
+        {user?.role === "admin" && (
+          <div className="flex items-center justify-center gap-3 flex-wrap">
             <Link
               to="/admin"
               className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-bold hover:scale-105 hover:border-primary transition"
             >
               <Shield className="h-5 w-5 text-primary" /> Admin
             </Link>
-          )}
-        </div>
+          </div>
+        )}
       </footer>
     </div>
     </PullToRefresh>

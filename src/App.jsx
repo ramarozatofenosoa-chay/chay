@@ -12,6 +12,8 @@ import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
+import Settings from '@/pages/Settings';
+import { PreferencesProvider } from '@/lib/PreferencesContext';
 import { Navigate } from 'react-router-dom';
 // Add page imports here
 import Layout from '@/components/Layout';
@@ -72,6 +74,7 @@ const AuthenticatedApp = () => {
           <Route path="/contact" element={<Contact />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/messages" element={<Messages />} />
+          <Route path="/settings" element={<Settings />} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />
@@ -84,6 +87,7 @@ function App() {
 
   return (
     <AuthProvider>
+      <PreferencesProvider>
       <QueryClientProvider client={queryClientInstance}>
         <AudioPlayerProvider>
           <Router>
@@ -93,6 +97,7 @@ function App() {
           <Toaster />
         </AudioPlayerProvider>
       </QueryClientProvider>
+      </PreferencesProvider>
     </AuthProvider>
   )
 }
