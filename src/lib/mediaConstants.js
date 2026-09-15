@@ -10,7 +10,7 @@ import {
   Library,
 } from "lucide-react";
 
-export const RADIO_URL = "https://link.radioking.com/chay-fr";
+export const RADIO_URL = "https://play.radioking.io/chay-fr";
 
 export const CATEGORIES = [
   { id: "radio", label: "Radio", icon: Radio, tone: "from-[#FF4D2D] to-[#FF57B2]", href: RADIO_URL },
