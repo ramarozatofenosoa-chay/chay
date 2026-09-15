@@ -1,132 +1,150 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LogIn, Mail, Lock, Loader2 } from "lucide-react";
-import AuthLayout from "@/components/AuthLayout";
-import GoogleIcon from "@/components/GoogleIcon";
+import { Mail, Lock, AlertCircle } from "lucide-react";
 import { safeReturnTo } from "@/lib/authReturnTo";
+import LoginButton from "@/components/auth/LoginButton";
+
+const LOGO_URL =
+  "https://media.base44.com/images/public/6aa138d0e963d9e5f59d838c/5293cfa35_chay.png";
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function mapLoginError(msg) {
+  const m = (msg || "").toLowerCase();
+  if (/verif|non vérifié|unverified|not verified|verify your|email.*verif/i.test(m))
+    return "Votre email n'est pas encore vérifié. Veuillez vérifier votre boîte mail.";
+  if (/block|bloqué|too many|rate limit|attempt|locked/i.test(m))
+    return "Trop de tentatives de connexion. Veuillez réessayer dans quelques minutes.";
+  return "Email ou mot de passe incorrect.";
+}
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  // Post-login destination (e.g. the MCP OAuth consent page sends users here
-  // with returnTo so the grant flow can resume). Same-origin paths only.
+  const [btnState, setBtnState] = useState("idle"); // idle | loading | success | error
   const returnTo = safeReturnTo();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (btnState === "loading" || btnState === "success") return;
     setError("");
-    setLoading(true);
+    // Validation préalable : pas d'animation de chargement si invalide.
+    if (!EMAIL_REGEX.test(email.trim()) || !password) {
+      setError("Veuillez saisir un email valide et votre mot de passe.");
+      return;
+    }
+    setBtnState("loading");
     try {
-      await base44.auth.loginViaEmailPassword(email, password);
-      window.location.href = returnTo;
+      await base44.auth.loginViaEmailPassword(email.trim(), password);
+      setBtnState("success");
+      setTimeout(() => {
+        window.location.href = returnTo;
+      }, 600);
     } catch (err) {
-      setError(err.message || "Invalid email or password");
-    } finally {
-      setLoading(false);
+      setError(mapLoginError(err?.message));
+      setBtnState("error");
+      setTimeout(() => setBtnState("idle"), 600);
     }
   };
 
-  const handleGoogle = () => {
-    base44.auth.loginWithProvider("google", returnTo);
-  };
+  const registerLink =
+    "/register" +
+    (returnTo !== "/" ? "?returnTo=" + encodeURIComponent(returnTo) : "");
 
   return (
-    <AuthLayout
-      icon={LogIn}
-      title="Welcome back"
-      subtitle="Log in to your account"
-      footer={
-        <>
-          Don't have an account?{" "}
+    <div className="min-h-screen bg-white dark:bg-[#0B1220] flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {/* Logo — seule zone en dégradé */}
+        <div className="flex justify-center mb-6">
+          <img src={LOGO_URL} alt="Église Chay" className="h-16 md:h-20 w-auto" />
+        </div>
+
+        <h1 className="text-center font-display font-extrabold text-2xl text-[#111827] dark:text-[#E6F1FB] mb-1">
+          Content de vous revoir
+        </h1>
+        <p className="text-center text-sm text-[#4B5563] dark:text-[#99C9FF] mb-6">
+          Connectez-vous à votre compte CHAY
+        </p>
+
+        {error && (
+          <div className="mb-4 p-3 rounded-xl bg-[#FDECEC] dark:bg-[#3A2530] text-[#B3261E] dark:text-[#E57373] text-sm flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="email" className="text-[#4B5563] dark:text-[#99C9FF]">
+              Email
+            </Label>
+            <div className="relative">
+              <Mail
+                className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#9CA3AF]"
+                aria-hidden="true"
+              />
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                autoFocus
+                placeholder="chay@chay.fr"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="pl-10 h-12 border-[#D1D5DB] dark:border-[#374151] focus:border-[#C857A8] dark:focus:border-[#D48FD4] focus-visible:ring-[#C857A8]"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label
+                htmlFor="password"
+                className="text-[#4B5563] dark:text-[#99C9FF]"
+              >
+                Mot de passe
+              </Label>
+              <Link
+                to="/forgot-password"
+                className="text-xs text-[#6B2D6B] dark:text-[#B06FB0] font-medium hover:underline"
+              >
+                Mot de passe oublié ?
+              </Link>
+            </div>
+            <div className="relative">
+              <Lock
+                className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#9CA3AF]"
+                aria-hidden="true"
+              />
+              <Input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="pl-10 h-12 border-[#D1D5DB] dark:border-[#374151] focus:border-[#C857A8] dark:focus:border-[#D48FD4] focus-visible:ring-[#C857A8]"
+              />
+            </div>
+          </div>
+
+          <LoginButton state={btnState} disabled={btnState !== "idle"} />
+        </form>
+
+        <p className="text-center text-sm text-[#4B5563] dark:text-[#99C9FF] mt-6">
+          Pas encore de compte ?{" "}
           <Link
-            to={"/register" + (returnTo !== "/" ? "?returnTo=" + encodeURIComponent(returnTo) : "")}
-            className="text-primary font-medium hover:underline"
+            to={registerLink}
+            className="text-[#6B2D6B] dark:text-[#B06FB0] font-medium hover:underline"
           >
-            Create one
+            Créer un compte
           </Link>
-        </>
-      }
-    >
-      <Button
-        variant="outline"
-        className="w-full h-12 text-sm font-medium mb-6"
-        onClick={handleGoogle}
-      >
-        <GoogleIcon className="w-5 h-5 mr-2" />
-        Continue with Google
-      </Button>
-
-      <div className="relative mb-6">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-border" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-3 text-muted-foreground">or</span>
-        </div>
+        </p>
       </div>
-
-      {error && (
-        <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
-          {error}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
-            <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              autoFocus
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="pl-10 h-12"
-              required
-            />
-          </div>
-        </div>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="password">Password</Label>
-            <Link to="/forgot-password" className="text-xs text-primary hover:underline">
-              Forgot password?
-            </Link>
-          </div>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
-            <Input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="pl-10 h-12"
-              required
-            />
-          </div>
-        </div>
-        <Button type="submit" className="w-full h-12 font-medium" disabled={loading}>
-          {loading ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Logging in...
-            </>
-          ) : (
-            "Log in"
-          )}
-        </Button>
-      </form>
-    </AuthLayout>
+    </div>
   );
 }
