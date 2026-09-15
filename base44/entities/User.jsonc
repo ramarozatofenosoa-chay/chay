@@ -1,4 +1,6 @@
 {
+  "name": "User",
+  "type": "object",
   "properties": {
     "role": {
       "type": "string",
@@ -15,11 +17,20 @@
     "last_name": {
       "type": "string"
     },
-    "birth_date": {
+    "gender": {
       "type": "string",
-      "format": "date"
+      "enum": [
+        "Homme",
+        "Femme"
+      ]
     },
     "phone": {
+      "type": "string"
+    },
+    "country": {
+      "type": "string"
+    },
+    "city": {
       "type": "string"
     },
     "profile_photo_url": {
@@ -34,16 +45,62 @@
     "location_label": {
       "type": "string"
     },
-    "church_assigned": {
+    "localisation_activee": {
+      "type": "boolean"
+    },
+    "birth_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "birth_place": {
       "type": "string"
+    },
+    "conversion_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "baptized": {
+      "type": "boolean"
+    },
+    "baptism_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "church": {
+      "type": "string"
+    },
+    "bio": {
+      "type": "string"
+    },
+    "spiritual_journey": {
+      "type": "string"
+    },
+    "known_chay_since": {
+      "type": "string"
+    },
+    "accepte_commentaires_respect": {
+      "type": "boolean"
+    },
+    "accepte_cookies": {
+      "type": "boolean"
+    },
+    "accepte_cgu": {
+      "type": "boolean"
     },
     "consents_accepted": {
       "type": "boolean"
+    },
+    "church_assigned": {
+      "type": "string"
+    },
+    "bible_last_book": {
+      "type": "string"
+    },
+    "bible_last_chapter": {
+      "type": "number"
     }
   },
   "required": [
     "role"
-  ],
-  "name": "User",
-  "type": "object"
+  ]
 }
