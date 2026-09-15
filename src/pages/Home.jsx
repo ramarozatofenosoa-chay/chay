@@ -139,7 +139,7 @@ export default function Home() {
           </h1>
           {firstName && (
             <p className="mt-1 text-xl md:text-2xl font-display font-bold text-foreground/80">
-              Shalom {firstName}, 
+              Shalom {firstName} 
             </p>
           )}
         </div>
