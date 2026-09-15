@@ -16,8 +16,8 @@ export default function SplashScreen() {
   }, []);
 
   const mg =
-    content?.splash_text_mg || "Ny marina hahafaka anareo tsy ho andevo";
-  const fr = content?.splash_text_fr || "La vérité vous affranchira";
+    content?.splash_text_mg || "Ny marina hahafaka anareo tsy ho andevo.";
+  const fr = content?.splash_text_fr || "La vérité vous affranchira.";
 
   return (
     <div
