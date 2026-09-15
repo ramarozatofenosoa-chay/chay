@@ -8,7 +8,7 @@ import { safeReturnTo } from "@/lib/authReturnTo";
 import LoginButton from "@/components/auth/LoginButton";
 
 const LOGO_URL =
-  "https://media.base44.com/images/public/6aa138d0e963d9e5f59d838c/5293cfa35_chay.png";
+  "https://media.base44.com/images/public/6aa138d0e963d9e5f59d838c/0a45870cf_Untitled_design__2_-removebg-preview.png";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -60,7 +60,7 @@ export default function Login() {
       <div className="w-full max-w-md">
         {/* Logo — seule zone en dégradé */}
         <div className="flex justify-center mb-6">
-          <img src={LOGO_URL} alt="Église Chay" className="h-16 md:h-20 w-auto" />
+          <img src={LOGO_URL} alt="Chay" className="h-20 w-20 md:h-24 md:w-24 rounded-2xl" />
         </div>
 
         <h1 className="text-center font-display font-extrabold text-2xl text-[#111827] dark:text-[#E6F1FB] mb-1">

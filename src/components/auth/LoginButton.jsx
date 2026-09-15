@@ -16,7 +16,7 @@ export default function LoginButton({ state = "idle", disabled }) {
       ? "bg-[#F7EAF3] dark:bg-[#3A2535]"
       : state === "error"
       ? "bg-[#FDECEC] dark:bg-[#3A2530]"
-      : "bg-[#A83E8C] hover:brightness-110 dark:bg-[#C857A8]";
+      : "bg-gradient-to-r from-[#4F6DF5] via-[#A855F7] to-[#EC4899] hover:brightness-110";
 
   return (
     <button
