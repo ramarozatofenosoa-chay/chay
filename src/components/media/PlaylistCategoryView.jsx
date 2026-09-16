@@ -102,38 +102,42 @@ export default function PlaylistCategoryView({
                   </div>
                 </div>
               ) : (
-                <div key={t.id} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
-                  <button
-                    onClick={() => {
-                      const i = audioTracks.findIndex((a) => a.id === t.id);
-                      if (currentTrack?.id === t.track_id) toggle();
-                      else if (i >= 0)
-                        playQueue(
-                          audioTracks.map((a) => ({
-                            id: a.track_id,
-                            title: a.title,
-                            artist: a.artist,
-                            audio_url: a.audio_url,
-                            cover_url: a.cover_url,
-                          })),
-                          i
-                        );
-                    }}
-                    className="h-10 w-10 rounded-full bg-primary text-primary-foreground grid place-items-center shrink-0"
-                  >
+                <div
+                  key={t.id}
+                  onClick={() => {
+                    const i = audioTracks.findIndex((a) => a.id === t.id);
+                    if (currentTrack?.id === t.track_id) toggle();
+                    else if (i >= 0)
+                      playQueue(
+                        audioTracks.map((a) => ({
+                          id: a.track_id,
+                          title: a.title,
+                          artist: a.artist,
+                          audio_url: a.audio_url,
+                          cover_url: a.cover_url,
+                        })),
+                        i
+                      );
+                  }}
+                  className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 cursor-pointer hover:bg-muted/50 transition"
+                >
+                  <div className="h-10 w-10 rounded-full bg-primary text-primary-foreground grid place-items-center shrink-0">
                     {currentTrack?.id === t.track_id && isPlaying ? (
                       <Pause className="h-4 w-4" />
                     ) : (
                       <Play className="h-4 w-4" />
                     )}
-                  </button>
+                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-bold truncate">{t.title}</div>
                     {t.artist && <div className="text-xs text-foreground/55">{t.artist}</div>}
                   </div>
                   {isAdmin && (
                     <button
-                      onClick={() => removeTrack(t.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeTrack(t.id);
+                      }}
                       className="h-9 w-9 grid place-items-center rounded-full text-foreground/50 hover:text-destructive hover:bg-muted"
                     >
                       <Trash2 className="h-4 w-4" />

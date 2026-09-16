@@ -22,10 +22,10 @@ export function AudioPlayerProvider({ children }) {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [shuffle, setShuffle] = useState(false);
-  const [loop, setLoop] = useState(false);
+  const [loop, setLoop] = useState("off"); // "off" | "all" | "one"
 
   const stateRef = useRef({});
-  stateRef.current = { queue, order, orderIndex, loop, shuffle, currentTrack };
+  stateRef.current = { queue, order, orderIndex, loop, shuffle, currentTrack, currentTime };
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -83,7 +83,16 @@ export function AudioPlayerProvider({ children }) {
   };
 
   const next = useCallback(() => playAt(stateRef.current.orderIndex + 1), [playAt]);
-  const prev = useCallback(() => playAt(stateRef.current.orderIndex - 1), [playAt]);
+  const prev = useCallback(() => {
+    const audio = audioRef.current;
+    const { currentTime, orderIndex } = stateRef.current;
+    if (audio && currentTime > 3) {
+      audio.currentTime = 0;
+      return;
+    }
+    if (orderIndex > 0) playAt(orderIndex - 1);
+    else if (audio) audio.currentTime = 0;
+  }, [playAt]);
 
   const seek = (t) => {
     if (audioRef.current) audioRef.current.currentTime = t;
@@ -124,11 +133,14 @@ export function AudioPlayerProvider({ children }) {
     });
   }, []);
 
-  const toggleLoop = useCallback(() => setLoop((l) => !l), []);
+  const toggleLoop = useCallback(
+    () => setLoop((l) => (l === "off" ? "all" : l === "all" ? "one" : "off")),
+    []
+  );
 
   const handleEnded = () => {
-    const { loop, order, orderIndex, queue, shuffle } = stateRef.current;
-    if (loop) {
+    const { loop, order, orderIndex } = stateRef.current;
+    if (loop === "one") {
       const audio = audioRef.current;
       if (audio) {
         audio.currentTime = 0;
@@ -138,14 +150,15 @@ export function AudioPlayerProvider({ children }) {
     }
     if (orderIndex + 1 < order.length) {
       playAt(orderIndex + 1);
-    } else if (shuffle && queue.length > 1) {
-      const ord = shuffledIndices(queue.length, 0);
-      setOrder(ord);
-      setOrderIndex(0);
-      setCurrentTrack(queue[ord[0]]);
-    } else {
-      setIsPlaying(false);
+      return;
     }
+    // loop "all" wraps back to the start of the order
+    if (loop === "all" && order.length > 0) {
+      playAt(0);
+      return;
+    }
+    // no loop, end of list → stop cleanly, no auto-restart
+    setIsPlaying(false);
   };
 
   return (
