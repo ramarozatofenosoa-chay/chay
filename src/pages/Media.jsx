@@ -9,12 +9,14 @@ import PullToRefresh from "@/components/PullToRefresh";
 import CategoryGrid from "@/components/media/CategoryGrid";
 import MediaCategory from "@/components/media/MediaCategory";
 import { useAudioPlayer } from "@/lib/AudioPlayerContext";
+import { useRadio } from "@/lib/RadioContext";
 import { useToast } from "@/components/ui/use-toast";
 import { Upload, FileText, Loader2 } from "lucide-react";
 
 export default function Media() {
   const { toast } = useToast();
   const { currentTrack, isPlaying, play, playQueue, toggle } = useAudioPlayer();
+  const radio = useRadio();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const activeCat = searchParams.get("cat");
@@ -148,7 +150,10 @@ export default function Media() {
 
   const isPinned = (id) => playlist.some((p) => p.track_id === id);
 
-  const openCat = (id) => setSearchParams({ cat: id });
+  const openCat = (id) => {
+    setSearchParams({ cat: id });
+    if (id === "radio") radio.play();
+  };
   const back = () => {
     if (window.history.length > 1) navigate(-1);
     else setSearchParams({});

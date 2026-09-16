@@ -5,6 +5,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import AnimatedOutlet from "@/components/AnimatedOutlet";
 import MiniPlayer from "@/components/MiniPlayer";
 import FloatingChatBubble from "@/components/messages/FloatingChatBubble";
+import RadioMiniBar from "@/components/radio/RadioMiniBar";
 import { Image } from "@/components/ui/image";
 import { useAuth } from "@/lib/AuthContext";
 import { usePresenceHeartbeat } from "@/hooks/usePresence";
@@ -194,6 +195,7 @@ export default function Layout() {
       </nav>
 
       <FloatingChatBubble />
+      <RadioMiniBar />
       <MiniPlayer />
     </div>
   );

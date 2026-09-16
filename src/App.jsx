@@ -30,6 +30,7 @@ import Admin from '@/pages/Admin';
 import Messages from '@/pages/Messages';
 import SplashScreen from '@/components/SplashScreen';
 import { AudioPlayerProvider } from '@/lib/AudioPlayerContext';
+import { RadioPlayerProvider } from '@/lib/RadioContext';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -92,12 +93,14 @@ function App() {
       <PreferencesProvider>
       <QueryClientProvider client={queryClientInstance}>
         <AudioPlayerProvider>
+          <RadioPlayerProvider>
           <Router>
             <ScrollToTop />
             <AuthenticatedApp />
           </Router>
-          <Toaster />
-        </AudioPlayerProvider>
+            <Toaster />
+          </RadioPlayerProvider>
+          </AudioPlayerProvider>
       </QueryClientProvider>
       </PreferencesProvider>
     </AuthProvider>

@@ -170,3 +170,8 @@
   html[data-density="compact"] { --radius: 1rem; }
   html[data-density="comfortable"] { --radius: 1.5rem; }
 }
+
+@keyframes radio-bar {
+  0%, 100% { transform: scaleY(0.25); }
+  50% { transform: scaleY(1); }
+}

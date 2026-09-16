@@ -9,14 +9,13 @@ import {
   Music,
   Plus,
   Trash2,
-  Radio,
   ListPlus,
   Library,
 } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import ArticleCard from "@/components/media/ArticleCard";
 import YouTubeCard from "@/components/media/YouTubeCard";
-import { RADIO_URL } from "@/lib/mediaConstants";
+import RadioPlayer from "@/components/radio/RadioPlayer";
 
 const TITLES = {
   radio: "Radio",
@@ -89,24 +88,7 @@ export default function MediaCategory({
         <h2 className="font-display font-extrabold text-2xl">{TITLES[cat]}</h2>
       </div>
 
-      {cat === "radio" && (
-        <div className="rounded-[2rem] brand-gradient p-8 md:p-12 text-white text-center glow-primary">
-          <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-1.5 text-xs font-bold uppercase mb-5">
-            <span className="h-2 w-2 rounded-full bg-white animate-pulse" /> En direct
-          </div>
-          <Radio className="h-16 w-16 mx-auto mb-4 opacity-90" />
-          <h3 className="font-display font-extrabold text-3xl">CHAY Radio</h3>
-          <p className="text-white/80 mt-2">Louange & la Parole, 24h/24</p>
-          <a
-            href={RADIO_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-6 inline-flex items-center gap-2 rounded-full bg-white text-foreground px-8 py-3.5 font-bold hover:scale-105 transition"
-          >
-            <Play className="h-5 w-5" /> Écouter
-          </a>
-        </div>
-      )}
+      {cat === "radio" && <RadioPlayer />}
 
       {cat === "music" && (
         <>

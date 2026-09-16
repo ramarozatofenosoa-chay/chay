@@ -10,10 +10,13 @@ import {
   Library,
 } from "lucide-react";
 
-export const RADIO_URL = "https://play.radioking.io/chay-fr";
+export const RADIO_URL =
+  "https://listen.radioking.com/radio/187180/stream/229321";
+export const RADIO_LOGO =
+  "https://media.base44.com/images/public/6aa138d0e963d9e5f59d838c/c26279d55_logo.png";
 
 export const CATEGORIES = [
-  { id: "radio", label: "Radio", icon: Radio, tone: "from-[#FF4D2D] to-[#FF57B2]", href: RADIO_URL },
+  { id: "radio", label: "Radio", icon: Radio, tone: "from-[#FF4D2D] to-[#FF57B2]" },
   { id: "music", label: "Musique", icon: Music, tone: "from-[#4A6CFE] to-[#8A56E2]" },
   { id: "sermons", label: "Prédication", icon: Headphones, tone: "from-[#2E6F40] to-[#4A6CFE]" },
   { id: "videos", label: "Vidéos", icon: Film, tone: "from-[#8A56E2] to-[#FF57B2]" },
