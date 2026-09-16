@@ -14,7 +14,7 @@ import { base44 } from "@/api/base44Client";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Library } from "lucide-react";
 
-export default function CreatePlaylistModal({ open, onOpenChange, onSaved }) {
+export default function CreatePlaylistModal({ open, onOpenChange, onSaved, category = "music" }) {
   const { toast } = useToast();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -34,6 +34,7 @@ export default function CreatePlaylistModal({ open, onOpenChange, onSaved }) {
       await base44.entities.Playlist.create({
         name: name.trim(),
         description: description.trim() || null,
+        category,
       });
       toast({ title: "Playlist créée" });
       onOpenChange(false);

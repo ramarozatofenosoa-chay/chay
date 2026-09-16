@@ -13,6 +13,14 @@
     },
     "thumbnail_url": {
       "type": "string"
+    },
+    "section": {
+      "type": "string",
+      "enum": [
+        "culte",
+        "predication"
+      ],
+      "default": "culte"
     }
   },
   "required": [

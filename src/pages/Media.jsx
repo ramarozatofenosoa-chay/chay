@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import MediaUploader from "@/components/MediaUploader";
 import ContentAddModal from "@/components/media/ContentAddModal";
 import CreatePlaylistModal from "@/components/media/CreatePlaylistModal";
 import PlaylistPicker from "@/components/media/PlaylistPicker";
@@ -11,7 +10,7 @@ import MediaCategory from "@/components/media/MediaCategory";
 import { useAudioPlayer } from "@/lib/AudioPlayerContext";
 import { useRadio } from "@/lib/RadioContext";
 import { useToast } from "@/components/ui/use-toast";
-import { Upload, FileText, Loader2 } from "lucide-react";
+import { FileText, Loader2 } from "lucide-react";
 
 export default function Media() {
   const { toast } = useToast();
@@ -22,9 +21,9 @@ export default function Media() {
   const activeCat = searchParams.get("cat");
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showUploader, setShowUploader] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [showCreatePlaylist, setShowCreatePlaylist] = useState(false);
+  const [createCat, setCreateCat] = useState("music");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerTrack, setPickerTrack] = useState(null);
   const [query, setQuery] = useState("");
@@ -150,10 +149,7 @@ export default function Media() {
 
   const isPinned = (id) => playlist.some((p) => p.track_id === id);
 
-  const openCat = (id) => {
-    setSearchParams({ cat: id });
-    if (id === "radio") radio.play();
-  };
+  const openCat = (id) => setSearchParams({ cat: id });
   const back = () => {
     if (window.history.length > 1) navigate(-1);
     else setSearchParams({});
@@ -168,7 +164,7 @@ export default function Media() {
             <span className="brand-gradient-text">Médiathèque</span>
           </h1>
           <p className="mt-3 text-base md:text-lg text-foreground/60">
-            Musique, prédications, vidéos, articles et plus encore.
+            Musique, prédications, films, articles et plus encore.
           </p>
         </div>
         {isAdmin && (
@@ -178,12 +174,6 @@ export default function Media() {
               className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-bold hover:bg-muted transition"
             >
               <FileText className="h-4 w-4" /> Contenu
-            </button>
-            <button
-              onClick={() => setShowUploader(true)}
-              className="inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-5 py-2.5 font-bold glow-primary hover:scale-105 transition"
-            >
-              <Upload className="h-4 w-4" /> Importer
             </button>
           </div>
         )}
@@ -212,18 +202,18 @@ export default function Media() {
           playlists={playlists}
           playlistTracks={playlistTracks}
           onAddToAdminPlaylist={addToAdminPlaylist}
-          onCreatePlaylist={() => setShowCreatePlaylist(true)}
+          onCreatePlaylist={(cat) => { setCreateCat(cat || "music"); setShowCreatePlaylist(true); }}
+          onSaved={loadAll}
           onRemovePlaylistTrack={removePlaylistTrack}
           isAdmin={isAdmin}
         />
       ) : (
-        <CategoryGrid onOpen={openCat} />
+        <CategoryGrid onOpen={openCat} radioPlaying={radio.isPlaying} onToggleRadio={() => radio.toggle()} />
       )}
 
-      {showUploader && <MediaUploader onClose={() => setShowUploader(false)} onSaved={loadAll} />}
       {showAdd && <ContentAddModal open={showAdd} onOpenChange={setShowAdd} onSaved={loadAll} />}
       {showCreatePlaylist && (
-        <CreatePlaylistModal open={showCreatePlaylist} onOpenChange={setShowCreatePlaylist} onSaved={loadAll} />
+        <CreatePlaylistModal open={showCreatePlaylist} onOpenChange={setShowCreatePlaylist} onSaved={loadAll} category={createCat} />
       )}
       <PlaylistPicker open={pickerOpen} onOpenChange={setPickerOpen} playlists={playlists} onPick={pickPlaylist} />
     </div>

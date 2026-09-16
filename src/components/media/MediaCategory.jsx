@@ -4,26 +4,27 @@ import {
   Search,
   Play,
   Pause,
-  Headphones,
   Film,
   Music,
   Plus,
   Trash2,
-  ListPlus,
   Library,
 } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import ArticleCard from "@/components/media/ArticleCard";
 import YouTubeCard from "@/components/media/YouTubeCard";
 import RadioPlayer from "@/components/radio/RadioPlayer";
+import PlaylistCategoryView from "@/components/media/PlaylistCategoryView";
+import YouTubeCategoryView from "@/components/media/YouTubeCategoryView";
 
 const TITLES = {
   radio: "Radio",
   music: "Musique",
-  sermons: "Prédication",
-  videos: "Vidéos",
+  sermons: "Prédications",
+  films: "Films",
+  "youtube-culte": "Culte",
+  "youtube-predication": "Prédications (YT)",
   articles: "Articles",
-  youtube: "YouTube",
   gallery: "Galerie",
   playlist: "Votre Playlist",
   playlists: "Playlists",
@@ -63,17 +64,14 @@ export default function MediaCategory({
   onAddToAdminPlaylist,
   onCreatePlaylist,
   onRemovePlaylistTrack,
+  onSaved,
   isAdmin,
 }) {
-  const { tracks, sermons, videos, articles, youtube, gallery, playlist } = data;
+  const { articles, youtube, gallery, playlist } = data;
   const [openPlaylist, setOpenPlaylist] = useState(null);
   const q = query.trim().toLowerCase();
   const match = (t) => (q ? (t || "").toLowerCase().includes(q) : true);
-  const fTracks = tracks.filter((t) => match(t.title) || match(t.artist));
-  const fSermons = sermons.filter((s) => match(s.title) || match(s.speaker));
-  const fVideos = videos.filter((v) => match(v.title));
   const fArticles = articles.filter((a) => match(a.title) || match(a.category));
-  const fYoutube = youtube.filter((y) => match(y.title) || match(y.category));
   const fGallery = gallery.filter((g) => match(g.title) || match(g.category));
 
   return (
@@ -91,156 +89,51 @@ export default function MediaCategory({
       {cat === "radio" && <RadioPlayer />}
 
       {cat === "music" && (
-        <>
-          <SearchBar query={query} setQuery={setQuery} placeholder="Rechercher de la musique…" />
-          {fTracks.length ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {fTracks.map((t) => (
-                <div
-                  key={t.id}
-                  className="group rounded-[1.5rem] border border-border bg-card p-4 hover:-translate-y-1 hover:shadow-lg transition-all"
-                >
-                  <div className="aspect-square rounded-2xl brand-gradient grid place-items-center mb-3 relative overflow-hidden">
-                    <Music className="h-8 w-8 text-white/90" />
-                    <button
-                      onClick={() => {
-                        const i = fTracks.indexOf(t);
-                        currentTrack?.id === t.id ? toggle() : playQueue(fTracks, i);
-                      }}
-                      className="absolute inset-0 grid place-items-center bg-black/0 group-hover:bg-black/20 transition"
-                    >
-                      {currentTrack?.id === t.id && isPlaying ? (
-                        <Pause className="h-8 w-8 text-white" />
-                      ) : (
-                        <Play className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition" />
-                      )}
-                    </button>
-                    <button
-                      onClick={() =>
-                        addToPlaylist({ id: t.id, title: t.title, artist: t.artist, audio_url: t.audio_url, cover_url: t.cover_url, kind: "audio" })
-                      }
-                      className={`absolute top-2 right-2 h-7 w-7 grid place-items-center rounded-full text-white text-lg font-bold ${
-                        isPinned(t.id) ? "bg-primary" : "bg-black/30 opacity-0 group-hover:opacity-100 hover:bg-black/50"
-                      }`}
-                    >
-                      ＋
-                    </button>
-                    {isAdmin && onAddToAdminPlaylist && (
-                      <button
-                        onClick={() =>
-                          onAddToAdminPlaylist({ id: t.id, title: t.title, artist: t.artist, audio_url: t.audio_url, cover_url: t.cover_url, kind: "audio" })
-                        }
-                        className="absolute top-2 left-2 h-7 w-7 grid place-items-center rounded-full bg-black/30 text-white opacity-0 group-hover:opacity-100 hover:bg-black/50 transition"
-                        title="Ajouter à une playlist"
-                      >
-                        <ListPlus className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-                  <div className="font-bold text-sm line-clamp-1">{t.title}</div>
-                  <div className="text-xs text-foreground/55">{t.artist}</div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-foreground/50 text-sm">Aucune musique importée.</p>
-          )}
-        </>
+        <PlaylistCategoryView
+          category="music"
+          kind="audio"
+          playlists={playlists}
+          playlistTracks={playlistTracks}
+          currentTrack={currentTrack}
+          isPlaying={isPlaying}
+          playQueue={playQueue}
+          toggle={toggle}
+          isAdmin={isAdmin}
+          onCreatePlaylist={() => onCreatePlaylist("music")}
+          onSaved={onSaved}
+        />
       )}
 
       {cat === "sermons" && (
-        <>
-          <SearchBar query={query} setQuery={setQuery} placeholder="Rechercher une prédication…" />
-          {fSermons.length ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {fSermons.map((s) => (
-                <div
-                  key={s.id}
-                  className="group rounded-[1.5rem] border border-border bg-card overflow-hidden hover:-translate-y-1 hover:shadow-lg transition-all"
-                >
-                  <div className="h-36 brand-gradient relative grid place-items-center">
-                    <Headphones className="h-10 w-10 text-white/90" />
-                    <button
-                      onClick={() =>
-                        addToPlaylist({ id: s.id, title: s.title, artist: s.speaker, audio_url: s.audio_url, cover_url: s.cover_url, kind: "audio" })
-                      }
-                      className={`absolute top-2 right-2 h-8 w-8 grid place-items-center rounded-full text-white ${
-                        isPinned(s.id) ? "bg-primary" : "bg-black/30 opacity-0 group-hover:opacity-100 hover:bg-black/50"
-                      }`}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
-                  </div>
-                  <div className="p-5">
-                    <div className="font-display font-bold text-lg leading-snug line-clamp-2">{s.title}</div>
-                    <div className="mt-1 text-sm text-foreground/55 font-medium">
-                      {s.speaker} · {s.category || "Prédication"}
-                    </div>
-                    {s.audio_url ? (
-                      <audio src={s.audio_url} controls controlsList="nodownload" className="w-full mt-3 h-9" />
-                    ) : (
-                      <div className="mt-3 h-9 rounded-full bg-muted grid place-items-center text-xs font-semibold text-foreground/40">
-                        Aucun fichier audio
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-foreground/50 text-sm">Aucune prédication importée.</p>
-          )}
-        </>
+        <PlaylistCategoryView
+          category="sermons"
+          kind="audio"
+          playlists={playlists}
+          playlistTracks={playlistTracks}
+          currentTrack={currentTrack}
+          isPlaying={isPlaying}
+          playQueue={playQueue}
+          toggle={toggle}
+          isAdmin={isAdmin}
+          onCreatePlaylist={() => onCreatePlaylist("sermons")}
+          onSaved={onSaved}
+        />
       )}
 
-      {cat === "videos" && (
-        <>
-          <SearchBar query={query} setQuery={setQuery} placeholder="Rechercher une vidéo…" />
-          {fVideos.length ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {fVideos.map((v) => (
-                <div
-                  key={v.id}
-                  className="group rounded-[1.5rem] border border-border bg-card overflow-hidden hover:-translate-y-1 hover:shadow-lg transition-all relative"
-                >
-                  <button
-                    onClick={() =>
-                      addToPlaylist({ id: v.id, title: v.title, video_url: v.video_url, cover_url: v.cover_url, kind: "video" })
-                    }
-                    className={`absolute top-2 right-2 z-10 h-8 w-8 grid place-items-center rounded-full text-white ${
-                      isPinned(v.id) ? "bg-primary" : "bg-black/40 opacity-0 group-hover:opacity-100 hover:bg-black/60"
-                    }`}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </button>
-                  {v.video_url ? (
-                    <video
-                      src={v.video_url}
-                      controls
-                      controlsList="nodownload"
-                      disablePictureInPicture
-                      onContextMenu={(e) => e.preventDefault()}
-                      className="w-full h-44 bg-black object-cover"
-                      poster={v.cover_url}
-                    />
-                  ) : (
-                    <div className="h-44 brand-gradient grid place-items-center">
-                      <Film className="h-12 w-12 text-white/90" />
-                    </div>
-                  )}
-                  <div className="p-5">
-                    <div className="font-display font-bold text-lg line-clamp-2">{v.title}</div>
-                    {v.description && (
-                      <div className="text-sm text-foreground/55 mt-1 line-clamp-2">{v.description}</div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-foreground/50 text-sm">Aucune vidéo importée.</p>
-          )}
-        </>
+      {cat === "films" && (
+        <PlaylistCategoryView
+          category="films"
+          kind="video"
+          playlists={playlists}
+          playlistTracks={playlistTracks}
+          currentTrack={currentTrack}
+          isPlaying={isPlaying}
+          playQueue={playQueue}
+          toggle={toggle}
+          isAdmin={isAdmin}
+          onCreatePlaylist={() => onCreatePlaylist("films")}
+          onSaved={onSaved}
+        />
       )}
 
       {cat === "articles" && (
@@ -258,19 +151,22 @@ export default function MediaCategory({
         </>
       )}
 
-      {cat === "youtube" && (
-        <>
-          <SearchBar query={query} setQuery={setQuery} placeholder="Rechercher sur YouTube…" />
-          {fYoutube.length ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {fYoutube.map((y) => (
-                <YouTubeCard key={y.id} video={y} />
-              ))}
-            </div>
-          ) : (
-            <p className="text-foreground/50 text-sm">Aucune vidéo YouTube ajoutée.</p>
-          )}
-        </>
+      {cat === "youtube-culte" && (
+        <YouTubeCategoryView
+          section="culte"
+          youtube={youtube}
+          isAdmin={isAdmin}
+          onSaved={onSaved}
+        />
+      )}
+
+      {cat === "youtube-predication" && (
+        <YouTubeCategoryView
+          section="predication"
+          youtube={youtube}
+          isAdmin={isAdmin}
+          onSaved={onSaved}
+        />
       )}
 
       {cat === "gallery" && (
@@ -460,7 +356,7 @@ export default function MediaCategory({
                 <h2 className="font-display font-extrabold text-2xl">Playlists</h2>
                 {isAdmin && onCreatePlaylist && (
                   <button
-                    onClick={onCreatePlaylist}
+                    onClick={() => onCreatePlaylist("other")}
                     className="inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-4 py-2.5 text-sm font-bold hover:scale-105 transition"
                   >
                     <Plus className="h-4 w-4" /> Créer une playlist
