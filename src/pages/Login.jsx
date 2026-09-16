@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Mail, Lock, AlertCircle } from "lucide-react";
 import { safeReturnTo } from "@/lib/authReturnTo";
 import LoginButton from "@/components/auth/LoginButton";
+import PasswordInput from "@/components/PasswordInput";
 
 const LOGO_URL =
   "https://media.base44.com/images/public/6aa138d0e963d9e5f59d838c/0a45870cf_Untitled_design__2_-removebg-preview.png";
@@ -115,21 +116,15 @@ export default function Login() {
                 Mot de passe oublié ?
               </Link>
             </div>
-            <div className="relative">
-              <Lock
-                className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#9CA3AF]"
-                aria-hidden="true"
-              />
-              <Input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="pl-10 h-12 border-[#D1D5DB] dark:border-[#374151] focus:border-[#C857A8] dark:focus:border-[#D48FD4] focus-visible:ring-[#C857A8]"
-              />
-            </div>
+            <PasswordInput
+              id="password"
+              leftIcon={Lock}
+              autoComplete="current-password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="h-12 border-[#D1D5DB] dark:border-[#374151] focus:border-[#C857A8] dark:focus:border-[#D48FD4] focus-visible:ring-[#C857A8]"
+            />
           </div>
 
           <LoginButton state={btnState} disabled={btnState !== "idle"} />

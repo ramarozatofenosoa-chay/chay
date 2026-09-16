@@ -34,24 +34,49 @@ import {
   ChevronDown,
   ShieldCheck,
 } from "lucide-react";
+import PasswordInput from "@/components/PasswordInput";
+import PasswordStrength, { evalPassword } from "@/components/PasswordStrength";
 
 const GENDERS = [
   { label: "Homme", value: "Homme" },
   { label: "Femme", value: "Femme" },
 ];
 
-const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
-const PHONE_REGEX = /^\+[1-9]\d{6,14}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function Field({ label, icon: Icon, children, hint }) {
+function formatPhone(raw) {
+  let s = (raw || "").replace(/[^\d+]/g, "");
+  if (!s.startsWith("+")) s = "+" + s.replace(/\+/g, "");
+  else s = "+" + s.slice(1).replace(/\+/g, "");
+  const d = s.slice(1);
+  if (d.length <= 2) return "+" + d;
+  const cc = d.slice(0, 2);
+  const rest = d.slice(2);
+  const groups = [];
+  let r = rest;
+  if (r.length % 2 === 1) {
+    groups.push(r[0]);
+    r = r.slice(1);
+  }
+  for (let i = 0; i < r.length; i += 2) groups.push(r.slice(i, i + 2));
+  return "+" + cc + " " + groups.join(" ");
+}
+const phoneStripped = (p) => "+" + (p || "").replace(/[^\d]/g, "");
+const PHONE_RE = /^\+[1-9]\d{6,14}$/;
+
+function Field({ label, icon: Icon, children, hint, required, error }) {
   return (
     <div className="space-y-1.5">
       <Label className="text-xs flex items-center gap-1">
         {Icon && <Icon className="h-3 w-3" />} {label}
+        {required && <span className="text-destructive">*</span>}
       </Label>
       {children}
-      {hint && <p className="text-[11px] text-foreground/45">{hint}</p>}
+      {error ? (
+        <p className="text-[11px] text-destructive">{error}</p>
+      ) : hint ? (
+        <p className="text-[11px] text-foreground/45">{hint}</p>
+      ) : null}
     </div>
   );
 }
@@ -114,10 +139,21 @@ export default function Register() {
   const [loc, setLoc] = useState(null);
   const [locStatus, setLocStatus] = useState("");
 
-  const passwordValid = PASSWORD_REGEX.test(password);
-  const phoneValid = PHONE_REGEX.test(phone.trim());
+  const pwStrength = evalPassword(password);
+  const passwordValid = pwStrength.level === 3;
+  const phoneValid = PHONE_RE.test(phoneStripped(phone));
   const emailValid = EMAIL_REGEX.test(email.trim());
   const passwordMatch = password === confirmPassword && password.length > 0;
+
+  const fst = (v, valid) => (!v.trim() ? "neutral" : valid ? "valid" : "invalid");
+  const pwState = !password ? "neutral" : passwordValid ? "valid" : "invalid";
+  const cpState = !confirmPassword ? "neutral" : passwordMatch ? "valid" : "invalid";
+  const borderFor = (st) =>
+    st === "valid"
+      ? "!border-emerald-500 focus:!border-emerald-500"
+      : st === "invalid"
+      ? "!border-destructive focus:!border-destructive"
+      : "";
 
   const canSubmit =
     firstName.trim().length >= 2 &&
@@ -323,25 +359,25 @@ export default function Register() {
               Informations obligatoires
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Prénom" icon={User}>
+              <Field label="Prénom" icon={User} required error={firstName && firstName.trim().length < 2 ? "2 caractères minimum" : null}>
                 <Input
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                   placeholder="Jean"
-                  className="h-11"
+                  className={`h-11 ${borderFor(fst(firstName, firstName.trim().length >= 2))}`}
                 />
               </Field>
-              <Field label="Nom" icon={User}>
+              <Field label="Nom" icon={User} required error={lastName && lastName.trim().length < 2 ? "2 caractères minimum" : null}>
                 <Input
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                   placeholder="Rakoto"
-                  className="h-11"
+                  className={`h-11 ${borderFor(fst(lastName, lastName.trim().length >= 2))}`}
                 />
               </Field>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Genre">
+              <Field label="Genre" required>
                 <DrawerSelect
                   value={gender}
                   onChange={setGender}
@@ -351,27 +387,27 @@ export default function Register() {
                   triggerClassName="w-full h-11"
                 />
               </Field>
-              <Field label="Téléphone" icon={Phone} hint="Format international, ex. +33612345678">
+              <Field label="Téléphone" icon={Phone} required hint="Format international, ex. +33 4 54 54 54 54" error={phone && !phoneValid ? "Numéro invalide" : null}>
                 <Input
                   type="tel"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+261341234567"
-                  className="h-11"
+                  onChange={(e) => setPhone(formatPhone(e.target.value))}
+                  placeholder="+33 4 54 54 54 54"
+                  className={`h-11 ${borderFor(fst(phone, phoneValid))}`}
                 />
               </Field>
             </div>
-            <Field label="E-mail" icon={Mail}>
+            <Field label="E-mail" icon={Mail} required error={email && !emailValid ? "E-mail invalide" : null}>
               <Input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="vous@exemple.com"
-                className="h-11"
+                className={`h-11 ${borderFor(fst(email, emailValid))}`}
               />
             </Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Pays" icon={MapPin}>
+              <Field label="Pays" icon={MapPin} required>
                 <DrawerSelect
                   value={country}
                   onChange={setCountry}
@@ -382,37 +418,45 @@ export default function Register() {
                   triggerClassName="w-full h-11"
                 />
               </Field>
-              <Field label="Ville" icon={MapPin}>
+              <Field label="Ville" icon={MapPin} required error={city && city.trim().length === 0 ? "Ville requise" : null}>
                 <Input
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                   placeholder="Antananarivo"
-                  className="h-11"
+                  className={`h-11 ${borderFor(fst(city, city.trim().length > 0))}`}
                 />
               </Field>
             </div>
             <Field
               label="Mot de passe"
               icon={Lock}
-              hint="Au moins 8 caractères, 1 majuscule et 1 chiffre"
+              required
+              error={password && !passwordValid ? "Mot de passe trop faible (niveau Fort requis)" : null}
+              hint="12 caractères min, majuscule, minuscule, chiffre et caractère spécial"
             >
-              <Input
-                type="password"
+              <PasswordInput
                 autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="h-11"
+                className={`h-11 ${borderFor(pwState)}`}
               />
+              <div className="mt-1.5">
+                <PasswordStrength password={password} />
+              </div>
             </Field>
-            <Field label="Confirmer le mot de passe" icon={Lock}>
-              <Input
-                type="password"
+            <Field
+              label="Confirmer le mot de passe"
+              icon={Lock}
+              required
+              error={confirmPassword && !passwordMatch ? "Les mots de passe ne correspondent pas" : null}
+            >
+              <PasswordInput
                 autoComplete="new-password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"
-                className="h-11"
+                className={`h-11 ${borderFor(cpState)}`}
               />
             </Field>
           </section>

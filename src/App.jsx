@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -28,22 +27,16 @@ import Donate from '@/pages/Donate';
 import Contact from '@/pages/Contact';
 import Admin from '@/pages/Admin';
 import Messages from '@/pages/Messages';
-import SplashScreen from '@/components/SplashScreen';
+import AppLoader from '@/components/AppLoader';
 import { AudioPlayerProvider } from '@/lib/AudioPlayerContext';
 import { RadioPlayerProvider } from '@/lib/RadioContext';
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
-  const [minSplashDone, setMinSplashDone] = useState(false);
+  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, checkAppState } = useAuth();
 
-  useEffect(() => {
-    const t = setTimeout(() => setMinSplashDone(true), 4500);
-    return () => clearTimeout(t);
-  }, []);
-
-  // Show splash for at least 4.5s, and while checking app public settings or auth
-  if (isLoadingPublicSettings || isLoadingAuth || !minSplashDone) {
-    return <SplashScreen />;
+  if (isLoadingPublicSettings || isLoadingAuth) {
+    const offline = typeof navigator !== "undefined" && !navigator.onLine;
+    return <AppLoader offline={offline} />;
   }
 
   // Handle authentication errors
@@ -51,9 +44,11 @@ const AuthenticatedApp = () => {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
     } else if (authError.type === 'auth_required') {
-      // Redirect to login automatically
       navigateToLogin();
       return null;
+    } else {
+      // unknown — généralement un problème de connexion
+      return <AppLoader offline retry={checkAppState} />;
     }
   }
 
