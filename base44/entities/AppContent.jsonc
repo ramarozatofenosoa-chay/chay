@@ -7,6 +7,9 @@
     },
     "splash_text_fr": {
       "type": "string"
+    },
+    "about_text": {
+      "type": "string"
     }
   },
   "required": [

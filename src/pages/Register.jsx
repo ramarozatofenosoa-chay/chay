@@ -364,34 +364,14 @@ export default function Register() {
                 />
               </Field>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Genre" required>
-                <DrawerSelect
-                  value={gender}
-                  onChange={setGender}
-                  title="Genre"
-                  options={GENDERS}
-                  placeholder="Sélectionner…"
-                  triggerClassName="w-full h-11"
-                />
-              </Field>
-              <Field label="Téléphone" icon={Phone} required hint="Indicatif et format définis selon le pays sélectionné" error={phone && phoneStripped(phone) !== "+" + dialFor(country) && !phoneValid ? "Numéro invalide" : null}>
-                <Input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(formatPhoneFor(country, e.target.value))}
-                  placeholder={country ? "+" + dialFor(country) : "+33 2 23 23 22 22"}
-                  className={`h-11 ${borderFor(fst(phone, phoneValid))}`}
-                />
-              </Field>
-            </div>
-            <Field label="E-mail" icon={Mail} required error={email && !emailValid ? "E-mail invalide" : null}>
-              <Input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="vous@exemple.com"
-                className={`h-11 ${borderFor(fst(email, emailValid))}`}
+            <Field label="Genre" required>
+              <DrawerSelect
+                value={gender}
+                onChange={setGender}
+                title="Genre"
+                options={GENDERS}
+                placeholder="Sélectionner…"
+                triggerClassName="w-full h-11"
               />
             </Field>
             <div className="grid grid-cols-2 gap-3">
@@ -415,6 +395,24 @@ export default function Register() {
                 />
               </Field>
             </div>
+            <Field label="Téléphone" icon={Phone} required hint="Indicatif et format définis selon le pays sélectionné" error={phone && phoneStripped(phone) !== "+" + dialFor(country) && !phoneValid ? "Numéro invalide" : null}>
+              <Input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(formatPhoneFor(country, e.target.value))}
+                placeholder={country ? "+" + dialFor(country) : "+33 2 23 23 22 22"}
+                className={`h-11 ${borderFor(fst(phone, phoneValid))}`}
+              />
+            </Field>
+            <Field label="E-mail" icon={Mail} required error={email && !emailValid ? "E-mail invalide" : null}>
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="vous@exemple.com"
+                className={`h-11 ${borderFor(fst(email, emailValid))}`}
+              />
+            </Field>
             <Field
               label="Mot de passe"
               icon={Lock}

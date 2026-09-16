@@ -5,6 +5,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import AnimatedOutlet from "@/components/AnimatedOutlet";
 import MiniPlayer from "@/components/MiniPlayer";
 import FloatingChatBubble from "@/components/messages/FloatingChatBubble";
+import LocationGate from "@/components/LocationGate";
 import { Image } from "@/components/ui/image";
 import { useAuth } from "@/lib/AuthContext";
 import { usePresenceHeartbeat } from "@/hooks/usePresence";
@@ -54,16 +55,17 @@ export default function Layout() {
   const hasSubView = urlParams.get("cat") || urlParams.get("c") || urlParams.get("game");
 
   return (
+    <LocationGate>
     <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Desktop floating glass rail */}
       <header className="hidden md:flex sticky top-0 z-40 px-6 pt-5">
         <div className="mx-auto w-full max-w-6xl flex items-center justify-between rounded-full border border-border bg-background/70 backdrop-blur-xl px-6 py-3 glow-soft">
-          <div className="flex items-center gap-2.5">
-            <Image src={LOGO_URL} alt="Chay" fittingType="fill" className="h-10 w-10 rounded-xl shadow-sm" />
+          <Link to="/" className="flex items-center gap-2.5">
+            <Image src={LOGO_URL} alt="Chay" fittingType="fill" className="h-10 w-10 rounded-full shadow-sm object-cover" />
             <span className="font-display font-extrabold tracking-tight text-lg">
               <span className="brand-gradient-text">ÉGLISE</span> CHAY
             </span>
-          </div>
+          </Link>
 
           <nav className="flex items-center gap-1">
             {NAV.map((item) => (
@@ -124,12 +126,12 @@ export default function Layout() {
                 <ChevronLeft className="h-5 w-5" />
               </button>
             ) : (
-              <>
-                <Image src={LOGO_URL} alt="Chay" fittingType="fill" className="h-8 w-8 rounded-lg shadow-sm" />
+              <Link to="/" className="flex items-center gap-2">
+                <Image src={LOGO_URL} alt="Chay" fittingType="fill" className="h-8 w-8 rounded-full shadow-sm object-cover" />
                 <span className="font-display font-extrabold tracking-tight">
-                  <span className="brand-gradient-text">CHAY</span>
+                  <span className="brand-gradient-text">ÉGLISE</span> CHAY
                 </span>
-              </>
+              </Link>
             )}
           </div>
           <div className="flex items-center gap-2">
@@ -196,5 +198,6 @@ export default function Layout() {
       <FloatingChatBubble />
       <MiniPlayer />
     </div>
+    </LocationGate>
   );
 }

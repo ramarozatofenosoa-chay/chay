@@ -18,34 +18,7 @@ import WeatherCard from "@/components/WeatherCard";
 import PullToRefresh from "@/components/PullToRefresh";
 import SplitClock from "@/components/home/SplitClock";
 import NewContentsSection from "@/components/home/NewContentsSection";
-
-function useNow() {
-  const [now, setNow] = useState(new Date());
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(t);
-  }, []);
-  return now;
-}
-
-function ClockChip({ label, tz, flag }) {
-  const now = useNow();
-  const time = new Intl.DateTimeFormat("fr-FR", {
-    timeZone: tz,
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(now);
-  return (
-    <div className="text-center flex-1">
-      <div className="text-xl leading-none mb-1">
-        {flag}
-      </div>
-      <div className="font-display font-extrabold text-xl md:text-2xl tabular-nums">
-        {time}
-      </div>
-    </div>
-  );
-}
+import QuickAccess from "@/components/home/QuickAccess";
 
 export default function Home() {
   const { user } = useAuth();
@@ -181,11 +154,6 @@ export default function Home() {
                 <p className="mt-3 font-semibold text-white/80">
                   — {devotional.scripture_reference}
                 </p>
-                {devotional.content && (
-                  <p className="selectable mt-4 text-white/75 max-w-2xl leading-relaxed">
-                    {devotional.content}
-                  </p>
-                )}
                 <Link
                   to={chapterLink}
                   className="mt-6 inline-flex items-center gap-2 rounded-full bg-white text-neutral-900 px-5 py-2.5 text-sm font-bold hover:scale-105 transition"
@@ -239,17 +207,8 @@ export default function Home() {
       {/* Nouveautés & Historiques */}
       <NewContentsSection />
 
-      {/* Horloges (France, Madagascar, Seattle) */}
-      <section className="mt-8">
-        <h2 className="font-display font-extrabold text-2xl mb-4">Horloges</h2>
-        <div className="rounded-[1.5rem] border border-border bg-card p-4 flex items-center justify-around gap-2">
-          <ClockChip label="France" tz="Europe/Paris" flag="🇫🇷" />
-          <div className="h-10 w-px bg-border" />
-          <ClockChip label="Madagascar" tz="Indian/Antananarivo" flag="🇲🇬" />
-          <div className="h-10 w-px bg-border" />
-          <ClockChip label="Seattle" tz="America/Los_Angeles" flag="🇺🇸" />
-        </div>
-      </section>
+      {/* Accès rapide */}
+      <QuickAccess />
 
       {/* Social links */}
       <footer className="mt-12 pt-8 border-t border-border pb-6 flex flex-col items-center gap-4">
