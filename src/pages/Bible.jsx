@@ -387,7 +387,7 @@ export default function Bible() {
                   {selectedBook?.name} {selectedChapter}
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  Touchez un ou plusieurs versets pour les sélectionner, puis surlignez, notez ou copiez.
+                  Touchez un ou plusieurs versets pour les sélectionner, puis surligner, noter ou copier.
                 </p>
               </div>
               {chapterStatus === "loading" && (
