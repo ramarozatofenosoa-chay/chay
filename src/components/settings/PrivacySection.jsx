@@ -35,6 +35,12 @@ export default function PrivacySection() {
         onChange={(v) => setPref("profile_private", v)}
       />
       <PrefSwitch
+        label="Afficher mon statut en ligne"
+        description="Si désactivé, vous êtes invisible et ne voyez pas le statut des autres (réciprocité)."
+        checked={prefs.presence_visible !== false}
+        onChange={(v) => setPref("presence_visible", v)}
+      />
+      <PrefSwitch
         label="Personnalisation basée sur la localisation"
         description="Utiliser votre position pour du contenu pertinent (météo, annonces locales)."
         checked={prefs.location_personalization}

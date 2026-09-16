@@ -5,7 +5,6 @@ import { Image } from "@/components/ui/image";
 import { useToast } from "@/components/ui/use-toast";
 import PostCard from "@/components/community/PostCard";
 import PullToRefresh from "@/components/PullToRefresh";
-import { notifyLike } from "@/lib/socialNotifications";
 
 export default function Community() {
   const { toast } = useToast();
@@ -16,13 +15,6 @@ export default function Community() {
   const [imagePreview, setImagePreview] = useState(null);
   const [publishing, setPublishing] = useState(false);
   const [user, setUser] = useState(null);
-  const [likedPosts, setLikedPosts] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem("chay_liked") || "[]");
-    } catch {
-      return [];
-    }
-  });
 
   const loadPosts = async () => {
     const p = await base44.entities.CommunityPost
@@ -79,29 +71,6 @@ export default function Community() {
       });
     }
     setPublishing(false);
-  };
-
-  const toggleLike = async (post) => {
-    const already = likedPosts.includes(post.id);
-    const newLiked = already
-      ? likedPosts.filter((id) => id !== post.id)
-      : [...likedPosts, post.id];
-    const newCount = Math.max(0, (post.likes || 0) + (already ? -1 : 1));
-    setLikedPosts(newLiked);
-    localStorage.setItem("chay_liked", JSON.stringify(newLiked));
-    setPosts((prev) =>
-      prev.map((p) => (p.id === post.id ? { ...p, likes: newCount } : p))
-    );
-    try {
-      await base44.entities.CommunityPost.update(post.id, { likes: newCount });
-      if (!already) notifyLike(post, user);
-    } catch {
-      setLikedPosts(likedPosts);
-      localStorage.setItem("chay_liked", JSON.stringify(likedPosts));
-      setPosts((prev) =>
-        prev.map((p) => (p.id === post.id ? { ...p, likes: post.likes } : p))
-      );
-    }
   };
 
   return (
@@ -173,18 +142,24 @@ export default function Community() {
       {/* Feed */}
       <div className="space-y-5">
         {loading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="space-y-5">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="rounded-[1.5rem] border border-border bg-card p-5 md:p-6 space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-11 w-11 rounded-full bg-muted animate-pulse" />
+                  <div className="space-y-2">
+                    <div className="h-3 w-24 bg-muted rounded animate-pulse" />
+                    <div className="h-2 w-16 bg-muted rounded animate-pulse" />
+                  </div>
+                </div>
+                <div className="h-3 w-full bg-muted rounded animate-pulse" />
+                <div className="h-3 w-2/3 bg-muted rounded animate-pulse" />
+              </div>
+            ))}
           </div>
         ) : posts.length ? (
           posts.map((p) => (
-            <PostCard
-              key={p.id}
-              post={p}
-              liked={likedPosts.includes(p.id)}
-              onToggleLike={toggleLike}
-              currentUser={user}
-            />
+            <PostCard key={p.id} post={p} currentUser={user} />
           ))
         ) : (
           <p className="text-center text-foreground/50 py-12">

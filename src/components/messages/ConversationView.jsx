@@ -235,12 +235,32 @@ export default function ConversationView({
         ref={scrollRef}
         className="flex-1 overflow-y-auto px-3 py-4 space-y-2 selectable"
       >
-        {messages.map((m) => {
+        {messages.map((m, i) => {
           const mine = m.sender_id === user.id;
           const replied = m.reply_to_id ? repliedOf(m.reply_to_id) : null;
+          const prev = messages[i - 1];
+          const sameSender = prev && prev.sender_id === m.sender_id;
+          const gap = prev
+            ? new Date(m.created_date).getTime() - new Date(prev.created_date).getTime()
+            : Infinity;
+          const grouped = sameSender && gap <= 60000;
           return (
-            <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+            <div
+              key={m.id}
+              className={`flex ${mine ? "justify-end" : "justify-start"} animate-float-in ${
+                grouped ? "mt-0.5" : "mt-2"
+              }`}
+            >
               <div className="max-w-[82%]">
+                {!grouped && (
+                  <div
+                    className={`text-[0.6875rem] text-foreground/45 mb-1 ${
+                      mine ? "text-right" : "text-left"
+                    }`}
+                  >
+                    {fmtTime(m.created_date)}
+                  </div>
+                )}
                 {replied && (
                   <div
                     className={`mb-1 rounded-lg px-2.5 py-1 text-xs border-l-2 ${
@@ -262,7 +282,7 @@ export default function ConversationView({
                       : "bg-card border border-border rounded-bl-md"
                   }`}
                 >
-                  {isGroup && !mine && (
+                  {isGroup && !mine && !grouped && (
                     <div className="text-xs font-bold text-primary mb-0.5">
                       {m.sender_name || "Membre"}
                     </div>
@@ -277,15 +297,15 @@ export default function ConversationView({
                       {m.text}
                     </div>
                   )}
-                  <div className="flex items-center gap-1 justify-end mt-1">
-                    <span className="text-[10px] opacity-70">{fmtTime(m.created_date)}</span>
-                    {mine &&
-                      (readByAll(m) ? (
+                  {mine && (
+                    <div className="flex items-center gap-1 justify-end mt-1">
+                      {readByAll(m) ? (
                         <CheckCheck className="h-3.5 w-3.5 text-white/90" />
                       ) : (
                         <Check className="h-3.5 w-3.5 opacity-70" />
-                      ))}
-                  </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className={`mt-0.5 flex items-center gap-2 ${mine ? "justify-end" : ""}`}>
                   <button
@@ -308,7 +328,11 @@ export default function ConversationView({
           );
         })}
         {typing && (
-          <div className="text-xs text-foreground/50 px-2 italic">en train d'écrire…</div>
+          <div className="flex items-center gap-1 px-2 py-1">
+            <span className="h-2 w-2 rounded-full bg-foreground/40 animate-bounce" style={{ animationDelay: "0ms" }} />
+            <span className="h-2 w-2 rounded-full bg-foreground/40 animate-bounce" style={{ animationDelay: "150ms" }} />
+            <span className="h-2 w-2 rounded-full bg-foreground/40 animate-bounce" style={{ animationDelay: "300ms" }} />
+          </div>
         )}
       </div>
 

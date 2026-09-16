@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 import { base44 } from "@/api/base44Client";
 import { usePresenceHeartbeat, useProfiles } from "@/hooks/usePresence";
+import { usePreferences } from "@/lib/PreferencesContext";
 import { MessageCircle } from "lucide-react";
 import ConversationList from "@/components/messages/ConversationList";
 import ConversationView from "@/components/messages/ConversationView";
@@ -21,7 +22,8 @@ export default function Messages() {
     () => localStorage.getItem("chay_chat_banner") === "1"
   );
 
-  usePresenceHeartbeat(user);
+  const { prefs } = usePreferences();
+  usePresenceHeartbeat(user, prefs.presence_visible !== false);
   const profiles = useProfiles();
 
   const loadAll = async () => {

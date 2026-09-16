@@ -17,9 +17,9 @@ export function lastSeenLabel(lastSeenAt) {
 }
 
 // Heartbeat: ensure a MemberProfile exists for the user, then refresh last_seen_at periodically.
-export function usePresenceHeartbeat(user) {
+export function usePresenceHeartbeat(user, enabled = true) {
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || !enabled) return;
     let profileId = null;
     let interval = null;
     let stopped = false;

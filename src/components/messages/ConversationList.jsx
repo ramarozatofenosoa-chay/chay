@@ -1,8 +1,10 @@
 import React, { useState } from "react";
-import { MessageCircle, PenSquare, Loader2, Search } from "lucide-react";
+import { MessageCircle, PenSquare, Search } from "lucide-react";
 import { isOnline } from "@/hooks/usePresence";
+import { usePreferences } from "@/lib/PreferencesContext";
 import PullToRefresh from "@/components/PullToRefresh";
 import ConversationItem from "@/components/messages/ConversationItem";
+import ActiveMembersRow from "@/components/messages/ActiveMembersRow";
 
 const FILTER_KEY = "chay_msg_filter";
 
@@ -20,6 +22,8 @@ export default function ConversationList({
   const [filter, setFilter] = useState(
     () => localStorage.getItem(FILTER_KEY) || "all"
   );
+  const { prefs } = usePreferences();
+  const showPresence = prefs.presence_visible !== false;
   const profileOf = (uid) => profiles.find((p) => p.created_by_id === uid);
 
   const items = conversations.map((c) => {
@@ -30,7 +34,7 @@ export default function ConversationList({
     const otherProfile = profileOf(otherId);
     const title = isGroup ? c.name || "Groupe" : otherProfile?.display_name || "Membre";
     const avatar = isGroup ? c.photo_url : otherProfile?.avatar_url;
-    const online = !isGroup && isOnline(otherProfile?.last_seen_at);
+    const online = showPresence && !isGroup && isOnline(otherProfile?.last_seen_at);
     const unread = msgs.filter(
       (m) => m.sender_id !== user?.id && !(m.read_by || []).includes(user?.id)
     ).length;
@@ -110,9 +114,9 @@ export default function ConversationList({
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Rechercher une conversation…"
+            placeholder="Rechercher une conversation ou un message…"
             className="bg-transparent outline-none text-sm font-medium flex-1"
-            aria-label="Rechercher une conversation"
+            aria-label="Rechercher une conversation ou un message"
           />
         </div>
 
@@ -122,9 +126,21 @@ export default function ConversationList({
           <Pill id="group" label="Groupe" />
         </div>
 
+        {showPresence && (
+          <ActiveMembersRow user={user} profiles={profiles} onOpen={onOpen} />
+        )}
+
         {loading ? (
-          <div className="flex justify-center py-16">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="space-y-2">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="flex items-center gap-3 p-2.5">
+                <div className="h-12 w-12 rounded-full bg-muted animate-pulse" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 w-1/2 bg-muted rounded animate-pulse" />
+                  <div className="h-3 w-3/4 bg-muted rounded animate-pulse" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-16">
@@ -146,6 +162,7 @@ export default function ConversationList({
                 online={it.online}
                 unread={it.unread}
                 preview={it.preview}
+                query={q}
                 time={it.time}
                 pinned={it.pinned}
                 muted={it.muted}

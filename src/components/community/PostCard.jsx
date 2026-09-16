@@ -1,18 +1,36 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Heart, MessageCircle, Send, Loader2 } from "lucide-react";
 import { Image } from "@/components/ui/image";
-import { notifyComment } from "@/lib/socialNotifications";
+import { notifyComment, notifyLike } from "@/lib/socialNotifications";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
-export default function PostCard({ post, liked, onToggleLike, currentUser }) {
+export default function PostCard({ post, currentUser }) {
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState([]);
   const [loadingComments, setLoadingComments] = useState(false);
   const [draft, setDraft] = useState("");
   const [posting, setPosting] = useState(false);
+  const [reactions, setReactions] = useState([]);
+  const [showLikes, setShowLikes] = useState(false);
+  const [likeBusy, setLikeBusy] = useState(false);
 
   const isMine = currentUser && post.created_by_id === currentUser.id;
   const displayName = post.author_name || (isMine ? "Vous" : "Membre");
+  const liked = reactions.some((r) => r.user_id === currentUser?.id);
+  const likeCount = reactions.length;
+
+  const loadReactions = async () => {
+    const r = await base44.entities.PostReaction
+      .filter({ post_id: post.id }, "-created_date", 200)
+      .catch(() => []);
+    setReactions(Array.isArray(r) ? r : []);
+  };
 
   const loadComments = async () => {
     setLoadingComments(true);
@@ -28,26 +46,57 @@ export default function PostCard({ post, liked, onToggleLike, currentUser }) {
     }
   };
 
-  // Charge le nombre de commentaires dès le montage.
   useEffect(() => {
+    loadReactions();
     loadComments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [post.id]);
+
+  const myName = () =>
+    currentUser?.full_name ||
+    [currentUser?.first_name, currentUser?.last_name].filter(Boolean).join(" ") ||
+    "Membre";
+
+  const toggleLike = async () => {
+    if (!currentUser || likeBusy) return;
+    setLikeBusy(true);
+    if (liked) {
+      const mine = reactions.find((r) => r.user_id === currentUser.id);
+      setReactions((prev) => prev.filter((r) => r.user_id !== currentUser.id));
+      if (mine) await base44.entities.PostReaction.delete(mine.id).catch(() => {});
+    } else {
+      const temp = {
+        id: `temp-${Date.now()}`,
+        post_id: post.id,
+        user_id: currentUser.id,
+        user_name: myName(),
+      };
+      setReactions((prev) => [...prev, temp]);
+      try {
+        const created = await base44.entities.PostReaction.create({
+          post_id: post.id,
+          user_id: currentUser.id,
+          user_name: myName(),
+        });
+        setReactions((prev) =>
+          prev.map((r) => (r.id === temp.id ? created : r))
+        );
+        notifyLike(post, currentUser);
+      } catch {
+        setReactions((prev) => prev.filter((r) => r.id !== temp.id));
+      }
+    }
+    setLikeBusy(false);
+  };
 
   const toggleComments = () => setShowComments((v) => !v);
 
   const submitComment = async () => {
     const text = draft.trim();
     if (!text || posting) return;
-    const name =
-      currentUser?.full_name ||
-      [currentUser?.first_name, currentUser?.last_name]
-        .filter(Boolean)
-        .join(" ") ||
-      "Membre";
     const tempId = `temp-${Date.now()}`;
     setComments((prev) => [
-      { id: tempId, post_id: post.id, text, author_name: name, created_date: new Date().toISOString() },
+      { id: tempId, post_id: post.id, text, author_name: myName(), created_date: new Date().toISOString() },
       ...prev,
     ]);
     setDraft("");
@@ -56,7 +105,7 @@ export default function PostCard({ post, liked, onToggleLike, currentUser }) {
       await base44.entities.Comment.create({
         post_id: post.id,
         text,
-        author_name: name,
+        author_name: myName(),
       });
       notifyComment(post, currentUser, text);
       await loadComments();
@@ -105,16 +154,25 @@ export default function PostCard({ post, liked, onToggleLike, currentUser }) {
       )}
 
       <div className="flex items-center gap-5 mt-4 pt-4 border-t border-border text-sm font-semibold text-foreground/55">
-        <button
-          onClick={() => onToggleLike(post)}
-          className={`inline-flex items-center gap-1.5 hover:text-primary transition ${
-            liked ? "text-primary" : ""
-          }`}
-          aria-label="Aimer"
-        >
-          <Heart className={`h-4 w-4 ${liked ? "fill-primary" : ""}`} />
-          {(post.likes || 0) > 0 && <span>{post.likes}</span>}
-        </button>
+        <div className={`inline-flex items-center gap-1.5 ${liked ? "text-primary" : ""}`}>
+          <button
+            onClick={toggleLike}
+            disabled={likeBusy}
+            className="hover:scale-110 transition disabled:opacity-50"
+            aria-label="Aimer"
+          >
+            <Heart className={`h-4 w-4 ${liked ? "fill-primary" : ""}`} />
+          </button>
+          {likeCount > 0 && (
+            <button
+              onClick={() => setShowLikes(true)}
+              className="hover:underline"
+              aria-label="Voir qui a aimé"
+            >
+              {likeCount}
+            </button>
+          )}
+        </div>
         <button
           onClick={toggleComments}
           className="inline-flex items-center gap-1.5 hover:text-primary transition"
@@ -172,6 +230,30 @@ export default function PostCard({ post, liked, onToggleLike, currentUser }) {
           </div>
         </div>
       )}
+
+      <Dialog open={showLikes} onOpenChange={setShowLikes}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Personnes ayant aimé</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-80 overflow-y-auto space-y-2">
+            {reactions.length === 0 ? (
+              <p className="text-sm text-foreground/50">Aucun like pour le moment.</p>
+            ) : (
+              reactions.map((r) => (
+                <div key={r.id} className="flex items-center gap-2">
+                  <div className="h-8 w-8 rounded-full brand-gradient grid place-items-center text-white text-xs font-bold">
+                    {(r.user_name || "M")[0]?.toUpperCase()}
+                  </div>
+                  <span className="text-sm font-semibold">
+                    {r.user_name || "Membre"}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

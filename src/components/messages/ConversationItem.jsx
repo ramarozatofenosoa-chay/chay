@@ -12,6 +12,21 @@ import Avatar from "@/components/messages/Avatar";
 import { base44 } from "@/api/base44Client";
 import { relTime } from "@/hooks/usePresence";
 
+const Highlight = ({ text, q }) => {
+  if (!q) return text;
+  const idx = text.toLowerCase().indexOf(q.toLowerCase());
+  if (idx < 0) return text;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <mark className="bg-primary/20 text-foreground rounded px-0.5">
+        {text.slice(idx, idx + q.length)}
+      </mark>
+      {text.slice(idx + q.length)}
+    </>
+  );
+};
+
 export default function ConversationItem({
   conv,
   messages,
@@ -26,6 +41,7 @@ export default function ConversationItem({
   muted,
   onOpen,
   onRefresh,
+  query,
 }) {
   const [menu, setMenu] = useState(null);
   const [confirmDel, setConfirmDel] = useState(false);
@@ -159,7 +175,7 @@ export default function ConversationItem({
               {pinned && (
                 <Pin className="inline h-3.5 w-3.5 mr-1 text-primary align-text-bottom" />
               )}
-              {title}
+              <Highlight text={title} q={query} />
             </span>
             <span className="flex items-center gap-1 shrink-0">
               {unread > 0 && (
@@ -174,7 +190,7 @@ export default function ConversationItem({
                 unread ? "font-semibold text-foreground/80" : "text-foreground/55"
               } ${fading ? "opacity-60" : ""}`}
             >
-              {preview}
+              <Highlight text={preview} q={query} />
             </span>
             {unread > 0 && (
               <span className="shrink-0 rounded-full bg-primary text-primary-foreground text-xs font-bold h-5 min-w-[1.25rem] px-1 grid place-items-center">

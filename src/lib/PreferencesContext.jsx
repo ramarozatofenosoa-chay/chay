@@ -46,6 +46,7 @@ export const DEFAULT_PREFS = {
   // Confidentialité
   profile_private: false,
   location_personalization: false,
+  presence_visible: true,
 };
 
 function loadLocal() {
