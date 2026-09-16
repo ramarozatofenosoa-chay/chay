@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import PasswordInput from "@/components/PasswordInput";
 import PasswordStrength, { evalPassword } from "@/components/PasswordStrength";
+import { dialFor, formatPhoneFor } from "@/lib/countryDial";
 
 const GENDERS = [
   { label: "Homme", value: "Homme" },
@@ -43,24 +44,6 @@ const GENDERS = [
 ];
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function formatPhone(raw) {
-  let s = (raw || "").replace(/[^\d+]/g, "");
-  if (!s.startsWith("+")) s = "+" + s.replace(/\+/g, "");
-  else s = "+" + s.slice(1).replace(/\+/g, "");
-  const d = s.slice(1);
-  if (d.length <= 2) return "+" + d;
-  const cc = d.slice(0, 2);
-  const rest = d.slice(2);
-  const groups = [];
-  let r = rest;
-  if (r.length % 2 === 1) {
-    groups.push(r[0]);
-    r = r.slice(1);
-  }
-  for (let i = 0; i < r.length; i += 2) groups.push(r.slice(i, i + 2));
-  return "+" + cc + " " + groups.join(" ");
-}
 const phoneStripped = (p) => "+" + (p || "").replace(/[^\d]/g, "");
 const PHONE_RE = /^\+[1-9]\d{6,14}$/;
 
@@ -138,6 +121,11 @@ export default function Register() {
   const [acceptCgu, setAcceptCgu] = useState(false);
   const [loc, setLoc] = useState(null);
   const [locStatus, setLocStatus] = useState("");
+
+  // L'indicatif téléphonique suit automatiquement le pays sélectionné.
+  useEffect(() => {
+    if (country) setPhone("+" + dialFor(country));
+  }, [country]);
 
   const pwStrength = evalPassword(password);
   const passwordValid = pwStrength.level === 3;
@@ -387,12 +375,12 @@ export default function Register() {
                   triggerClassName="w-full h-11"
                 />
               </Field>
-              <Field label="Téléphone" icon={Phone} required hint="Format international, ex. +33 4 54 54 54 54" error={phone && !phoneValid ? "Numéro invalide" : null}>
+              <Field label="Téléphone" icon={Phone} required hint="Indicatif et format définis selon le pays sélectionné" error={phone && phoneStripped(phone) !== "+" + dialFor(country) && !phoneValid ? "Numéro invalide" : null}>
                 <Input
                   type="tel"
                   value={phone}
-                  onChange={(e) => setPhone(formatPhone(e.target.value))}
-                  placeholder="+33 4 54 54 54 54"
+                  onChange={(e) => setPhone(formatPhoneFor(country, e.target.value))}
+                  placeholder={country ? "+" + dialFor(country) : "+33 2 23 23 22 22"}
                   className={`h-11 ${borderFor(fst(phone, phoneValid))}`}
                 />
               </Field>
@@ -431,8 +419,8 @@ export default function Register() {
               label="Mot de passe"
               icon={Lock}
               required
-              error={password && !passwordValid ? "Mot de passe trop faible (niveau Fort requis)" : null}
-              hint="12 caractères min, majuscule, minuscule, chiffre et caractère spécial"
+              error={password ? (password.length < 6 ? "6 caractères minimum" : !passwordValid ? "Mot de passe trop faible (niveau Fort requis)" : null) : null}
+              hint="6 caractères minimum — niveau Fort requis (12+, majuscule, minuscule, chiffre, caractère spécial)"
             >
               <PasswordInput
                 autoComplete="new-password"

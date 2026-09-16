@@ -4,6 +4,7 @@ import React from "react";
 // Fort (level 3) : 12+ caractères + majuscule + minuscule + chiffre + caractère spécial.
 export function evalPassword(pw) {
   if (!pw) return { level: 0, label: "" };
+  if (pw.length < 6) return { level: 0, label: "Trop court" };
   let score = 0;
   if (pw.length >= 8) score++;
   if (pw.length >= 12) score++;
@@ -28,6 +29,7 @@ const LABEL_COLORS = ["text-destructive", "text-amber-600", "text-emerald-600"];
 export default function PasswordStrength({ password }) {
   const { level, label } = evalPassword(password);
   if (!password) return null;
+  const labelColor = level === 0 ? "text-destructive" : LABEL_COLORS[level - 1];
   return (
     <div className="flex items-center gap-2">
       <div className="flex gap-1 flex-1">
@@ -40,9 +42,7 @@ export default function PasswordStrength({ password }) {
           />
         ))}
       </div>
-      <span className={`text-[11px] font-bold ${LABEL_COLORS[level - 1]}`}>
-        {label}
-      </span>
+      <span className={`text-[11px] font-bold ${labelColor}`}>{label}</span>
     </div>
   );
 }
