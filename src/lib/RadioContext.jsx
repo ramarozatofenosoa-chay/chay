@@ -135,6 +135,18 @@ export function RadioPlayerProvider({ children }) {
     a.addEventListener("stalled", onStalled);
     a.addEventListener("error", onError);
 
+    // Interrupteur : toute autre lecture (musique ou vidéo) démarrée dans l'app
+    // arrête automatiquement la radio. On écoute "play" en phase de capture car
+    // l'événement ne remonte pas (ne bubble pas) depuis les <audio>/<video>.
+    const onAnyMediaPlay = (e) => {
+      const el = e.target;
+      if (!el || el === audioRef.current) return; // la radio elle-même
+      if (el.tagName === "AUDIO" || el.tagName === "VIDEO") {
+        stop();
+      }
+    };
+    document.addEventListener("play", onAnyMediaPlay, true);
+
     if ("mediaSession" in navigator) {
       try {
         navigator.mediaSession.setActionHandler("play", () => play());
@@ -149,6 +161,7 @@ export function RadioPlayerProvider({ children }) {
       a.removeEventListener("pause", onPause);
       a.removeEventListener("stalled", onStalled);
       a.removeEventListener("error", onError);
+      document.removeEventListener("play", onAnyMediaPlay, true);
       stopRetry();
       a.pause();
     };

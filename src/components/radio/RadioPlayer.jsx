@@ -87,8 +87,8 @@ export default function RadioPlayer() {
             onClick={toggle}
             aria-label={
               isPlaying || isLoading
-                ? "Arrêter la radio"
-                : "Lecture de la radio"
+                ? "Lecture radio en cours, appuyez pour arrêter"
+                : "Radio arrêtée, appuyez pour lancer la lecture"
             }
             className="h-16 w-16 rounded-full brand-gradient text-white grid place-items-center shadow-lg hover:scale-105 active:scale-95 transition"
           >
