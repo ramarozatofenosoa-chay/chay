@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { base44 } from "@/api/base44Client";
 import { usePresenceHeartbeat, useProfiles } from "@/hooks/usePresence";
 import { usePreferences } from "@/lib/PreferencesContext";
+import { setActiveChat } from "@/lib/activeChat";
 import { MessageCircle } from "lucide-react";
 import ConversationList from "@/components/messages/ConversationList";
 import ConversationView from "@/components/messages/ConversationView";
@@ -88,6 +89,22 @@ export default function Messages() {
   }, []);
 
   const activeConv = conversations.find((c) => c.id === activeId) || null;
+
+  useEffect(() => {
+    if (activeConv && user) {
+      const isGroup = activeConv.type === "group";
+      const otherId = !isGroup
+        ? activeConv.participant_ids?.find((id) => id !== user.id)
+        : null;
+      const otherProfile = profiles.find((p) => p.created_by_id === otherId);
+      setActiveChat({
+        id: activeConv.id,
+        title: isGroup ? activeConv.name || "Groupe" : otherProfile?.display_name || "Membre",
+        avatar: isGroup ? activeConv.photo_url : otherProfile?.avatar_url,
+        isGroup,
+      });
+    }
+  }, [activeConv?.id, user?.id, profiles]);
 
   const openConversation = (id) => setSearchParams({ c: id });
   const goBack = () => {

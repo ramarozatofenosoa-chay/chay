@@ -5,10 +5,7 @@ import {
   ChevronLeft,
   Send,
   Loader2,
-  Check,
-  CheckCheck,
   Reply,
-  Trash2,
   Image as ImageIcon,
   X,
   Smile,
@@ -18,8 +15,9 @@ import Avatar from "@/components/messages/Avatar";
 import { Image } from "@/components/ui/image";
 import { isOnline, lastSeenLabel } from "@/hooks/usePresence";
 import GroupSettingsSheet from "@/components/messages/GroupSettingsSheet";
-
-const EMOJIS = ["😀", "🙏", "❤️", "🕊️", "✨", "🙌", "👍", "😍"];
+import EmojiPicker from "@/components/messages/EmojiPicker";
+import MessageActionMenu from "@/components/messages/MessageActionMenu";
+import ReadReceipts from "@/components/messages/ReadReceipts";
 
 function fmtTime(d) {
   if (!d) return "";
@@ -44,10 +42,13 @@ export default function ConversationView({
   const [replyTo, setReplyTo] = useState(null);
   const [showEmoji, setShowEmoji] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [menu, setMenu] = useState(null);
   const scrollRef = useRef(null);
   const fileRef = useRef(null);
   const typingTimer = useRef(null);
   const isTypingSent = useRef(false);
+  const pressTimer = useRef(null);
+  const pressPoint = useRef({ x: 0, y: 0 });
 
   const isGroup = conversation?.type === "group";
   const otherId = !isGroup
@@ -68,9 +69,9 @@ export default function ConversationView({
     [user?.first_name, user?.last_name].filter(Boolean).join(" ") ||
     "Membre";
 
-  // Scroll to bottom on new messages
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    if (scrollRef.current)
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages.length]);
 
   // Mark incoming unread messages as read
@@ -87,7 +88,9 @@ export default function ConversationView({
 
   // Typing indicator from conversation realtime
   useEffect(() => {
-    const t = conversation?.typing_at ? new Date(conversation.typing_at).getTime() : 0;
+    const t = conversation?.typing_at
+      ? new Date(conversation.typing_at).getTime()
+      : 0;
     const active = t && Date.now() - t < 4000 && conversation.typing_user_id !== user?.id;
     setTyping(active);
     if (active) {
@@ -187,6 +190,21 @@ export default function ConversationView({
     }
   };
 
+  // Long-press / right-click to open the action menu
+  const openMenuAt = (m, pos) => setMenu({ msg: m, x: pos.x, y: pos.y });
+  const onPointerDownMenu = (e, m) => {
+    pressPoint.current = { x: e.clientX, y: e.clientY };
+    pressTimer.current = setTimeout(
+      () => openMenuAt(m, pressPoint.current),
+      500
+    );
+  };
+  const cancelPress = () => clearTimeout(pressTimer.current);
+  const onContextMenuMenu = (e, m) => {
+    e.preventDefault();
+    openMenuAt(m, { x: e.clientX, y: e.clientY });
+  };
+
   if (!conversation) {
     return (
       <div className="py-20 text-center text-foreground/50">
@@ -202,11 +220,16 @@ export default function ConversationView({
     otherParticipants.length > 0 &&
     otherParticipants.every((uid) => (m.read_by || []).includes(uid));
   const repliedOf = (id) => messages.find((x) => x.id === id);
+  const readersOf = (m) =>
+    otherParticipants
+      .filter((uid) => (m.read_by || []).includes(uid))
+      .map((uid) => profiles.find((p) => p.created_by_id === uid))
+      .filter(Boolean);
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-9rem)] md:h-[calc(100dvh-10rem)]">
+    <div className="flex flex-col h-[calc(100dvh-9rem)] md:h-[calc(100dvh-10rem)] rounded-[1.5rem] border border-border bg-background overflow-hidden shadow-sm">
       {/* Header */}
-      <div className="flex items-center gap-2 bg-background/80 backdrop-blur-xl border-b border-border px-2 py-2.5">
+      <div className="flex items-center gap-2.5 bg-background/85 backdrop-blur-xl border-b border-border px-3 py-2.5">
         <button
           onClick={onBack}
           className="h-9 w-9 grid place-items-center rounded-full hover:bg-muted shrink-0"
@@ -216,8 +239,14 @@ export default function ConversationView({
         </button>
         <Avatar name={title} src={avatarUrl} size={40} online={online} />
         <div className="flex-1 min-w-0">
-          <div className="font-bold truncate">{title}</div>
-          <div className="text-xs text-foreground/50 truncate">{statusText}</div>
+          <div className="font-bold truncate leading-tight">{title}</div>
+          <div className="text-xs text-foreground/50 truncate leading-tight">
+            {typing ? (
+              <span className="text-primary font-medium">en train d'écrire…</span>
+            ) : (
+              statusText
+            )}
+          </div>
         </div>
         {isGroup && (
           <button
@@ -233,25 +262,33 @@ export default function ConversationView({
       {/* Messages */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto px-3 py-4 space-y-2 selectable"
+        className="flex-1 overflow-y-auto px-3 md:px-6 py-4 space-y-1 selectable"
       >
         {messages.map((m, i) => {
           const mine = m.sender_id === user.id;
           const replied = m.reply_to_id ? repliedOf(m.reply_to_id) : null;
           const prev = messages[i - 1];
+          const next = messages[i + 1];
           const sameSender = prev && prev.sender_id === m.sender_id;
           const gap = prev
-            ? new Date(m.created_date).getTime() - new Date(prev.created_date).getTime()
+            ? new Date(m.created_date).getTime() -
+              new Date(prev.created_date).getTime()
             : Infinity;
           const grouped = sameSender && gap <= 60000;
+          const nextSame =
+            next && next.sender_id === m.sender_id &&
+            new Date(next.created_date).getTime() -
+              new Date(m.created_date).getTime() <=
+              60000;
+          const isLastOfGroup = !nextSame;
           return (
             <div
               key={m.id}
               className={`flex ${mine ? "justify-end" : "justify-start"} animate-float-in ${
-                grouped ? "mt-0.5" : "mt-2"
+                grouped ? "mt-0.5" : "mt-2.5"
               }`}
             >
-              <div className="max-w-[82%]">
+              <div className="max-w-[82%] md:max-w-md">
                 {!grouped && (
                   <div
                     className={`text-[0.6875rem] text-foreground/45 mb-1 ${
@@ -276,10 +313,21 @@ export default function ConversationView({
                   </div>
                 )}
                 <div
-                  className={`rounded-2xl px-3.5 py-2 ${
+                  onPointerDown={(e) => onPointerDownMenu(e, m)}
+                  onPointerUp={cancelPress}
+                  onPointerLeave={cancelPress}
+                  onPointerCancel={cancelPress}
+                  onContextMenu={(e) => onContextMenuMenu(e, m)}
+                  className={`rounded-2xl px-3.5 py-2 cursor-pointer select-none transition active:scale-[0.99] ${
                     mine
                       ? "brand-gradient text-white rounded-br-md"
                       : "bg-card border border-border rounded-bl-md"
+                  } ${
+                    grouped
+                      ? mine
+                        ? "rounded-br-md"
+                        : "rounded-bl-md"
+                      : ""
                   }`}
                 >
                   {isGroup && !mine && !grouped && (
@@ -289,7 +337,11 @@ export default function ConversationView({
                   )}
                   {m.image_url && (
                     <div className="rounded-xl overflow-hidden mb-1 max-w-[220px]">
-                      <Image src={m.image_url} fittingType="fill" className="w-full h-44" />
+                      <Image
+                        src={m.image_url}
+                        fittingType="fill"
+                        className="w-full h-44"
+                      />
                     </div>
                   )}
                   {m.text && (
@@ -297,41 +349,31 @@ export default function ConversationView({
                       {m.text}
                     </div>
                   )}
-                  {mine && (
-                    <div className="flex items-center gap-1 justify-end mt-1">
-                      {readByAll(m) ? (
-                        <CheckCheck className="h-3.5 w-3.5 text-white/90" />
-                      ) : (
-                        <Check className="h-3.5 w-3.5 opacity-70" />
-                      )}
-                    </div>
-                  )}
                 </div>
-                <div className={`mt-0.5 flex items-center gap-2 ${mine ? "justify-end" : ""}`}>
-                  <button
-                    onClick={() => setReplyTo(m)}
-                    className="text-[10px] font-semibold text-foreground/50 hover:text-primary inline-flex items-center gap-0.5"
-                  >
-                    <Reply className="h-3 w-3" /> Répondre
-                  </button>
-                  {mine && (
-                    <button
-                      onClick={() => deleteMessage(m)}
-                      className="text-[10px] font-semibold text-foreground/50 hover:text-destructive inline-flex items-center gap-0.5"
-                    >
-                      <Trash2 className="h-3 w-3" /> Supprimer
-                    </button>
-                  )}
-                </div>
+                {mine && isLastOfGroup && (
+                  <ReadReceipts
+                    readers={readersOf(m)}
+                    allRead={readByAll(m)}
+                  />
+                )}
               </div>
             </div>
           );
         })}
         {typing && (
           <div className="flex items-center gap-1 px-2 py-1">
-            <span className="h-2 w-2 rounded-full bg-foreground/40 animate-bounce" style={{ animationDelay: "0ms" }} />
-            <span className="h-2 w-2 rounded-full bg-foreground/40 animate-bounce" style={{ animationDelay: "150ms" }} />
-            <span className="h-2 w-2 rounded-full bg-foreground/40 animate-bounce" style={{ animationDelay: "300ms" }} />
+            <span
+              className="h-2 w-2 rounded-full bg-foreground/40 animate-bounce"
+              style={{ animationDelay: "0ms" }}
+            />
+            <span
+              className="h-2 w-2 rounded-full bg-foreground/40 animate-bounce"
+              style={{ animationDelay: "150ms" }}
+            />
+            <span
+              className="h-2 w-2 rounded-full bg-foreground/40 animate-bounce"
+              style={{ animationDelay: "300ms" }}
+            />
           </div>
         )}
       </div>
@@ -358,62 +400,77 @@ export default function ConversationView({
         </div>
       )}
 
-      {/* Emoji bar */}
-      {showEmoji && (
-        <div className="border-t border-border bg-card px-3 py-2 flex gap-1 overflow-x-auto no-scrollbar">
-          {EMOJIS.map((em) => (
-            <button
-              key={em}
-              onClick={() => setDraft((d) => d + em)}
-              className="text-2xl px-1.5 py-1 hover:bg-muted rounded-lg"
-            >
-              {em}
-            </button>
-          ))}
+      {/* Composer */}
+      <div className="relative bg-background/85 backdrop-blur-xl border-t border-border">
+        {showEmoji && (
+          <div className="absolute bottom-full left-2 right-2 mb-2">
+            <EmojiPicker onPick={(em) => setDraft((d) => d + em)} />
+          </div>
+        )}
+        <div className="p-3 flex items-center gap-2">
+          <button
+            onClick={() => setShowEmoji((s) => !s)}
+            className={`h-10 w-10 grid place-items-center rounded-full hover:bg-muted shrink-0 transition ${
+              showEmoji ? "text-primary bg-muted" : "text-foreground/60"
+            }`}
+            aria-label="Emojis"
+          >
+            <Smile className="h-5 w-5" />
+          </button>
+          <button
+            onClick={() => fileRef.current?.click()}
+            className="h-10 w-10 grid place-items-center rounded-full hover:bg-muted shrink-0 text-foreground/60"
+            aria-label="Image"
+          >
+            <ImageIcon className="h-5 w-5" />
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              sendImage(e.target.files?.[0]);
+              e.target.value = "";
+            }}
+          />
+          <input
+            value={draft}
+            onChange={onDraftChange}
+            onKeyDown={(e) => e.key === "Enter" && send()}
+            placeholder="Message…"
+            className="flex-1 rounded-full border border-border bg-card px-4 py-2.5 text-sm outline-none focus:border-primary"
+          />
+          <button
+            onClick={send}
+            disabled={(!draft.trim() && !sending) || sending}
+            className="h-10 w-10 rounded-full brand-gradient text-white grid place-items-center disabled:opacity-50 shrink-0 active:scale-95 transition"
+            aria-label="Envoyer"
+          >
+            {sending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+          </button>
         </div>
-      )}
-
-      {/* Input */}
-      <div className="bg-background/80 backdrop-blur-xl border-t border-border p-3 flex items-center gap-2">
-        <button
-          onClick={() => setShowEmoji((s) => !s)}
-          className="h-10 w-10 grid place-items-center rounded-full hover:bg-muted shrink-0"
-          aria-label="Emojis"
-        >
-          <Smile className="h-5 w-5 text-foreground/60" />
-        </button>
-        <button
-          onClick={() => fileRef.current?.click()}
-          className="h-10 w-10 grid place-items-center rounded-full hover:bg-muted shrink-0"
-          aria-label="Image"
-        >
-          <ImageIcon className="h-5 w-5 text-foreground/60" />
-        </button>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => {
-            sendImage(e.target.files?.[0]);
-            e.target.value = "";
-          }}
-        />
-        <input
-          value={draft}
-          onChange={onDraftChange}
-          onKeyDown={(e) => e.key === "Enter" && send()}
-          placeholder="Message…"
-          className="flex-1 rounded-full border border-border bg-card px-4 py-2.5 text-sm outline-none focus:border-primary"
-        />
-        <button
-          onClick={send}
-          disabled={!draft.trim() || sending}
-          className="h-10 w-10 rounded-full brand-gradient text-white grid place-items-center disabled:opacity-50 shrink-0"
-        >
-          {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-        </button>
       </div>
+
+      {menu && (
+        <MessageActionMenu
+          position={{ x: menu.x, y: menu.y }}
+          mine={menu.msg.sender_id === user.id}
+          onReply={() => setReplyTo(menu.msg)}
+          onCopy={() => {
+            if (menu.msg.text)
+              navigator.clipboard
+                ?.writeText(menu.msg.text)
+                .catch(() => {});
+          }}
+          onDelete={() => deleteMessage(menu.msg)}
+          onClose={() => setMenu(null)}
+        />
+      )}
 
       {isGroup && (
         <GroupSettingsSheet
