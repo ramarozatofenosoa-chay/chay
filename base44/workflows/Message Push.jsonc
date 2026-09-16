@@ -1,0 +1,40 @@
+{
+  "name": "Message Push",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "entity",
+      "events": [
+        "create"
+      ],
+      "entity_name": "Message"
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "message_push",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "send_push": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "sendMessagePush",
+            "args": {
+              "message_id": "${ .trigger.entity_id }"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Notification push",
+            "description": "Pr\u00e9venir les participants du nouveau message"
+          }
+        }
+      }
+    ]
+  },
+  "description": "Envoie une notification push native aux participants quand un nouveau message est cr\u00e9\u00e9 dans une conversation"
+}

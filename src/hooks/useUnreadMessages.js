@@ -23,10 +23,12 @@ export function useUnreadMessages(user) {
     };
 
     load();
-    const unsub = base44.entities.Message.subscribe(() => load());
+    const unsubM = base44.entities.Message.subscribe(() => load());
+    const unsubC = base44.entities.Conversation.subscribe(() => load());
     return () => {
       stopped = true;
-      unsub();
+      unsubM();
+      unsubC();
     };
   }, [user?.id]);
 

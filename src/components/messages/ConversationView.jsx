@@ -18,6 +18,7 @@ import GroupSettingsSheet from "@/components/messages/GroupSettingsSheet";
 import EmojiPicker from "@/components/messages/EmojiPicker";
 import MessageActionMenu from "@/components/messages/MessageActionMenu";
 import ReadReceipts from "@/components/messages/ReadReceipts";
+import PhotoViewer from "@/components/messages/PhotoViewer";
 
 function fmtTime(d) {
   if (!d) return "";
@@ -43,6 +44,7 @@ export default function ConversationView({
   const [showEmoji, setShowEmoji] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [menu, setMenu] = useState(null);
+  const [viewer, setViewer] = useState(null);
   const scrollRef = useRef(null);
   const fileRef = useRef(null);
   const typingTimer = useRef(null);
@@ -182,6 +184,12 @@ export default function ConversationView({
     setSending(false);
   };
 
+  const openPhoto = (m) => {
+    const imgs = messages.filter((x) => x.image_url).map((x) => x.image_url);
+    const idx = imgs.indexOf(m.image_url);
+    setViewer({ images: imgs, index: idx < 0 ? 0 : idx });
+  };
+
   const deleteMessage = async (m) => {
     try {
       await base44.entities.Message.delete(m.id);
@@ -318,7 +326,7 @@ export default function ConversationView({
                   onPointerLeave={cancelPress}
                   onPointerCancel={cancelPress}
                   onContextMenu={(e) => onContextMenuMenu(e, m)}
-                  className={`rounded-2xl px-3.5 py-2 cursor-pointer select-none transition active:scale-[0.99] ${
+                  className={`w-fit max-w-full rounded-2xl px-4 py-2.5 cursor-pointer select-none transition active:scale-[0.99] ${
                     mine
                       ? "brand-gradient text-white rounded-br-md"
                       : "bg-card border border-border rounded-bl-md"
@@ -336,13 +344,18 @@ export default function ConversationView({
                     </div>
                   )}
                   {m.image_url && (
-                    <div className="rounded-xl overflow-hidden mb-1 max-w-[220px]">
+                    <button
+                      type="button"
+                      onClick={() => openPhoto(m)}
+                      className="block rounded-xl overflow-hidden mb-1 max-w-[220px] focus:outline-none"
+                      aria-label="Agrandir la photo"
+                    >
                       <Image
                         src={m.image_url}
                         fittingType="fill"
                         className="w-full h-44"
                       />
-                    </div>
+                    </button>
                   )}
                   {m.text && (
                     <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
@@ -480,6 +493,14 @@ export default function ConversationView({
           user={user}
           profiles={profiles}
           onUpdated={onRefresh}
+        />
+      )}
+
+      {viewer && (
+        <PhotoViewer
+          images={viewer.images}
+          index={viewer.index}
+          onClose={() => setViewer(null)}
         />
       )}
     </div>

@@ -128,16 +128,18 @@ export default function NewChatSheet({
           >
             <MessageSquare className="h-4 w-4" /> Message
           </button>
-          <button
-            onClick={() => setMode("group")}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition ${
-              mode === "group"
-                ? "bg-primary text-primary-foreground"
-                : "border border-border bg-card"
-            }`}
-          >
-            <Users className="h-4 w-4" /> Groupe
-          </button>
+          {user?.role === "admin" && (
+            <button
+              onClick={() => setMode("group")}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition ${
+                mode === "group"
+                  ? "bg-primary text-primary-foreground"
+                  : "border border-border bg-card"
+              }`}
+            >
+              <Users className="h-4 w-4" /> Groupe
+            </button>
+          )}
         </div>
 
         {mode === "group" && (

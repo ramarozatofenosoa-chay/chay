@@ -11,9 +11,24 @@ export function isOnline(lastSeenAt) {
 
 export function lastSeenLabel(lastSeenAt) {
   if (!lastSeenAt) return "hors ligne";
-  if (isOnline(lastSeenAt)) return "en ligne";
+  if (isOnline(lastSeenAt)) return "Actif maintenant";
+  const diff = Date.now() - new Date(lastSeenAt).getTime();
+  if (diff < 60000) return "Actif à l'instant";
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) {
+    if (mins <= 5) return "Actif il y a quelques minutes";
+    return `Actif il y a ${mins} min`;
+  }
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) {
+    return hours === 1 ? "Actif il y a 1 heure" : `Actif il y a ${hours} heures`;
+  }
+  const days = Math.floor(hours / 24);
+  if (days < 7) {
+    return days === 1 ? "Actif il y a 1 jour" : `Actif il y a ${days} jours`;
+  }
   const d = new Date(lastSeenAt);
-  return `vu à ${d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
+  return `Vu le ${d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}`;
 }
 
 // Heartbeat: ensure a MemberProfile exists for the user, then refresh last_seen_at periodically.
