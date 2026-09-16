@@ -1,0 +1,166 @@
+import React, { useState } from "react";
+import { base44 } from "@/api/base44Client";
+import { useToast } from "@/components/ui/use-toast";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { publishContentWithNotification } from "@/lib/contentNotifications";
+import { Loader2, Upload, Send } from "lucide-react";
+
+const TYPES = [
+  ["audio", "Audio"],
+  ["video", "Vidéo"],
+  ["predication", "Prédication"],
+  ["enseignement", "Enseignement"],
+  ["annonce", "Annonce"],
+  ["evenement", "Événement"],
+  ["actualite", "Actualité"],
+  ["autre", "Autre"],
+];
+
+const EMPTY = {
+  type: "predication",
+  title: "",
+  description: "",
+  category: "",
+  media_url: "",
+  resource_id: "",
+};
+
+export default function PublishContent() {
+  const { toast } = useToast();
+  const [form, setForm] = useState(EMPTY);
+  const [uploading, setUploading] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  const upload = async (file) => {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const res = await base44.integrations.Core.UploadPublicFile({ file });
+      set("media_url", res.file_url);
+      toast({ title: "Fichier importé" });
+    } catch (e) {
+      toast({ title: "Erreur", description: e.message, variant: "destructive" });
+    }
+    setUploading(false);
+  };
+
+  const publish = async () => {
+    if (!form.title.trim()) {
+      toast({ title: "Le titre est requis", variant: "destructive" });
+      return;
+    }
+    setPublishing(true);
+    try {
+      const { recipients } = await publishContentWithNotification(form);
+      toast({
+        title: "Contenu publié",
+        description: `${recipients} utilisateur(s) notifié(s).`,
+      });
+      setForm(EMPTY);
+    } catch (e) {
+      toast({ title: "Erreur", description: e.message, variant: "destructive" });
+    }
+    setPublishing(false);
+  };
+
+  return (
+    <div className="rounded-[2rem] border border-border bg-background/40 p-5 md:p-6 space-y-4">
+      <div className="flex items-center gap-2 mb-2">
+        <Send className="h-5 w-5 text-primary" />
+        <h2 className="font-display font-extrabold text-xl">Publier un contenu</h2>
+      </div>
+      <p className="text-sm text-foreground/60">
+        La publication crée automatiquement une notification envoyée à tous les
+        utilisateurs.
+      </p>
+
+      <div>
+        <Label className="text-xs">Type</Label>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-1">
+          {TYPES.map(([v, l]) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => set("type", v)}
+              className={`h-10 rounded-xl border text-sm font-semibold ${
+                form.type === v
+                  ? "brand-gradient text-white border-transparent"
+                  : "border-border bg-card"
+              }`}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <Label className="text-xs">Titre</Label>
+        <Input
+          value={form.title}
+          onChange={(e) => set("title", e.target.value)}
+          className="h-10 mt-1"
+        />
+      </div>
+
+      <div>
+        <Label className="text-xs">Description</Label>
+        <Textarea
+          value={form.description}
+          onChange={(e) => set("description", e.target.value)}
+          rows={3}
+          className="mt-1"
+        />
+      </div>
+
+      <div>
+        <Label className="text-xs">Catégorie</Label>
+        <Input
+          value={form.category}
+          onChange={(e) => set("category", e.target.value)}
+          className="h-10 mt-1"
+        />
+      </div>
+
+      <div>
+        <Label className="text-xs">Fichier média (audio / vidéo / image)</Label>
+        <label className="mt-1 flex items-center gap-2 rounded-xl border border-dashed border-border bg-card px-3 py-3 cursor-pointer">
+          <Upload className="h-4 w-4 text-primary" />
+          <span className="text-sm text-foreground/60 truncate">
+            {form.media_url ? "Fichier importé" : "Importer un fichier"}
+          </span>
+          <input
+            type="file"
+            className="hidden"
+            onChange={(e) => upload(e.target.files?.[0])}
+          />
+          {uploading && <Loader2 className="h-4 w-4 animate-spin ml-auto" />}
+        </label>
+      </div>
+
+      <div>
+        <Label className="text-xs">ID ressource liée (optionnel)</Label>
+        <Input
+          value={form.resource_id}
+          onChange={(e) => set("resource_id", e.target.value)}
+          className="h-10 mt-1"
+          placeholder="ex. id d'une prédication existante"
+        />
+      </div>
+
+      <Button onClick={publish} disabled={publishing} className="w-full">
+        {publishing ? (
+          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+        ) : (
+          <Send className="h-4 w-4 mr-2" />
+        )}
+        Publier et notifier
+      </Button>
+    </div>
+  );
+}

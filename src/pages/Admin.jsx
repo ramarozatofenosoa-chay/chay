@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import EntityCrud from "@/components/admin/EntityCrud";
 import DashboardHome from "@/components/admin/DashboardHome";
+import PublishContent from "@/components/admin/PublishContent";
 import {
   LayoutDashboard,
   BookOpen,
@@ -25,6 +26,8 @@ import {
   Mail,
   UserPlus,
   Loader2,
+  Send,
+  Newspaper,
 } from "lucide-react";
 
 const LANGS = [
@@ -187,10 +190,54 @@ const SECTIONS = [
     readOnly: true,
     fields: [],
   },
+  {
+    key: "Content",
+    label: "Contenus publiés",
+    icon: Newspaper,
+    sort: "-published_at",
+    listColumns: ["title", "type", "status"],
+    fields: [
+      {
+        name: "type",
+        label: "Type",
+        type: "select",
+        required: true,
+        options: [
+          { value: "audio", label: "Audio" },
+          { value: "video", label: "Vidéo" },
+          { value: "predication", label: "Prédication" },
+          { value: "enseignement", label: "Enseignement" },
+          { value: "annonce", label: "Annonce" },
+          { value: "evenement", label: "Événement" },
+          { value: "actualite", label: "Actualité" },
+          { value: "autre", label: "Autre" },
+        ],
+      },
+      { name: "title", label: "Titre", type: "text", required: true },
+      { name: "description", label: "Description", type: "textarea" },
+      { name: "category", label: "Catégorie", type: "text" },
+      {
+        name: "status",
+        label: "Statut",
+        type: "select",
+        required: true,
+        options: [
+          { value: "draft", label: "Brouillon" },
+          { value: "published", label: "Publié" },
+          { value: "archived", label: "Archivé" },
+        ],
+      },
+      { name: "published_at", label: "Date de publication", type: "date" },
+      { name: "thumbnail_url", label: "Miniature", type: "file", accept: "image/*" },
+      { name: "media_url", label: "Média", type: "file" },
+      { name: "resource_id", label: "ID ressource liée", type: "text" },
+    ],
+  },
 ];
 
 const NAV = [
   { key: "overview", label: "Tableau de bord", icon: LayoutDashboard },
+  { key: "publish", label: "Publier", icon: Send },
   ...SECTIONS.map((s) => ({ key: s.key, label: s.label, icon: s.icon })),
 ];
 
@@ -305,6 +352,8 @@ export default function Admin() {
           <main>
             {active === "overview" ? (
               <DashboardHome onNavigate={setActive} />
+            ) : active === "publish" ? (
+              <PublishContent />
             ) : (
               <section className="rounded-[2rem] border border-border bg-background/40 p-5 md:p-6">
                 <div className="flex items-center gap-2 mb-4">

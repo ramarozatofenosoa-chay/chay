@@ -8,6 +8,7 @@ import { Image } from "@/components/ui/image";
 import { useAuth } from "@/lib/AuthContext";
 import { usePresenceHeartbeat } from "@/hooks/usePresence";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
+import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 
 const LOGO_URL =
   "https://media.base44.com/images/public/6aa138d0e963d9e5f59d838c/c26279d55_logo.png";
@@ -26,6 +27,7 @@ export default function Layout() {
   const { user } = useAuth();
   usePresenceHeartbeat(user);
   const unread = useUnreadMessages(user);
+  const notifUnread = useUnreadNotifications(user);
   const [lastParams, setLastParams] = useState({});
   const location = useLocation();
   const navigate = useNavigate();
@@ -83,9 +85,12 @@ export default function Layout() {
 
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <button className="h-11 w-11 grid place-items-center rounded-full border border-border hover:bg-muted transition">
+            <Link to="/notifications" className="relative h-11 w-11 grid place-items-center rounded-full border border-border hover:bg-muted transition" aria-label="Notifications">
               <Bell className="h-4 w-4" />
-            </button>
+              {notifUnread > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 grid place-items-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold border-2 border-background">{notifUnread > 99 ? "99+" : notifUnread}</span>
+              )}
+            </Link>
             <Link to={navTarget("/messages")} className="relative h-11 w-11 grid place-items-center rounded-full border border-border hover:bg-muted transition" aria-label="Messages">
               <MessageCircle className="h-4 w-4" />
               {unread > 0 && (
@@ -133,6 +138,12 @@ export default function Layout() {
                 <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 grid place-items-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold border-2 border-background">
                   {unread > 99 ? "99+" : unread}
                 </span>
+              )}
+            </Link>
+            <Link to="/notifications" className="relative h-11 w-11 grid place-items-center rounded-full border border-border" aria-label="Notifications">
+              <Bell className="h-4 w-4" />
+              {notifUnread > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 grid place-items-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold border-2 border-background">{notifUnread > 99 ? "99+" : notifUnread}</span>
               )}
             </Link>
             <ThemeToggle />

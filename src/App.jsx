@@ -13,6 +13,7 @@ import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
 import Settings from '@/pages/Settings';
+import Notifications from '@/pages/Notifications';
 import { PreferencesProvider } from '@/lib/PreferencesContext';
 import { Navigate } from 'react-router-dom';
 // Add page imports here
@@ -75,6 +76,7 @@ const AuthenticatedApp = () => {
           <Route path="/admin" element={<Admin />} />
           <Route path="/messages" element={<Messages />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/notifications" element={<Notifications />} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />

@@ -5,11 +5,6 @@ import { useAuth } from "@/lib/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import {
   BookOpen,
-  Headphones,
-  Radio,
-  Gamepad2,
-  Baby,
-  Heart,
   ArrowRight,
   CalendarDays,
   Clock,
@@ -21,15 +16,8 @@ import {
 } from "lucide-react";
 import WeatherCard from "@/components/WeatherCard";
 import PullToRefresh from "@/components/PullToRefresh";
-
-const QUICK_TILES = [
-  { to: "/bible", label: "Bible", icon: BookOpen, tone: "from-[#4A6CFE] to-[#8A56E2]" },
-  { to: "/media", label: "Médias", icon: Headphones, tone: "from-[#8A56E2] to-[#FF57B2]" },
-  { to: "/media", label: "Radio", icon: Radio, tone: "from-[#FF57B2] to-[#FF4D2D]" },
-  { to: "/games", label: "Jeux", icon: Gamepad2, tone: "from-[#2E6F40] to-[#4A6CFE]" },
-  { to: "/kids", label: "Enfants", icon: Baby, tone: "from-[#FF4D2D] to-[#FF57B2]" },
-  { to: "/donate", label: "Donner", icon: Heart, tone: "from-[#8A56E2] to-[#4A6CFE]" },
-];
+import SplitClock from "@/components/home/SplitClock";
+import NewContentsSection from "@/components/home/NewContentsSection";
 
 function useNow() {
   const [now, setNow] = useState(new Date());
@@ -104,9 +92,17 @@ export default function Home() {
     (user?.email ? user.email.split("@")[0] : "");
 
   const shareVerse = async () => {
-    const text = devotional
-      ? `« ${devotional.verse_text || devotional.title} » — ${devotional.scripture_reference}`
-      : "« Je puis tout par celui qui me fortifie. » — Philippiens 4:13";
+    const url = window.location.origin;
+    let text;
+    if (devotional) {
+      const ref = devotional.scripture_reference || "";
+      const colon = ref.lastIndexOf(":");
+      const verseNum = colon >= 0 ? ref.slice(colon + 1).trim() : "";
+      const verseText = devotional.verse_text || devotional.title || "";
+      text = `${ref} LSG\n${verseNum ? `[${verseNum}] ` : ""}${verseText}\n${url}`;
+    } else {
+      text = `Philippiens 4:13 LSG\n[13] Je puis tout par celui qui me fortifie.\n${url}`;
+    }
     if (navigator.share) {
       try {
         await navigator.share({ title: "Verset du jour", text });
@@ -153,16 +149,8 @@ export default function Home() {
         <WeatherCard />
       </section>
 
-      {/* Horizontal clocks */}
-      <section className="mt-4">
-        <div className="rounded-[1.5rem] border border-border bg-card p-4 flex items-center justify-around gap-2">
-          <ClockChip label="France" tz="Europe/Paris" flag="🇫🇷" />
-          <div className="h-10 w-px bg-border" />
-          <ClockChip label="Madagascar" tz="Indian/Antananarivo" flag="🇲🇬" />
-          <div className="h-10 w-px bg-border" />
-          <ClockChip label="Seattle" tz="America/Los_Angeles" flag="🇺🇸" />
-        </div>
-      </section>
+      {/* Horloge divisée (sous la météo) */}
+      <SplitClock />
 
       {/* Verse of the day */}
       <section className="mt-6">
@@ -248,27 +236,18 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Quick access */}
+      {/* Nouveautés & Historiques */}
+      <NewContentsSection />
+
+      {/* Horloges (France, Madagascar, Seattle) */}
       <section className="mt-8">
-        <h2 className="font-display font-extrabold text-2xl mb-4">Accès rapide</h2>
-        <div className="grid grid-cols-3 md:grid-cols-6 gap-3 md:gap-4">
-          {QUICK_TILES.map((tile) => {
-            const Icon = tile.icon;
-            return (
-              <Link
-                key={tile.label}
-                to={tile.to}
-                className="group rounded-[1.25rem] border border-border bg-card p-4 md:p-5 hover:-translate-y-1 hover:shadow-lg transition-all text-center"
-              >
-                <div
-                  className={`h-11 w-11 mx-auto rounded-2xl bg-gradient-to-br ${tile.tone} grid place-items-center text-white shadow-sm mb-2.5`}
-                >
-                  <Icon className="h-5 w-5" />
-                </div>
-                <div className="font-bold text-sm">{tile.label}</div>
-              </Link>
-            );
-          })}
+        <h2 className="font-display font-extrabold text-2xl mb-4">Horloges</h2>
+        <div className="rounded-[1.5rem] border border-border bg-card p-4 flex items-center justify-around gap-2">
+          <ClockChip label="France" tz="Europe/Paris" flag="🇫🇷" />
+          <div className="h-10 w-px bg-border" />
+          <ClockChip label="Madagascar" tz="Indian/Antananarivo" flag="🇲🇬" />
+          <div className="h-10 w-px bg-border" />
+          <ClockChip label="Seattle" tz="America/Los_Angeles" flag="🇺🇸" />
         </div>
       </section>
 

@@ -1,0 +1,53 @@
+{
+  "name": "AppNotification",
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "new_content",
+        "app_update",
+        "security",
+        "announcement"
+      ],
+      "default": "new_content"
+    },
+    "title": {
+      "type": "string"
+    },
+    "message": {
+      "type": "string"
+    },
+    "content_id": {
+      "type": "string"
+    },
+    "content_type": {
+      "type": "string"
+    },
+    "thumbnail_url": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "type",
+    "title"
+  ],
+  "rls": {
+    "read": null,
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
