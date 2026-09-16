@@ -15,6 +15,9 @@
     "content_id": {
       "type": "string"
     },
+    "post_id": {
+      "type": "string"
+    },
     "title": {
       "type": "string"
     },
@@ -26,6 +29,16 @@
     },
     "content_type": {
       "type": "string"
+    },
+    "actor_id": {
+      "type": "string"
+    },
+    "actor_name": {
+      "type": "string"
+    },
+    "count": {
+      "type": "number",
+      "default": 1
     },
     "is_read": {
       "type": "boolean",
@@ -45,18 +58,7 @@
     "read": {
       "data.user_id": "{{user.id}}"
     },
-    "create": {
-      "$or": [
-        {
-          "data.user_id": "{{user.id}}"
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      ]
-    },
+    "create": null,
     "update": {
       "$or": [
         {

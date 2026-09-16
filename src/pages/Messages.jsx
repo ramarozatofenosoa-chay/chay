@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 import { base44 } from "@/api/base44Client";
 import { usePresenceHeartbeat, useProfiles } from "@/hooks/usePresence";
+import { MessageCircle } from "lucide-react";
 import ConversationList from "@/components/messages/ConversationList";
 import ConversationView from "@/components/messages/ConversationView";
 import NewChatSheet from "@/components/messages/NewChatSheet";
@@ -16,6 +17,9 @@ export default function Messages() {
   const [messagesByConv, setMessagesByConv] = useState({});
   const [loading, setLoading] = useState(true);
   const [newOpen, setNewOpen] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(
+    () => localStorage.getItem("chay_chat_banner") === "1"
+  );
 
   usePresenceHeartbeat(user);
   const profiles = useProfiles();
@@ -91,6 +95,24 @@ export default function Messages() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 md:px-6 py-4 md:py-8">
+      {!activeId && !bannerDismissed && (
+        <div className="mb-4 rounded-2xl border border-primary/30 bg-primary/5 p-4 flex items-start gap-3">
+          <MessageCircle className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+          <p className="text-sm text-foreground/80 flex-1">
+            Le chat public a été remplacé par les Messages. Retrouvez vos
+            conversations privées et vos groupes ici.
+          </p>
+          <button
+            onClick={() => {
+              localStorage.setItem("chay_chat_banner", "1");
+              setBannerDismissed(true);
+            }}
+            className="shrink-0 rounded-full brand-gradient text-white px-4 py-1.5 text-xs font-bold"
+          >
+            J'ai compris
+          </button>
+        </div>
+      )}
       {activeId ? (
         <ConversationView
           conversation={activeConv}

@@ -36,6 +36,10 @@ export const DEFAULT_PREFS = {
   notif_lock_preview: true,
   notif_new_version: true,
   notif_new_connection: true,
+  notif_likes: true,
+  notif_comments: true,
+  notif_messages: true,
+  notif_mentions: true,
   // Accessibilité
   notif_subtitles: false,
   tts: false,

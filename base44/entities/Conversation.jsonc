@@ -36,6 +36,20 @@
     },
     "typing_at": {
       "type": "string"
+    },
+    "pinned_by": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "muted_by": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
     }
   },
   "required": [

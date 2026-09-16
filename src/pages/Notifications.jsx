@@ -17,6 +17,8 @@ import {
   CalendarDays,
   Newspaper,
   FileText,
+  Heart,
+  MessageCircle,
   Sparkles,
 } from "lucide-react";
 
@@ -29,6 +31,8 @@ const ICONS = {
   evenement: CalendarDays,
   actualite: Newspaper,
   autre: FileText,
+  like: Heart,
+  comment: MessageCircle,
 };
 
 export default function Notifications() {

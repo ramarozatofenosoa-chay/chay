@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import { MessageCircle, PenSquare, Loader2, Search } from "lucide-react";
-import Avatar from "@/components/messages/Avatar";
-import { isOnline, relTime } from "@/hooks/usePresence";
+import { isOnline } from "@/hooks/usePresence";
 import PullToRefresh from "@/components/PullToRefresh";
+import ConversationItem from "@/components/messages/ConversationItem";
+
+const FILTER_KEY = "chay_msg_filter";
 
 export default function ConversationList({
   user,
@@ -15,6 +17,9 @@ export default function ConversationList({
   onRefresh,
 }) {
   const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState(
+    () => localStorage.getItem(FILTER_KEY) || "all"
+  );
   const profileOf = (uid) => profiles.find((p) => p.created_by_id === uid);
 
   const items = conversations.map((c) => {
@@ -30,89 +35,127 @@ export default function ConversationList({
       (m) => m.sender_id !== user?.id && !(m.read_by || []).includes(user?.id)
     ).length;
     const preview =
-      (last ? (last.sender_id === user?.id ? "Vous : " : isGroup ? `${last.sender_name || ""} : ` : "") + (last.text || "") : "") ||
+      (last
+        ? (last.sender_id === user?.id
+            ? "Vous : "
+            : isGroup
+            ? `${last.sender_name || ""} : `
+            : "") + (last.text || (last.image_url ? "📷 Photo" : ""))
+        : "") ||
       c.last_message_text ||
       "Démarrez la conversation";
     const time = last?.created_date || c.last_message_at || c.updated_date;
-    return { c, title, avatar, online, unread, preview, time };
+    const pinned = (c.pinned_by || []).includes(user?.id);
+    const muted = (c.muted_by || []).includes(user?.id);
+    return { c, isGroup, title, avatar, online, unread, preview, time, pinned, muted, msgs };
   });
 
+  const unreadConvCount = items.filter((it) => it.unread > 0).length;
+
   const q = query.trim().toLowerCase();
-  const filtered = q
+  let filtered = q
     ? items.filter(
         (it) =>
           (it.title || "").toLowerCase().includes(q) ||
           (it.preview || "").toLowerCase().includes(q)
       )
     : items;
+  if (filter === "unread") filtered = filtered.filter((it) => it.unread > 0);
+  if (filter === "group") filtered = filtered.filter((it) => it.isGroup);
+
+  filtered.sort((a, b) => {
+    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+    return new Date(b.time || 0).getTime() - new Date(a.time || 0).getTime();
+  });
+
+  const setF = (f) => {
+    setFilter(f);
+    localStorage.setItem(FILTER_KEY, f);
+  };
+
+  const Pill = ({ id, label, count }) => (
+    <button
+      onClick={() => setF(id)}
+      className={`px-4 h-9 rounded-full text-sm font-semibold whitespace-nowrap transition ${
+        filter === id
+          ? "brand-gradient text-white"
+          : "border border-border bg-card text-foreground/70"
+      } ${id === "unread" && count === 0 ? "opacity-40" : ""}`}
+      role="tab"
+      aria-selected={filter === id}
+    >
+      {label}
+      {id === "unread" && count > 0 ? ` (${count})` : ""}
+    </button>
+  );
 
   return (
     <PullToRefresh mode="window" onRefresh={onRefresh}>
-    <div>
-      <header className="flex items-center justify-between mb-5">
-        <h1 className="font-display font-extrabold text-3xl">
-          <span className="brand-gradient-text">Messages</span>
-        </h1>
-        <button
-          onClick={onNew}
-          className="h-11 w-11 rounded-full brand-gradient text-white grid place-items-center shadow-sm hover:scale-105 transition"
-          aria-label="Nouvelle conversation"
-        >
-          <PenSquare className="h-5 w-5" />
-        </button>
-      </header>
+      <div>
+        <header className="flex items-center justify-between mb-5">
+          <h1 className="font-display font-extrabold text-3xl">
+            <span className="brand-gradient-text">Messages</span>
+          </h1>
+          <button
+            onClick={onNew}
+            className="h-11 w-11 rounded-full brand-gradient text-white grid place-items-center shadow-sm hover:scale-105 transition"
+            aria-label="Nouvelle conversation"
+          >
+            <PenSquare className="h-5 w-5" />
+          </button>
+        </header>
 
-      <div className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2 mb-3">
-        <Search className="h-4 w-4 text-foreground/40" />
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Rechercher une conversation…"
-          className="bg-transparent outline-none text-sm font-medium flex-1"
-        />
+        <div className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2 mb-3">
+          <Search className="h-4 w-4 text-foreground/40" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Rechercher une conversation…"
+            className="bg-transparent outline-none text-sm font-medium flex-1"
+            aria-label="Rechercher une conversation"
+          />
+        </div>
+
+        <div className="flex gap-2 mb-3" role="tablist" aria-label="Filtres de conversations">
+          <Pill id="all" label="Tout" />
+          <Pill id="unread" label="Non lus" count={unreadConvCount} />
+          <Pill id="group" label="Groupe" />
+        </div>
+
+        {loading ? (
+          <div className="flex justify-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-16">
+            <MessageCircle className="h-10 w-10 mx-auto text-foreground/30 mb-3" />
+            <p className="text-foreground/50">
+              Aucune conversation. Touchez ✏️ pour démarrer un échange.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-1">
+            {filtered.map((it) => (
+              <ConversationItem
+                key={it.c.id}
+                conv={it.c}
+                messages={it.msgs}
+                user={user}
+                title={it.title}
+                avatar={it.avatar}
+                online={it.online}
+                unread={it.unread}
+                preview={it.preview}
+                time={it.time}
+                pinned={it.pinned}
+                muted={it.muted}
+                onOpen={onOpen}
+                onRefresh={onRefresh}
+              />
+            ))}
+          </div>
+        )}
       </div>
-
-      {loading ? (
-        <div className="flex justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-16">
-          <MessageCircle className="h-10 w-10 mx-auto text-foreground/30 mb-3" />
-          <p className="text-foreground/50">
-            Aucune conversation. Touchez ✏️ pour démarrer un échange.
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-1">
-          {filtered.map((it) => (
-            <button
-              key={it.c.id}
-              onClick={() => onOpen(it.c.id)}
-              className="w-full flex items-center gap-3 p-2.5 rounded-2xl hover:bg-muted transition text-left"
-            >
-              <Avatar name={it.title} src={it.avatar} size={48} online={it.online} />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-bold truncate">{it.title}</span>
-                  <span className="text-xs text-foreground/40 shrink-0">
-                    {relTime(it.time)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between gap-2 mt-0.5">
-                  <span className="text-sm text-foreground/55 truncate">{it.preview}</span>
-                  {it.unread > 0 && (
-                    <span className="shrink-0 rounded-full bg-primary text-primary-foreground text-xs font-bold h-5 min-w-[1.25rem] px-1 grid place-items-center">
-                      {it.unread}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
     </PullToRefresh>
   );
 }

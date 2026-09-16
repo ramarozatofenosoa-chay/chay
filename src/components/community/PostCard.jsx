@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Heart, MessageCircle, Send, Loader2 } from "lucide-react";
 import { Image } from "@/components/ui/image";
+import { notifyComment } from "@/lib/socialNotifications";
 
 export default function PostCard({ post, liked, onToggleLike, currentUser }) {
   const [showComments, setShowComments] = useState(false);
@@ -27,10 +28,13 @@ export default function PostCard({ post, liked, onToggleLike, currentUser }) {
     }
   };
 
-  const toggleComments = () => {
-    if (!showComments) loadComments();
-    setShowComments((v) => !v);
-  };
+  // Charge le nombre de commentaires dès le montage.
+  useEffect(() => {
+    loadComments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [post.id]);
+
+  const toggleComments = () => setShowComments((v) => !v);
 
   const submitComment = async () => {
     const text = draft.trim();
@@ -54,6 +58,7 @@ export default function PostCard({ post, liked, onToggleLike, currentUser }) {
         text,
         author_name: name,
       });
+      notifyComment(post, currentUser, text);
       await loadComments();
     } catch {
       setComments((prev) => prev.filter((c) => c.id !== tempId));
@@ -70,7 +75,7 @@ export default function PostCard({ post, liked, onToggleLike, currentUser }) {
           {displayName[0]?.toUpperCase()}
         </div>
         <div>
-          <div className="font-bold">{displayName}</div>
+          <div className="font-semibold text-[0.9375rem]">{displayName}</div>
           <div className="text-xs text-foreground/50">
             {new Date(post.created_date).toLocaleDateString("fr-FR", {
               day: "numeric",
@@ -83,7 +88,7 @@ export default function PostCard({ post, liked, onToggleLike, currentUser }) {
       </div>
 
       {post.text && (
-        <p className="text-foreground/85 leading-relaxed whitespace-pre-wrap">
+        <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/85">
           {post.text}
         </p>
       )}
@@ -105,16 +110,19 @@ export default function PostCard({ post, liked, onToggleLike, currentUser }) {
           className={`inline-flex items-center gap-1.5 hover:text-primary transition ${
             liked ? "text-primary" : ""
           }`}
+          aria-label="Aimer"
         >
-          <Heart className={`h-4 w-4 ${liked ? "fill-primary" : ""}`} />{" "}
-          {post.likes || 0}
+          <Heart className={`h-4 w-4 ${liked ? "fill-primary" : ""}`} />
+          {(post.likes || 0) > 0 && <span>{post.likes}</span>}
         </button>
         <button
           onClick={toggleComments}
           className="inline-flex items-center gap-1.5 hover:text-primary transition"
+          aria-label="Commenter"
         >
-          <MessageCircle className="h-4 w-4" />{" "}
+          <MessageCircle className="h-4 w-4" />
           {showComments ? "Masquer" : "Commenter"}
+          {comments.length > 0 && <span className="ml-0.5">{comments.length}</span>}
         </button>
       </div>
 
@@ -124,6 +132,10 @@ export default function PostCard({ post, liked, onToggleLike, currentUser }) {
             <div className="flex justify-center">
               <Loader2 className="h-5 w-5 animate-spin text-foreground/40" />
             </div>
+          ) : comments.length === 0 ? (
+            <p className="text-xs text-foreground/40 text-center py-2">
+              Soyez le premier à commenter.
+            </p>
           ) : (
             comments.map((c) => (
               <div key={c.id} className="flex gap-2.5">
@@ -131,7 +143,7 @@ export default function PostCard({ post, liked, onToggleLike, currentUser }) {
                   {(c.author_name || "M")[0]?.toUpperCase()}
                 </div>
                 <div className="rounded-2xl bg-muted px-3 py-2 flex-1">
-                  <div className="font-bold text-xs">{c.author_name || "Membre"}</div>
+                  <div className="font-semibold text-xs">{c.author_name || "Membre"}</div>
                   <div className="text-sm text-foreground/80">{c.text}</div>
                 </div>
               </div>
@@ -149,6 +161,7 @@ export default function PostCard({ post, liked, onToggleLike, currentUser }) {
               onClick={submitComment}
               disabled={!draft.trim() || posting}
               className="h-9 w-9 rounded-full bg-primary text-primary-foreground grid place-items-center disabled:opacity-50"
+              aria-label="Envoyer le commentaire"
             >
               {posting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

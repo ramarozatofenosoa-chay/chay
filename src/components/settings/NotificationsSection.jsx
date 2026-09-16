@@ -18,6 +18,21 @@ export default function NotificationsSection() {
   const { prefs, setPref } = usePreferences();
   const enabled = prefs.notifications_enabled;
 
+  const togglePush = async (v) => {
+    setPref("notif_push", v);
+    if (
+      v &&
+      typeof Notification !== "undefined" &&
+      Notification.permission === "default"
+    ) {
+      try {
+        await Notification.requestPermission();
+      } catch {
+        /* ignore */
+      }
+    }
+  };
+
   const toggleDay = (d) => {
     const has = prefs.notif_verse_days.includes(d);
     setPref(
@@ -100,6 +115,31 @@ export default function NotificationsSection() {
 
         <div className="border-t border-border my-2" />
         <p className="text-xs font-bold uppercase tracking-wide text-foreground/50 py-1">
+          Interactions
+        </p>
+        <PrefSwitch
+          label="Likes sur mes publications"
+          checked={prefs.notif_likes}
+          onChange={(v) => setPref("notif_likes", v)}
+        />
+        <PrefSwitch
+          label="Commentaires sur mes publications"
+          checked={prefs.notif_comments}
+          onChange={(v) => setPref("notif_comments", v)}
+        />
+        <PrefSwitch
+          label="Nouveaux messages privés"
+          checked={prefs.notif_messages}
+          onChange={(v) => setPref("notif_messages", v)}
+        />
+        <PrefSwitch
+          label="Mentions et réponses"
+          checked={prefs.notif_mentions}
+          onChange={(v) => setPref("notif_mentions", v)}
+        />
+
+        <div className="border-t border-border my-2" />
+        <p className="text-xs font-bold uppercase tracking-wide text-foreground/50 py-1">
           Canaux
         </p>
         <PrefSwitch
@@ -109,8 +149,9 @@ export default function NotificationsSection() {
         />
         <PrefSwitch
           label="Notifications push"
+          description="La permission du navigateur est demandée uniquement à l'activation."
           checked={prefs.notif_push}
-          onChange={(v) => setPref("notif_push", v)}
+          onChange={togglePush}
         />
         <PrefSwitch
           label="Son"

@@ -88,7 +88,7 @@ export default function Layout() {
             <Link to="/notifications" className="relative h-11 w-11 grid place-items-center rounded-full border border-border hover:bg-muted transition" aria-label="Notifications">
               <Bell className="h-4 w-4" />
               {notifUnread > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 grid place-items-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold border-2 border-background">{notifUnread > 99 ? "99+" : notifUnread}</span>
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 grid place-items-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold border-2 border-background">{notifUnread > 9 ? "9+" : notifUnread}</span>
               )}
             </Link>
             <Link to={navTarget("/messages")} className="relative h-11 w-11 grid place-items-center rounded-full border border-border hover:bg-muted transition" aria-label="Messages">
@@ -143,7 +143,7 @@ export default function Layout() {
             <Link to="/notifications" className="relative h-11 w-11 grid place-items-center rounded-full border border-border" aria-label="Notifications">
               <Bell className="h-4 w-4" />
               {notifUnread > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 grid place-items-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold border-2 border-background">{notifUnread > 99 ? "99+" : notifUnread}</span>
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 grid place-items-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold border-2 border-background">{notifUnread > 9 ? "9+" : notifUnread}</span>
               )}
             </Link>
             <ThemeToggle />
