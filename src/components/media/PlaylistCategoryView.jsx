@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import AddPlaylistTrackModal from "@/components/media/AddPlaylistTrackModal";
+import VideoPlayer from "@/components/player/VideoPlayer";
 import { base44 } from "@/api/base44Client";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -90,13 +91,10 @@ export default function PlaylistCategoryView({
               isVideo ? (
                 <div key={t.id} className="rounded-2xl border border-border bg-card overflow-hidden">
                   {t.video_url ? (
-                    <video
+                    <VideoPlayer
                       src={t.video_url}
-                      controls
-                      controlsList="nodownload"
-                      disablePictureInPicture
-                      className="w-full max-h-72 bg-black"
                       poster={t.cover_url}
+                      className="w-full max-h-72"
                     />
                   ) : (
                     <div className="h-40 brand-gradient grid place-items-center">

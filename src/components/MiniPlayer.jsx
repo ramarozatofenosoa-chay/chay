@@ -8,6 +8,8 @@ import {
   Repeat,
   Repeat1,
   Music,
+  X,
+  Loader2,
 } from "lucide-react";
 import { useAudioPlayer } from "@/lib/AudioPlayerContext";
 import { Image } from "@/components/ui/image";
@@ -16,6 +18,7 @@ import PlayerFullscreen from "@/components/player/PlayerFullscreen";
 
 export default function MiniPlayer() {
   const [expanded, setExpanded] = useState(false);
+  const [minimized, setMinimized] = useState(false);
   const {
     currentTrack,
     isPlaying,
@@ -30,12 +33,38 @@ export default function MiniPlayer() {
     currentTime,
     duration,
     seek,
+    playerState,
+    bufferedRatio,
   } = useAudioPlayer();
 
   if (!currentTrack) return null;
 
+  const buffering = playerState === "connecting" || playerState === "buffering";
   const cover = currentTrack.cover_url;
   const LoopIcon = loop === "one" ? Repeat1 : Repeat;
+
+  if (minimized) {
+    return (
+      <>
+        <button
+          onClick={() => setMinimized(false)}
+          className="fixed bottom-20 right-3 z-50 h-12 w-12 rounded-full bg-card border border-border shadow-lg overflow-hidden grid place-items-center"
+          aria-label="Réouvrir le lecteur"
+        >
+          {cover ? (
+            <Image src={cover} fittingType="fill" className="w-full h-full" />
+          ) : (
+            <span className="w-full h-full brand-gradient grid place-items-center">
+              <Music className="h-5 w-5 text-white/90" />
+            </span>
+          )}
+        </button>
+        {expanded && (
+          <PlayerFullscreen onCollapse={() => setExpanded(false)} cover={cover} />
+        )}
+      </>
+    );
+  }
 
   return (
     <>
@@ -85,7 +114,13 @@ export default function MiniPlayer() {
               className="h-9 w-9 rounded-full bg-primary text-primary-foreground grid place-items-center shrink-0"
               aria-label={isPlaying ? "Pause" : "Lecture"}
             >
-              {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+              {buffering ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : isPlaying ? (
+                <Pause className="h-4 w-4" />
+              ) : (
+                <Play className="h-4 w-4" />
+              )}
             </button>
             <button
               onClick={next}
@@ -106,10 +141,17 @@ export default function MiniPlayer() {
                 <span className="absolute -bottom-0.5 text-[7px] font-extrabold leading-none">∞</span>
               )}
             </button>
+            <button
+              onClick={() => setMinimized(true)}
+              className="h-9 w-9 grid place-items-center text-foreground/55 hover:text-foreground shrink-0"
+              aria-label="Réduire le lecteur"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
 
           <div className="px-3 pb-2">
-            <SeekBar currentTime={currentTime} duration={duration} onSeek={seek} />
+            <SeekBar currentTime={currentTime} duration={duration} onSeek={seek} bufferedRatio={bufferedRatio} />
           </div>
         </div>
       </div>

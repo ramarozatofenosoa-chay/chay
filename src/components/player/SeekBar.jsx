@@ -7,9 +7,10 @@ export function formatTime(t) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-export default function SeekBar({ currentTime, duration, onSeek }) {
+export default function SeekBar({ currentTime, duration, onSeek, bufferedRatio = 0 }) {
   const barRef = useRef(null);
   const pct = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
+  const bufPct = Math.max(0, Math.min(100, (bufferedRatio || 0) * 100));
 
   const seekFromEvent = useCallback(
     (clientX) => {
@@ -43,7 +44,8 @@ export default function SeekBar({ currentTime, duration, onSeek }) {
         className="relative flex-1 h-5 flex items-center cursor-pointer touch-none"
       >
         <div className="absolute inset-x-0 h-1.5 rounded-full bg-border overflow-hidden">
-          <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
+          <div className="h-full bg-foreground/15" style={{ width: `${bufPct}%` }} />
+          <div className="absolute top-0 left-0 h-full bg-primary" style={{ width: `${pct}%` }} />
         </div>
         <div
           className="absolute h-3.5 w-3.5 rounded-full bg-primary shadow -translate-x-1/2 pointer-events-none"

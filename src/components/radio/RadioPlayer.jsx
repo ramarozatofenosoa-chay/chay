@@ -15,11 +15,24 @@ import {
 } from "lucide-react";
 
 export default function RadioPlayer() {
-  const { isPlaying, isLoading, error, retries, volume, toggle, setVolume, retryNow } =
-    useRadio();
+  const {
+    state,
+    isPlaying,
+    isLoading,
+    error,
+    errorCode,
+    retries,
+    volume,
+    toggle,
+    setVolume,
+    retryNow,
+  } = useRadio();
   const { toast } = useToast();
 
   const VolIcon = volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
+  const buffering = state === "connecting" || state === "buffering";
+  const statusText =
+    state === "connecting" ? "Connexion…" : state === "buffering" ? "Mise en mémoire tampon…" : "En direct";
 
   const share = async () => {
     const url = `${window.location.origin}/media?cat=radio`;
@@ -37,16 +50,14 @@ export default function RadioPlayer() {
     <div className="rounded-[2rem] border border-border bg-card overflow-hidden">
       <div className="brand-gradient p-8 md:p-12 text-white text-center">
         <div className="flex items-center justify-center gap-2 mb-5">
-          {isPlaying || isLoading ? (
-            <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold uppercase">
-              <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
-              {isLoading ? "Connexion…" : "En direct"}
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold uppercase opacity-60">
-              <span className="h-2 w-2 rounded-full bg-white/50" /> Hors antenne
-            </span>
-          )}
+          <span
+            className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold uppercase ${
+              isPlaying || isLoading ? "bg-white/15" : "bg-white/10 opacity-70"
+            }`}
+          >
+            <span className={`h-2 w-2 rounded-full ${isPlaying ? "bg-white animate-pulse" : "bg-white/50"}`} />
+            En direct
+          </span>
         </div>
 
         <img
@@ -58,7 +69,14 @@ export default function RadioPlayer() {
         <p className="text-white/80 mt-2">Louange & la Parole, 24h/24</p>
 
         <div className="mt-6 h-10 flex items-end justify-center text-white">
-          <Visualizer active={isPlaying} loading={isLoading} bars={7} className="h-10" />
+          {buffering ? (
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              {statusText}
+            </div>
+          ) : (
+            <Visualizer active={isPlaying} loading={false} bars={7} className="h-10" />
+          )}
         </div>
       </div>
 
@@ -81,18 +99,21 @@ export default function RadioPlayer() {
                 <Loader2 className="h-4 w-4" /> Réessayer
               </button>
             )}
+            {errorCode != null && (
+              <p className="text-[10px] text-foreground/30 mt-1">code {errorCode}</p>
+            )}
           </div>
         ) : (
           <button
             onClick={toggle}
             aria-label={
-              isPlaying || isLoading
+              isPlaying
                 ? "Lecture radio en cours, appuyez pour arrêter"
                 : "Radio arrêtée, appuyez pour lancer la lecture"
             }
             className="h-16 w-16 rounded-full brand-gradient text-white grid place-items-center shadow-lg hover:scale-105 active:scale-95 transition"
           >
-            {isLoading ? (
+            {buffering ? (
               <Loader2 className="h-6 w-6 animate-spin" />
             ) : isPlaying ? (
               <Square className="h-6 w-6" />

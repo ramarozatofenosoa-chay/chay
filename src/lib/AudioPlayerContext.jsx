@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useRef, useState, useEffect, useCallback } from "react";
+import { useMediaPlayerState } from "@/hooks/useMediaPlayerState";
 
 const AudioPlayerContext = createContext();
 
@@ -26,6 +27,10 @@ export function AudioPlayerProvider({ children }) {
 
   const stateRef = useRef({});
   stateRef.current = { queue, order, orderIndex, loop, shuffle, currentTrack, currentTime };
+
+  // Machine à états partagée (tamponnage) — musique & prédications.
+  const { state: playerState, bufferedRatio, seek: optimisticSeek } =
+    useMediaPlayerState(audioRef, { isLive: false });
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -108,15 +113,14 @@ export function AudioPlayerProvider({ children }) {
     else if (audio) audio.currentTime = 0;
   }, [playAt]);
 
-  const seek = (t) => {
-    if (audioRef.current) audioRef.current.currentTime = t;
-  };
+  const seek = (t) => optimisticSeek(t);
 
   const stop = () => {
     const audio = audioRef.current;
     if (audio) {
       audio.pause();
-      audio.src = "";
+      audio.removeAttribute("src");
+      audio.load();
     }
     setQueue([]);
     setOrder([]);
@@ -193,6 +197,8 @@ export function AudioPlayerProvider({ children }) {
         loop,
         toggleShuffle,
         toggleLoop,
+        playerState,
+        bufferedRatio,
       }}
     >
       <audio

@@ -9,6 +9,7 @@ import {
   Repeat1,
   ChevronDown,
   Music,
+  Loader2,
 } from "lucide-react";
 import { useAudioPlayer } from "@/lib/AudioPlayerContext";
 import { Image } from "@/components/ui/image";
@@ -29,10 +30,13 @@ export default function PlayerFullscreen({ onCollapse, cover }) {
     currentTime,
     duration,
     seek,
+    playerState,
+    bufferedRatio,
   } = useAudioPlayer();
 
   if (!currentTrack) return null;
   const LoopIcon = loop === "one" ? Repeat1 : Repeat;
+  const buffering = playerState === "connecting" || playerState === "buffering";
 
   return (
     <div className="fixed inset-0 z-[60] bg-background/98 backdrop-blur-xl flex flex-col animate-float-in">
@@ -71,7 +75,7 @@ export default function PlayerFullscreen({ onCollapse, cover }) {
       </div>
 
       <div className="px-6 pb-10 max-w-md mx-auto w-full">
-        <SeekBar currentTime={currentTime} duration={duration} onSeek={seek} className="mb-6" />
+        <SeekBar currentTime={currentTime} duration={duration} onSeek={seek} bufferedRatio={bufferedRatio} className="mb-6" />
         <div className="flex items-center justify-between gap-2">
           <button
             onClick={toggleShuffle}
@@ -94,7 +98,13 @@ export default function PlayerFullscreen({ onCollapse, cover }) {
             className="h-16 w-16 rounded-full bg-primary text-primary-foreground grid place-items-center shadow-lg"
             aria-label={isPlaying ? "Pause" : "Lecture"}
           >
-            {isPlaying ? <Pause className="h-7 w-7" /> : <Play className="h-7 w-7" />}
+            {buffering ? (
+              <Loader2 className="h-7 w-7 animate-spin" />
+            ) : isPlaying ? (
+              <Pause className="h-7 w-7" />
+            ) : (
+              <Play className="h-7 w-7" />
+            )}
           </button>
           <button
             onClick={next}

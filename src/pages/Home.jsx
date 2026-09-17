@@ -146,7 +146,7 @@ export default function Home() {
               </div>
             ) : devotional ? (
               <>
-                <p className="selectable mt-4 text-base md:text-lg font-light leading-snug [font-family:'Montserrat',sans-serif] whitespace-nowrap overflow-hidden text-ellipsis">
+                <p className="selectable mt-4 text-base md:text-lg font-light leading-snug [font-family:'Montserrat',sans-serif]">
                   « {devotional.verse_text || devotional.title} »
                 </p>
                 <p className="mt-2 text-sm font-medium text-white/75 [font-family:'Montserrat',sans-serif]">

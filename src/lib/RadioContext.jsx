@@ -6,15 +6,13 @@ import React, {
   useState,
 } from "react";
 import { RADIO_URL, RADIO_LOGO } from "@/lib/mediaConstants";
+import { useMediaPlayerState } from "@/hooks/useMediaPlayerState";
 
 const RadioContext = createContext(null);
 export const useRadio = () => useContext(RadioContext);
 
 export function RadioPlayerProvider({ children }) {
   const audioRef = useRef(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(false);
   const [retries, setRetries] = useState(0);
   const [volume, setVolumeState] = useState(() => {
     const v = parseFloat(localStorage.getItem("chay_radio_volume"));
@@ -22,6 +20,14 @@ export function RadioPlayerProvider({ children }) {
   });
   const attemptsRef = useRef(0);
   const retryTimer = useRef(null);
+  const prevErrorRef = useRef(false);
+
+  // Machine à états partagée — radio en direct (isLive = true).
+  const { state, errorCode } = useMediaPlayerState(audioRef, { isLive: true });
+
+  const isPlaying = state === "playing";
+  const isLoading = state === "connecting" || state === "buffering";
+  const error = state === "error";
 
   const stopRetry = () => {
     if (retryTimer.current) {
@@ -31,8 +37,7 @@ export function RadioPlayerProvider({ children }) {
   };
 
   const updateMediaSession = (playing) => {
-    if (typeof navigator === "undefined" || !("mediaSession" in navigator))
-      return;
+    if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
     try {
       navigator.mediaSession.metadata = new window.MediaMetadata({
         title: "Radio Chay",
@@ -47,22 +52,14 @@ export function RadioPlayerProvider({ children }) {
   const attemptPlay = () => {
     const a = audioRef.current;
     if (!a) return;
-    setError(false);
-    setIsLoading(true);
     a.src = RADIO_URL;
     a.load();
-    const p = a.play();
-    if (p && typeof p.catch === "function") {
-      p.catch(() => {
-        setIsLoading(false);
-        setIsPlaying(false);
-      });
-    }
+    a.play().catch(() => {});
   };
 
   const play = () => {
     const a = audioRef.current;
-    if (a && !a.paused && !a.ended) return; // already playing
+    if (a && !a.paused && !a.ended) return; // déjà en lecture
     stopRetry();
     attemptsRef.current = 0;
     setRetries(0);
@@ -77,11 +74,8 @@ export function RadioPlayerProvider({ children }) {
       a.removeAttribute("src");
       a.load();
     }
-    setIsPlaying(false);
-    setIsLoading(false);
-    setError(false);
-    setRetries(0);
     attemptsRef.current = 0;
+    setRetries(0);
     updateMediaSession(false);
   };
 
@@ -101,46 +95,33 @@ export function RadioPlayerProvider({ children }) {
     attemptPlay();
   };
 
+  // Retry automatique sur erreur (5 tentatives, 15s d'intervalle).
   useEffect(() => {
-    const a = audioRef.current;
-    if (!a) return;
-    a.volume = volume;
-
-    const onPlaying = () => {
-      setIsLoading(false);
-      setError(false);
-      setIsPlaying(true);
-      attemptsRef.current = 0;
-      setRetries(0);
-      updateMediaSession(true);
-    };
-    const onWaiting = () => setIsLoading(true);
-    const onPause = () => setIsPlaying(false);
-    const onStalled = () => setIsLoading(true);
-    const onError = () => {
-      setIsPlaying(false);
-      setIsLoading(false);
-      setError(true);
+    if (!prevErrorRef.current && error) {
       attemptsRef.current += 1;
       setRetries(attemptsRef.current);
       if (attemptsRef.current < 5) {
         stopRetry();
         retryTimer.current = setTimeout(() => attemptPlay(), 15000);
       }
-    };
+    }
+    prevErrorRef.current = error;
+  }, [error]);
 
-    a.addEventListener("playing", onPlaying);
-    a.addEventListener("waiting", onWaiting);
-    a.addEventListener("pause", onPause);
-    a.addEventListener("stalled", onStalled);
-    a.addEventListener("error", onError);
+  // La session média suit l'état réel.
+  useEffect(() => {
+    updateMediaSession(isPlaying);
+  }, [isPlaying]);
 
-    // Interrupteur : toute autre lecture (musique ou vidéo) démarrée dans l'app
-    // arrête automatiquement la radio. On écoute "play" en phase de capture car
-    // l'événement ne remonte pas (ne bubble pas) depuis les <audio>/<video>.
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return;
+    a.volume = volume;
+
+    // Interrupteur : toute autre lecture (musique ou vidéo) arrête la radio.
     const onAnyMediaPlay = (e) => {
       const el = e.target;
-      if (!el || el === audioRef.current) return; // la radio elle-même
+      if (!el || el === audioRef.current) return;
       if (el.tagName === "AUDIO" || el.tagName === "VIDEO") {
         stop();
       }
@@ -156,11 +137,6 @@ export function RadioPlayerProvider({ children }) {
     }
 
     return () => {
-      a.removeEventListener("playing", onPlaying);
-      a.removeEventListener("waiting", onWaiting);
-      a.removeEventListener("pause", onPause);
-      a.removeEventListener("stalled", onStalled);
-      a.removeEventListener("error", onError);
       document.removeEventListener("play", onAnyMediaPlay, true);
       stopRetry();
       a.pause();
@@ -169,9 +145,11 @@ export function RadioPlayerProvider({ children }) {
   }, []);
 
   const value = {
+    state,
     isPlaying,
     isLoading,
     error,
+    errorCode,
     retries,
     volume,
     play,
