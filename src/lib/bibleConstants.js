@@ -10,31 +10,10 @@ export const HIGHLIGHT_COLORS = [
 export const LANGUAGES = [
   { id: "fr", label: "Français", flag: "🇫🇷" },
   { id: "en", label: "English", flag: "🇬🇧" },
-  { id: "es", label: "Español", flag: "🇪🇸" },
 ];
 
+// Une seule version par langue
 export const VERSIONS = {
-  fr: [
-    { id: "fra_lsg", label: "Louis Segond 1910 (LSG)" },
-    { id: "fra_jnd", label: "Bible J.N. Darby (JND)" },
-    { id: "fra_ncl", label: "Néo-Crampon Libre (NCL)" },
-    { id: "fra_ost", label: "La Sainte Bible (OST)" },
-  ],
-  en: [
-    { id: "eng_kjv", label: "King James Version (KJV)" },
-    { id: "ENGWEBP", label: "World English Bible (WEB)" },
-    { id: "BSB", label: "Berean Standard Bible (BSB)" },
-    { id: "eng_net", label: "NET Bible (NET)" },
-    { id: "eng_asv", label: "American Standard Version (ASV)" },
-    { id: "eng_ylt", label: "Young's Literal Translation (YLT)" },
-    { id: "eng_bbe", label: "Bible in Basic English (BBE)" },
-    { id: "eng_dby", label: "Darby Translation (DBY)" },
-  ],
-  es: [
-    { id: "spa_r09", label: "Reina Valera 1909 (R09)" },
-    { id: "spa_rvg", label: "Reina Valera Gómez (RVG)" },
-    { id: "spa_bes", label: "Biblia en Español Sencillo (BES)" },
-    { id: "spa_pdt", label: "Palabra de Dios para ti (PDT)" },
-    { id: "spa_blm", label: "Santa Biblia libre (BLM)" },
-  ],
+  fr: [{ id: "fra_lsg", label: "Louis Segond 1910 (LSG)" }],
+  en: [{ id: "BSB", label: "Berean Standard Bible (BSB)" }],
 };
