@@ -162,7 +162,7 @@ export default function Media() {
       <header className="mb-6 flex items-end justify-between flex-wrap gap-4">
         <div>
           <h1 className="display-fluid">
-            <span className="brand-gradient-text">Médiathèque</span>
+            <span className="brand-gradient-text">Multimédia</span>
           </h1>
           <p className="mt-3 text-base md:text-lg text-foreground/60">
             Musique, prédications, films, articles et plus encore.

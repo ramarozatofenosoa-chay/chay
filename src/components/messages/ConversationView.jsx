@@ -45,6 +45,8 @@ export default function ConversationView({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [menu, setMenu] = useState(null);
   const [viewer, setViewer] = useState(null);
+  const [editing, setEditing] = useState(null);
+  const [editText, setEditText] = useState("");
   const scrollRef = useRef(null);
   const fileRef = useRef(null);
   const typingTimer = useRef(null);
@@ -198,6 +200,18 @@ export default function ConversationView({
     }
   };
 
+  const saveEdit = async () => {
+    if (!editing) return;
+    const t = editText.trim();
+    if (!t) return;
+    try {
+      await base44.entities.Message.update(editing.id, { text: t });
+      setEditing(null);
+    } catch (e) {
+      toast({ title: "Erreur", description: e.message, variant: "destructive" });
+    }
+  };
+
   // Long-press / right-click to open the action menu
   const openMenuAt = (m, pos) => setMenu({ msg: m, x: pos.x, y: pos.y });
   const onPointerDownMenu = (e, m) => {
@@ -320,13 +334,28 @@ export default function ConversationView({
                     </div>
                   </div>
                 )}
+                {editing?.id === m.id && (
+                  <div className="rounded-2xl border border-primary/40 bg-card p-2">
+                    <textarea
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      rows={2}
+                      autoFocus
+                      className="w-full bg-transparent outline-none text-sm resize-none selectable"
+                    />
+                    <div className="flex justify-end gap-2 mt-1">
+                      <button onClick={() => setEditing(null)} className="px-3 py-1 rounded-full text-xs font-bold border border-border hover:bg-muted">Annuler</button>
+                      <button onClick={saveEdit} className="px-3 py-1 rounded-full text-xs font-bold bg-primary text-primary-foreground">OK</button>
+                    </div>
+                  </div>
+                )}
                 <div
                   onPointerDown={(e) => onPointerDownMenu(e, m)}
                   onPointerUp={cancelPress}
                   onPointerLeave={cancelPress}
                   onPointerCancel={cancelPress}
                   onContextMenu={(e) => onContextMenuMenu(e, m)}
-                  className={`w-fit max-w-full rounded-2xl px-4 py-2.5 cursor-pointer select-none transition active:scale-[0.99] ${
+                  className={`w-fit max-w-full rounded-2xl px-4 py-2.5 cursor-pointer select-none transition active:scale-[0.99] ${editing?.id === m.id ? "hidden" : ""} ${
                     mine
                       ? "brand-gradient text-white rounded-br-md"
                       : "bg-card border border-border rounded-bl-md"
@@ -473,7 +502,12 @@ export default function ConversationView({
         <MessageActionMenu
           position={{ x: menu.x, y: menu.y }}
           mine={menu.msg.sender_id === user.id}
+          canEdit={menu.msg.sender_id === user.id && !!menu.msg.text}
           onReply={() => setReplyTo(menu.msg)}
+          onEdit={() => {
+            setEditing(menu.msg);
+            setEditText(menu.msg.text || "");
+          }}
           onCopy={() => {
             if (menu.msg.text)
               navigator.clipboard

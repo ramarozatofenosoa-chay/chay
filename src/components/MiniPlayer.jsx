@@ -7,7 +7,6 @@ import {
   Shuffle,
   Repeat,
   Repeat1,
-  X,
   Music,
 } from "lucide-react";
 import { useAudioPlayer } from "@/lib/AudioPlayerContext";
@@ -106,16 +105,6 @@ export default function MiniPlayer() {
               {loop === "all" && (
                 <span className="absolute -bottom-0.5 text-[7px] font-extrabold leading-none">∞</span>
               )}
-            </button>
-            <button
-              onClick={() => {
-                stop();
-                setExpanded(false);
-              }}
-              className="h-9 w-9 grid place-items-center text-foreground/55 hover:text-foreground shrink-0"
-              aria-label="Fermer"
-            >
-              <X className="h-4 w-4" />
             </button>
           </div>
 

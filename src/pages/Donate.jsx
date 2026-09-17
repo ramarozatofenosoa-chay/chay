@@ -22,10 +22,16 @@ export default function Donate() {
         <div className="h-20 w-20 rounded-3xl bg-secondary grid place-items-center text-white mx-auto mb-6 glow-soft">
           <Check className="h-10 w-10" />
         </div>
-        <h1 className="font-display font-extrabold text-3xl">Thank you!</h1>
-        <p className="mt-3 text-foreground/60">Your gift of <span className="font-bold text-foreground">${finalAmount}</span> {frequency === "monthly" ? "monthly " : ""}means the world to CHAY.</p>
-        <button onClick={() => setDone(false)} className="mt-8 inline-flex items-center gap-2 rounded-full border border-border bg-card px-6 py-3 font-bold hover:bg-muted transition">
-          Give again
+        <h1 className="font-display font-extrabold text-3xl">Merci !</h1>
+        <p className="mt-3 text-foreground/60">
+          Votre don de <span className="font-bold text-foreground">{finalAmount} €</span>
+          {frequency === "monthly" ? " par mois" : ""} touche toute l'équipe de CHAY.
+        </p>
+        <button
+          onClick={() => setDone(false)}
+          className="mt-8 inline-flex items-center gap-2 rounded-full border border-border bg-card px-6 py-3 font-bold hover:bg-muted transition"
+        >
+          Faire un autre don
         </button>
       </div>
     );
@@ -37,16 +43,23 @@ export default function Donate() {
         <div className="h-16 w-16 rounded-3xl brand-gradient grid place-items-center text-white mx-auto mb-5 glow-primary">
           <Heart className="h-8 w-8" fill="currentColor" />
         </div>
-        <h1 className="display-fluid">Give to <span className="brand-gradient-text">CHAY</span></h1>
-        <p className="mt-3 text-lg text-foreground/60 max-w-md mx-auto">Your generosity fuels the mission — every gift makes a difference.</p>
+        <h1 className="display-fluid">
+          Donner à <span className="brand-gradient-text">CHAY</span>
+        </h1>
+        <p className="mt-3 text-lg text-foreground/60 max-w-md mx-auto">
+          Votre générosité fait avancer la mission — chaque don compte.
+        </p>
       </header>
 
       <form onSubmit={submit} className="rounded-[2rem] border border-border bg-card p-6 md:p-10 space-y-7">
-        {/* Frequency */}
+        {/* Fréquence */}
         <div>
-          <div className="text-sm font-bold text-foreground/60 mb-3">Frequency</div>
+          <div className="text-sm font-bold text-foreground/60 mb-3">Fréquence</div>
           <div className="inline-flex rounded-full border border-border bg-background p-1">
-            {[{ id: "once", label: "One-time", icon: Heart }, { id: "monthly", label: "Monthly", icon: Repeat }].map((f) => (
+            {[
+              { id: "once", label: "Unique", icon: Heart },
+              { id: "monthly", label: "Mensuel", icon: Repeat },
+            ].map((f) => (
               <button
                 type="button"
                 key={f.id}
@@ -61,41 +74,50 @@ export default function Donate() {
           </div>
         </div>
 
-        {/* Preset amounts */}
+        {/* Montant */}
         <div>
-          <div className="text-sm font-bold text-foreground/60 mb-3">Amount</div>
+          <div className="text-sm font-bold text-foreground/60 mb-3">Montant</div>
           <div className="grid grid-cols-4 gap-3">
             {PRESETS.map((p) => (
               <button
                 type="button"
                 key={p}
-                onClick={() => { setAmount(p); setCustom(""); }}
+                onClick={() => {
+                  setAmount(p);
+                  setCustom("");
+                }}
                 className={`rounded-2xl border-2 py-4 font-display font-extrabold text-xl transition ${
-                  !custom && amount === p ? "border-primary bg-primary/10 text-primary" : "border-border bg-background hover:border-primary/50"
+                  !custom && amount === p
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border bg-background hover:border-primary/50"
                 }`}
               >
-                ${p}
+                {p} €
               </button>
             ))}
           </div>
           <div className="mt-3 relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-foreground/40">$</span>
             <input
               type="number"
               value={custom}
               onChange={(e) => setCustom(e.target.value)}
-              placeholder="Custom amount"
-              className="w-full rounded-2xl border-2 border-border bg-background pl-8 pr-4 py-3.5 font-bold outline-none focus:border-primary"
+              placeholder="Montant libre"
+              className="w-full rounded-2xl border-2 border-border bg-background pl-4 pr-10 py-3.5 font-bold outline-none focus:border-primary text-right"
             />
+            <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-foreground/40">€</span>
           </div>
         </div>
 
-        <button type="submit" className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground px-6 py-4 text-lg font-bold glow-primary hover:scale-[1.01] transition">
-          Give ${finalAmount || 0} {frequency === "monthly" ? "/ month" : ""} <ArrowRight className="h-5 w-5" />
+        <button
+          type="submit"
+          className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground px-6 py-4 text-lg font-bold glow-primary hover:scale-[1.01] transition"
+        >
+          Donner {finalAmount || 0} € {frequency === "monthly" ? "/ mois" : ""}{" "}
+          <ArrowRight className="h-5 w-5" />
         </button>
 
         <div className="flex items-center justify-center gap-2 text-xs font-semibold text-foreground/45">
-          <ShieldCheck className="h-4 w-4" /> Secure checkout via Stripe
+          <ShieldCheck className="h-4 w-4" /> Paiement sécurisé via Stripe
         </div>
       </form>
     </div>

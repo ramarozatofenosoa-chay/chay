@@ -19,7 +19,7 @@ const NAV = [
   { to: "/", label: "Home", icon: Home, end: true },
   { to: "/community", label: "Community", icon: Users },
   { to: "/bible", label: "Bible", icon: BookOpen },
-  { to: "/media", label: "Media", icon: PlayCircle },
+  { to: "/media", label: "Multimédia", icon: PlayCircle },
   { to: "/games", label: "Games", icon: Gamepad2 },
 ];
 
@@ -47,6 +47,7 @@ export default function Layout() {
       ? location.pathname === path
       : location.pathname === path || location.pathname.startsWith(path + "/");
     if (isActive) return path; // tapping the active tab resets to its root
+    if (path === "/media") return path; // Multimédia revient toujours à la grille d'accueil
     const stored = lastParams[path];
     return stored ? `${path}${stored}` : path;
   };

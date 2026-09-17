@@ -92,8 +92,10 @@ export default function Home() {
     }
   };
 
+  const chapterTranslation =
+    devotional?.language === "en" ? "BSB" : "fra_lsg";
   const chapterLink = devotional?.scripture_reference
-    ? `/bible?ref=${encodeURIComponent(devotional.scripture_reference)}&translation=fra_lsg`
+    ? `/bible?ref=${encodeURIComponent(devotional.scripture_reference)}&translation=${chapterTranslation}`
     : "/bible";
 
   return (
@@ -117,12 +119,7 @@ export default function Home() {
         Tongasoa eto amin'ny Fiangonana Chay izay mitory ny Fanjakan'Andriamanitra.
       </p>
 
-      {/* Weather */}
-      <section className="mt-8">
-        <WeatherCard />
-      </section>
-
-      {/* Horloge divisée (sous la météo) */}
+      {/* Horloge divisée */}
       <SplitClock />
 
       {/* Verse of the day */}
@@ -136,9 +133,10 @@ export default function Home() {
               </div>
               <button
                 onClick={shareVerse}
-                className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold hover:bg-white/25 transition"
+                className="h-8 w-8 grid place-items-center rounded-full bg-white/15 hover:bg-white/25 transition"
+                aria-label="Partager le verset"
               >
-                <Share2 className="h-3.5 w-3.5" /> Partager
+                <Share2 className="h-4 w-4" />
               </button>
             </div>
             {loading ? (
@@ -148,10 +146,10 @@ export default function Home() {
               </div>
             ) : devotional ? (
               <>
-                <p className="selectable mt-5 font-display font-bold text-2xl md:text-3xl leading-snug">
+                <p className="selectable mt-4 text-base md:text-lg font-light leading-snug [font-family:'Montserrat',sans-serif] whitespace-nowrap overflow-hidden text-ellipsis">
                   « {devotional.verse_text || devotional.title} »
                 </p>
-                <p className="mt-3 font-semibold text-white/80">
+                <p className="mt-2 text-sm font-medium text-white/75 [font-family:'Montserrat',sans-serif]">
                   — {devotional.scripture_reference}
                 </p>
                 <Link
@@ -162,7 +160,7 @@ export default function Home() {
                 </Link>
               </>
             ) : (
-              <p className="selectable mt-5 font-display font-bold text-2xl">
+              <p className="selectable mt-4 text-base md:text-lg font-light leading-snug [font-family:'Montserrat',sans-serif]">
                 « Je puis tout par celui qui me fortifie. » — Philippiens 4:13
               </p>
             )}
@@ -209,6 +207,11 @@ export default function Home() {
 
       {/* Accès rapide */}
       <QuickAccess />
+
+      {/* Météo */}
+      <section className="mt-10">
+        <WeatherCard />
+      </section>
 
       {/* Social links */}
       <footer className="mt-12 pt-8 border-t border-border pb-6 flex flex-col items-center gap-4">

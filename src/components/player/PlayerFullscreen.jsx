@@ -8,7 +8,6 @@ import {
   Repeat,
   Repeat1,
   ChevronDown,
-  X,
   Music,
 } from "lucide-react";
 import { useAudioPlayer } from "@/lib/AudioPlayerContext";
@@ -48,16 +47,7 @@ export default function PlayerFullscreen({ onCollapse, cover }) {
         <span className="text-xs font-semibold uppercase tracking-wide text-foreground/50">
           En lecture
         </span>
-        <button
-          onClick={() => {
-            stop();
-            onCollapse();
-          }}
-          className="h-10 w-10 grid place-items-center rounded-full hover:bg-muted"
-          aria-label="Fermer"
-        >
-          <X className="h-5 w-5" />
-        </button>
+        <span className="h-10 w-10" />
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center px-6 gap-6 overflow-y-auto">

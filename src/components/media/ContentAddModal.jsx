@@ -120,7 +120,7 @@ export default function ContentAddModal({ open, onOpenChange, onSaved }) {
             <p className="text-sm text-foreground/55">Importez une ou plusieurs images. Aucun titre requis — les images s'affichent en carré, cliquables en taille réelle.</p>
             <div className="space-y-1.5">
               <Label>Image *</Label>
-              <CroppableUploader value={galleryUrl} onChange={setGalleryUrl} crop={false} label="une image" />
+              <CroppableUploader value={galleryUrl} onChange={setGalleryUrl} aspect={1} crop label="une image" />
             </div>
           </div>
         )}

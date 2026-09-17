@@ -1,10 +1,12 @@
 import React from "react";
-import { Reply, Copy, Trash2, Check } from "lucide-react";
+import { Reply, Copy, Trash2, Pencil } from "lucide-react";
 
 export default function MessageActionMenu({
   position,
   mine,
+  canEdit,
   onReply,
+  onEdit,
   onCopy,
   onDelete,
   onClose,
@@ -47,6 +49,18 @@ export default function MessageActionMenu({
         >
           <Copy className="h-4 w-4" /> Copier
         </button>
+        {canEdit && (
+          <button
+            onClick={() => {
+              onEdit();
+              onClose();
+            }}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-muted text-left"
+            role="menuitem"
+          >
+            <Pencil className="h-4 w-4" /> Modifier
+          </button>
+        )}
         {mine && (
           <button
             onClick={() => {

@@ -42,7 +42,7 @@ export default function MediaCategory({
   onAddToAdminPlaylist, onCreatePlaylist, onRemovePlaylistTrack, onSaved, isAdmin,
 }) {
   const { articles, youtube, gallery, playlist } = data;
-  const [ytSection, setYtSection] = useState("culte");
+  const [ytSection, setYtSection] = useState(null);
   const [galleryIdx, setGalleryIdx] = useState(null);
 
   const q = query.trim().toLowerCase();
@@ -94,25 +94,35 @@ export default function MediaCategory({
 
       {cat === "youtube" && (
         <div>
-          <div className="grid grid-cols-2 gap-4 max-w-md mb-6">
-            {YOUTUBE_SECTIONS.map((s) => {
-              const Icon = s.icon;
-              const active = ytSection === s.id;
-              return (
-                <button
-                  key={s.id}
-                  onClick={() => setYtSection(s.id)}
-                  className={`group flex flex-col items-center gap-2 ${active ? "scale-105" : ""}`}
-                >
-                  <span className={`relative aspect-square w-full rounded-[1.5rem] bg-gradient-to-br ${s.tone} grid place-items-center text-white shadow-sm transition-all ${active ? "ring-2 ring-primary ring-offset-2" : "group-hover:-translate-y-1 group-hover:shadow-lg"}`}>
-                    <Icon className="h-9 w-9" />
-                  </span>
-                  <span className={`text-sm font-semibold ${active ? "text-primary" : "text-foreground/70"}`}>{s.label}</span>
-                </button>
-              );
-            })}
-          </div>
-          <YouTubeCategoryView section={ytSection} youtube={youtube} isAdmin={isAdmin} onSaved={onSaved} />
+          {!ytSection ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md">
+              {YOUTUBE_SECTIONS.map((s) => {
+                const Icon = s.icon;
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => setYtSection(s.id)}
+                    className="group flex flex-col items-center justify-center gap-4 rounded-3xl border border-border bg-card p-8 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                  >
+                    <div className={`flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br ${s.tone} text-white shadow-md transition group-hover:scale-105`}>
+                      <Icon className="h-10 w-10" />
+                    </div>
+                    <h3 className="text-xl font-bold text-foreground">{s.label}</h3>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div>
+              <button
+                onClick={() => setYtSection(null)}
+                className="inline-flex items-center gap-1 mb-4 text-sm font-bold text-primary hover:bg-primary/10 rounded-xl px-2 py-2"
+              >
+                <ChevronLeft className="h-5 w-5" /> YouTube
+              </button>
+              <YouTubeCategoryView section={ytSection} youtube={youtube} isAdmin={isAdmin} onSaved={onSaved} />
+            </div>
+          )}
         </div>
       )}
 

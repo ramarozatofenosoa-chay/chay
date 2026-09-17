@@ -35,7 +35,6 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import PasswordInput from "@/components/PasswordInput";
-import PasswordStrength, { evalPassword } from "@/components/PasswordStrength";
 import { dialFor, formatPhoneFor } from "@/lib/countryDial";
 
 const GENDERS = [
@@ -127,8 +126,7 @@ export default function Register() {
     if (country) setPhone("+" + dialFor(country));
   }, [country]);
 
-  const pwStrength = evalPassword(password);
-  const passwordValid = pwStrength.level === 3;
+  const passwordValid = password.length > 0;
   const phoneValid = PHONE_RE.test(phoneStripped(phone));
   const emailValid = EMAIL_REGEX.test(email.trim());
   const passwordMatch = password === confirmPassword && password.length > 0;
@@ -417,8 +415,7 @@ export default function Register() {
               label="Mot de passe"
               icon={Lock}
               required
-              error={password ? (password.length < 6 ? "6 caractères minimum" : !passwordValid ? "Mot de passe trop faible (niveau Fort requis)" : null) : null}
-              hint="6 caractères minimum — niveau Fort requis (12+, majuscule, minuscule, chiffre, caractère spécial)"
+              hint="Choisissez le mot de passe que vous aimez."
             >
               <PasswordInput
                 autoComplete="new-password"
@@ -427,9 +424,6 @@ export default function Register() {
                 placeholder="••••••••"
                 className={`h-11 ${borderFor(pwState)}`}
               />
-              <div className="mt-1.5">
-                <PasswordStrength password={password} />
-              </div>
             </Field>
             <Field
               label="Confirmer le mot de passe"

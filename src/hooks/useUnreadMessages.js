@@ -17,7 +17,7 @@ export function useUnreadMessages(user) {
       if (stopped) return;
       const arr = Array.isArray(msgs) ? msgs : [];
       const count = arr.filter(
-        (m) => m.sender_id !== user.id && !(m.read_by || []).includes(user.id)
+        (m) => m.sender_id && m.sender_id !== user.id && !(m.read_by || []).includes(user.id)
       ).length;
       setUnread(count);
     };
@@ -25,10 +25,13 @@ export function useUnreadMessages(user) {
     load();
     const unsubM = base44.entities.Message.subscribe(() => load());
     const unsubC = base44.entities.Conversation.subscribe(() => load());
+    const onFocus = () => load();
+    window.addEventListener("focus", onFocus);
     return () => {
       stopped = true;
       unsubM();
       unsubC();
+      window.removeEventListener("focus", onFocus);
     };
   }, [user?.id]);
 

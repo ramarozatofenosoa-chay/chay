@@ -12,7 +12,7 @@ export default function GalleryViewer({ images, index, onClose }) {
 
   return (
     <AnimatePresence>
-      {images.length > 0 && (
+      {index !== null && images.length > 0 && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

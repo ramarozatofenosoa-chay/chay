@@ -34,6 +34,20 @@ export function AudioPlayerProvider({ children }) {
     audio.play().then(() => setIsPlaying(true)).catch(() => {});
   }, [currentTrack]);
 
+  // Toute autre lecture (radio, vidéo) démarrée dans l'app met la musique en pause.
+  useEffect(() => {
+    const onOtherPlay = (e) => {
+      const el = e.target;
+      if (!el || el === audioRef.current) return;
+      if (el.tagName === "AUDIO" || el.tagName === "VIDEO") {
+        const a = audioRef.current;
+        if (a && !a.paused) a.pause();
+      }
+    };
+    document.addEventListener("play", onOtherPlay, true);
+    return () => document.removeEventListener("play", onOtherPlay, true);
+  }, []);
+
   const playAt = useCallback((newIndex) => {
     const { order, queue } = stateRef.current;
     if (!order.length) return;

@@ -1,12 +1,23 @@
 import React, { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { BookMarked, BookOpen } from "lucide-react";
 import BibleReader from "@/components/bible/BibleReader";
 import BibleDictionary from "@/components/bible/BibleDictionary";
 
 export default function Bible() {
-  const [view, setView] = useState("home"); // home | reader | dictionary
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [view, setView] = useState(() =>
+    searchParams.get("ref") ? "reader" : "home"
+  );
 
-  if (view === "reader") return <BibleReader onBack={() => setView("home")} />;
+  const goHome = () => {
+    if (searchParams.get("ref") || searchParams.get("translation")) {
+      setSearchParams({});
+    }
+    setView("home");
+  };
+
+  if (view === "reader") return <BibleReader onBack={goHome} />;
   if (view === "dictionary") return <BibleDictionary onBack={() => setView("home")} />;
 
   return (
