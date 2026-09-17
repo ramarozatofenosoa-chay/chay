@@ -19,6 +19,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { HIGHLIGHT_COLORS, LANGUAGES, VERSIONS } from "@/lib/bibleConstants";
 import VerseActionsSheet from "@/components/bible/VerseActionsSheet";
 import DrawerSelect from "@/components/DrawerSelect";
+import { getMalagasyBooks, fetchMalagasyChapter } from "@/lib/malagasyBible";
 
 const API_BASE_URL = "https://bible.helloao.org/api";
 
@@ -122,38 +123,58 @@ export default function BibleReader({ onBack }) {
       setBooksStatus("unavailable");
       return;
     }
+    const norm = (s) =>
+      (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
+    const resolveInitial = (loaded, defaultId) => {
+      let nextBookId = defaultId;
+      let nextChapter = 1;
+      if (pendingRef) {
+        const m = pendingRef.trim().match(/^(.*?)\s+(\d+)(?::\d+)?$/);
+        if (m) {
+          const book = loaded.find((b) => norm(b.name) === norm(m[1]) || norm(b.id) === norm(m[1]));
+          if (book) { nextBookId = book.id; nextChapter = Number(m[2]); }
+        }
+        setPendingRef(null);
+      } else if (!didInitRef.current) {
+        const savedBook = user?.bible_last_book && loaded.find((b) => b.id === user.bible_last_book);
+        const savedChapter = Number(user?.bible_last_chapter);
+        if (savedBook) nextBookId = savedBook.id;
+        if (savedChapter >= 1 && savedChapter <= (savedBook?.numberOfChapters || 0)) nextChapter = savedChapter;
+      }
+      didInitRef.current = true;
+      return { nextBookId, nextChapter };
+    };
+
+    // Version malgache : catalogue local (API antonionavira, pas de fetch de liste).
+    if (meta.engine === "antonionavira") {
+      const loaded = getMalagasyBooks();
+      const { nextBookId, nextChapter } = resolveInitial(
+        loaded,
+        loaded.find((b) => b.id === "matio")?.id || loaded[0].id
+      );
+      setBooks(loaded);
+      setSelectedBookId(nextBookId);
+      setSelectedChapter(nextChapter);
+      setBooksStatus("ready");
+      return;
+    }
+
+    // Version helloao (LSG) : fetch de la liste des livres.
     const controller = new AbortController();
     async function loadBooks() {
       setBooksStatus("loading");
       setErrorMessage("");
       try {
-        const res = await fetch(getBooksUrl(selectedVersion), {
-          signal: controller.signal,
-        });
+        const res = await fetch(getBooksUrl(selectedVersion), { signal: controller.signal });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         const loaded = normalizeBookResponse(data);
         if (loaded.length === 0) throw new Error("Aucun livre trouvé.");
+        const { nextBookId, nextChapter } = resolveInitial(
+          loaded,
+          loaded.find((b) => b.id === "JHN")?.id || loaded[0].id
+        );
         setBooks(loaded);
-        const jean = loaded.find((b) => b.id === "JHN");
-        let nextBookId = jean?.id || loaded[0].id;
-        let nextChapter = 1;
-        if (pendingRef) {
-          const norm = (s) =>
-            s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
-          const m = pendingRef.trim().match(/^(.*?)\s+(\d+)(?::\d+)?$/);
-          if (m) {
-            const book = loaded.find((b) => norm(b.name) === norm(m[1]));
-            if (book) { nextBookId = book.id; nextChapter = Number(m[2]); }
-          }
-          setPendingRef(null);
-        } else if (!didInitRef.current) {
-          const savedBook = user?.bible_last_book && loaded.find((b) => b.id === user.bible_last_book);
-          const savedChapter = Number(user?.bible_last_chapter);
-          if (savedBook) nextBookId = savedBook.id;
-          if (savedChapter >= 1 && savedChapter <= (savedBook?.numberOfChapters || 0)) nextChapter = savedChapter;
-        }
-        didInitRef.current = true;
         setSelectedBookId(nextBookId);
         setSelectedChapter(nextChapter);
         setBooksStatus("ready");
@@ -187,11 +208,17 @@ export default function BibleReader({ onBack }) {
       setVerses([]);
       setErrorMessage("");
       try {
-        const res = await fetch(getChapterUrl(selectedVersion, selectedBookId, selectedChapter), { signal: controller.signal });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        const loaded = normalizeChapterResponse(data);
-        if (loaded.length === 0) throw new Error("Aucun verset trouvé pour ce chapitre.");
+        let loaded;
+        if (versionMeta?.engine === "antonionavira") {
+          if (!selectedBook) throw new Error("Livre introuvable.");
+          loaded = await fetchMalagasyChapter(selectedBook, selectedChapter);
+        } else {
+          const res = await fetch(getChapterUrl(selectedVersion, selectedBookId, selectedChapter), { signal: controller.signal });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          loaded = normalizeChapterResponse(data);
+        }
+        if (!loaded || loaded.length === 0) throw new Error("Aucun verset trouvé pour ce chapitre.");
         setVerses(loaded);
         setChapterStatus("ready");
       } catch (e) {
@@ -203,7 +230,7 @@ export default function BibleReader({ onBack }) {
     loadChapter();
     loadAnnotations();
     return () => controller.abort();
-  }, [booksStatus, selectedVersion, selectedBookId, selectedChapter]);
+  }, [booksStatus, selectedVersion, selectedBookId, selectedChapter, versionMeta, selectedBook]);
 
   useEffect(() => {
     if (chapterStatus !== "ready" || !user?.id) return;
@@ -320,7 +347,7 @@ export default function BibleReader({ onBack }) {
   useEffect(() => {
     const q = searchInput.trim();
     if (q.length < 3) { setSearchResults([]); setSearchStatus("idle"); return; }
-    if (!versionMeta?.available) return;
+    if (!versionMeta?.available || versionMeta?.engine !== "helloao") return;
     const t = setTimeout(() => runSearch(q), 450);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -382,6 +409,11 @@ export default function BibleReader({ onBack }) {
         )}
       </div>
 
+      {versionMeta?.engine !== "helloao" && searchInput.trim() && (
+        <p className="mb-3 text-sm text-muted-foreground">
+          Recherche non disponible pour la version malgasy pour le moment.
+        </p>
+      )}
       {/* Résultats de recherche */}
       {searchStatus === "done" && (
         <section className="mb-4 overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
