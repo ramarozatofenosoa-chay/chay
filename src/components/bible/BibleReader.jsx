@@ -421,7 +421,6 @@ export default function BibleReader({ onBack }) {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-foreground">{selectedBook?.name} {selectedChapter}</h2>
-                <p className="text-sm text-muted-foreground">Touchez un ou plusieurs versets pour les sélectionner, puis surligner, noter ou copier.</p>
               </div>
               {chapterStatus === "loading" && (
                 <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Chargement</span>
