@@ -11,16 +11,21 @@ import { useMediaPlayerState } from "@/hooks/useMediaPlayerState";
 const RadioContext = createContext(null);
 export const useRadio = () => useContext(RadioContext);
 
+const PREROLL_MS = 6000; // délai de démarrage : laisser le tampon prendre de l'avance
+const RESUME_MS = 2000;  // délai de reprise après une coupure réseau
+
 export function RadioPlayerProvider({ children }) {
   const audioRef = useRef(null);
   const [retries, setRetries] = useState(0);
+  const [preparing, setPreparing] = useState(false);
   const [volume, setVolumeState] = useState(() => {
     const v = parseFloat(localStorage.getItem("chay_radio_volume"));
     return isNaN(v) ? 0.8 : Math.min(1, Math.max(0, v));
   });
   const attemptsRef = useRef(0);
-  const retryTimer = useRef(null);
-  const prevErrorRef = useRef(false);
+  const preRollTimer = useRef(null);
+  const resumeTimer = useRef(null);
+  const prevStateRef = useRef("idle");
 
   // Machine à états partagée — radio en direct (isLive = true).
   const { state, errorCode } = useMediaPlayerState(audioRef, { isLive: true });
@@ -29,10 +34,14 @@ export function RadioPlayerProvider({ children }) {
   const isLoading = state === "connecting" || state === "buffering";
   const error = state === "error";
 
-  const stopRetry = () => {
-    if (retryTimer.current) {
-      clearTimeout(retryTimer.current);
-      retryTimer.current = null;
+  const clearTimers = () => {
+    if (preRollTimer.current) {
+      clearTimeout(preRollTimer.current);
+      preRollTimer.current = null;
+    }
+    if (resumeTimer.current) {
+      clearTimeout(resumeTimer.current);
+      resumeTimer.current = null;
     }
   };
 
@@ -49,25 +58,32 @@ export function RadioPlayerProvider({ children }) {
     } catch {}
   };
 
-  const attemptPlay = () => {
+  const loadStream = () => {
     const a = audioRef.current;
     if (!a) return;
     a.src = RADIO_URL;
     a.load();
-    a.play().catch(() => {});
   };
 
   const play = () => {
     const a = audioRef.current;
     if (a && !a.paused && !a.ended) return; // déjà en lecture
-    stopRetry();
+    clearTimers();
     attemptsRef.current = 0;
     setRetries(0);
-    attemptPlay();
+    setPreparing(true);
+    loadStream();
+    // Pré-roll de 6 s : on attend que le tampon se remplisse avant de lancer le son.
+    preRollTimer.current = setTimeout(() => {
+      setPreparing(false);
+      const aa = audioRef.current;
+      if (aa) aa.play().catch(() => {});
+    }, PREROLL_MS);
   };
 
   const stop = () => {
-    stopRetry();
+    clearTimers();
+    setPreparing(false);
     const a = audioRef.current;
     if (a) {
       a.pause();
@@ -79,7 +95,7 @@ export function RadioPlayerProvider({ children }) {
     updateMediaSession(false);
   };
 
-  const toggle = () => (isPlaying || isLoading ? stop() : play());
+  const toggle = () => (isPlaying || isLoading || preparing ? stop() : play());
 
   const setVolume = (v) => {
     const c = Math.min(1, Math.max(0, v));
@@ -89,26 +105,40 @@ export function RadioPlayerProvider({ children }) {
   };
 
   const retryNow = () => {
-    stopRetry();
+    clearTimers();
     attemptsRef.current = 0;
     setRetries(0);
-    attemptPlay();
+    setPreparing(true);
+    loadStream();
+    preRollTimer.current = setTimeout(() => {
+      setPreparing(false);
+      const aa = audioRef.current;
+      if (aa) aa.play().catch(() => {});
+    }, PREROLL_MS);
   };
 
-  // Retry automatique sur erreur (5 tentatives, 15s d'intervalle).
+  // Reprise après coupure réseau : 2 s après un passage à l'erreur, on relance
+  // la lecture. Plafonné à 5 tentatives pour éviter une boucle infinie.
   useEffect(() => {
-    if (!prevErrorRef.current && error) {
+    const prev = prevStateRef.current;
+    if (prev !== "error" && state === "error" && !preparing) {
       attemptsRef.current += 1;
       setRetries(attemptsRef.current);
-      if (attemptsRef.current < 5) {
-        stopRetry();
-        retryTimer.current = setTimeout(() => attemptPlay(), 15000);
+      if (attemptsRef.current <= 5) {
+        clearTimers();
+        resumeTimer.current = setTimeout(() => {
+          const a = audioRef.current;
+          if (a) {
+            a.src = RADIO_URL;
+            a.load();
+            a.play().catch(() => {});
+          }
+        }, RESUME_MS);
       }
     }
-    prevErrorRef.current = error;
-  }, [error]);
+    prevStateRef.current = state;
+  }, [state]);
 
-  // La session média suit l'état réel.
   useEffect(() => {
     updateMediaSession(isPlaying);
   }, [isPlaying]);
@@ -122,9 +152,7 @@ export function RadioPlayerProvider({ children }) {
     const onAnyMediaPlay = (e) => {
       const el = e.target;
       if (!el || el === audioRef.current) return;
-      if (el.tagName === "AUDIO" || el.tagName === "VIDEO") {
-        stop();
-      }
+      if (el.tagName === "AUDIO" || el.tagName === "VIDEO") stop();
     };
     document.addEventListener("play", onAnyMediaPlay, true);
 
@@ -138,7 +166,7 @@ export function RadioPlayerProvider({ children }) {
 
     return () => {
       document.removeEventListener("play", onAnyMediaPlay, true);
-      stopRetry();
+      clearTimers();
       a.pause();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -146,6 +174,7 @@ export function RadioPlayerProvider({ children }) {
 
   const value = {
     state,
+    preparing,
     isPlaying,
     isLoading,
     error,

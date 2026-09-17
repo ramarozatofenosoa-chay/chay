@@ -14,7 +14,6 @@ import {
   Share2,
   Shield,
 } from "lucide-react";
-import WeatherCard from "@/components/WeatherCard";
 import PullToRefresh from "@/components/PullToRefresh";
 import SplitClock from "@/components/home/SplitClock";
 import NewContentsSection from "@/components/home/NewContentsSection";
@@ -207,11 +206,6 @@ export default function Home() {
 
       {/* Accès rapide */}
       <QuickAccess />
-
-      {/* Météo */}
-      <section className="mt-10">
-        <WeatherCard />
-      </section>
 
       {/* Social links */}
       <footer className="mt-12 pt-8 border-t border-border pb-6 flex flex-col items-center gap-4">

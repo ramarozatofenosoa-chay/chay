@@ -17,8 +17,8 @@ import {
 export default function RadioPlayer() {
   const {
     state,
+    preparing,
     isPlaying,
-    isLoading,
     error,
     errorCode,
     retries,
@@ -30,9 +30,13 @@ export default function RadioPlayer() {
   const { toast } = useToast();
 
   const VolIcon = volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
-  const buffering = state === "connecting" || state === "buffering";
+  const buffering = preparing || state === "connecting" || state === "buffering";
   const statusText =
-    state === "connecting" ? "Connexion…" : state === "buffering" ? "Mise en mémoire tampon…" : "En direct";
+    preparing || state === "connecting"
+      ? "Connexion…"
+      : state === "buffering"
+      ? "Mise en mémoire tampon…"
+      : "En direct";
 
   const share = async () => {
     const url = `${window.location.origin}/media?cat=radio`;
@@ -52,7 +56,7 @@ export default function RadioPlayer() {
         <div className="flex items-center justify-center gap-2 mb-5">
           <span
             className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold uppercase ${
-              isPlaying || isLoading ? "bg-white/15" : "bg-white/10 opacity-70"
+              isPlaying || buffering ? "bg-white/15" : "bg-white/10 opacity-70"
             }`}
           >
             <span className={`h-2 w-2 rounded-full ${isPlaying ? "bg-white animate-pulse" : "bg-white/50"}`} />
@@ -89,7 +93,7 @@ export default function RadioPlayer() {
             </p>
             {retries < 5 ? (
               <p className="text-xs text-foreground/50 mt-1">
-                Nouvelle tentative dans 15s… ({retries}/5)
+                Nouvelle tentative automatique… ({retries}/5)
               </p>
             ) : (
               <button

@@ -17,7 +17,6 @@ import { isOnline, lastSeenLabel } from "@/hooks/usePresence";
 import GroupSettingsSheet from "@/components/messages/GroupSettingsSheet";
 import EmojiPicker from "@/components/messages/EmojiPicker";
 import MessageActionMenu from "@/components/messages/MessageActionMenu";
-import ReadReceipts from "@/components/messages/ReadReceipts";
 import PhotoViewer from "@/components/messages/PhotoViewer";
 
 function fmtTime(d) {
@@ -376,7 +375,7 @@ export default function ConversationView({
                     <button
                       type="button"
                       onClick={() => openPhoto(m)}
-                      className="block rounded-xl overflow-hidden mb-1 max-w-[220px] focus:outline-none"
+                      className="block rounded-lg overflow-hidden mb-1 max-w-[220px] focus:outline-none"
                       aria-label="Agrandir la photo"
                     >
                       <Image
@@ -392,12 +391,6 @@ export default function ConversationView({
                     </div>
                   )}
                 </div>
-                {mine && isLastOfGroup && (
-                  <ReadReceipts
-                    readers={readersOf(m)}
-                    allRead={readByAll(m)}
-                  />
-                )}
               </div>
             </div>
           );
@@ -479,14 +472,13 @@ export default function ConversationView({
           <input
             value={draft}
             onChange={onDraftChange}
-            onKeyDown={(e) => e.key === "Enter" && send()}
             placeholder="Message…"
             className="flex-1 rounded-full border border-border bg-card px-4 py-2.5 text-sm outline-none focus:border-primary"
           />
           <button
             onClick={send}
             disabled={(!draft.trim() && !sending) || sending}
-            className="h-10 w-10 rounded-full brand-gradient text-white grid place-items-center disabled:opacity-50 shrink-0 active:scale-95 transition"
+            className="h-10 shrink-0 rounded-full brand-gradient text-white inline-flex items-center gap-1.5 px-4 disabled:opacity-50 active:scale-95 transition"
             aria-label="Envoyer"
           >
             {sending ? (
@@ -494,6 +486,7 @@ export default function ConversationView({
             ) : (
               <Send className="h-4 w-4" />
             )}
+            <span className="text-sm font-bold">Envoyer</span>
           </button>
         </div>
       </div>

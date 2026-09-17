@@ -4,7 +4,6 @@ import { Home, Users, BookOpen, PlayCircle, Gamepad2, Bell, User, ChevronLeft, S
 import ThemeToggle from "@/components/ThemeToggle";
 import AnimatedOutlet from "@/components/AnimatedOutlet";
 import MiniPlayer from "@/components/MiniPlayer";
-import FloatingChatBubble from "@/components/messages/FloatingChatBubble";
 import LocationGate from "@/components/LocationGate";
 import { Image } from "@/components/ui/image";
 import { useAuth } from "@/lib/AuthContext";
@@ -48,6 +47,7 @@ export default function Layout() {
       : location.pathname === path || location.pathname.startsWith(path + "/");
     if (isActive) return path; // tapping the active tab resets to its root
     if (path === "/media") return path; // Multimédia revient toujours à la grille d'accueil
+    if (path === "/messages") return path; // Messages revient toujours à la liste des conversations
     const stored = lastParams[path];
     return stored ? `${path}${stored}` : path;
   };
@@ -171,8 +171,8 @@ export default function Layout() {
       </main>
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 px-4" style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
-        <div className="mx-auto max-w-md flex items-center justify-around rounded-full border border-border bg-background/85 backdrop-blur-xl px-2 py-2 glow-soft">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 px-3" style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}>
+        <div className="mx-auto max-w-md flex items-center justify-around rounded-full border border-border bg-background/90 backdrop-blur-xl px-1.5 py-1.5 glow-soft">
           {NAV.map((item) => {
             const Icon = item.icon;
             const active = item.end ? location.pathname === "/" : location.pathname.startsWith(item.to);
@@ -181,14 +181,14 @@ export default function Layout() {
                 key={item.to}
                 to={navTarget(item.to, item.end)}
                 end={item.end}
-                className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-full transition"
+                className="flex items-center justify-center px-2 py-1 rounded-full transition"
               >
                 <span
-                  className={`grid place-items-center h-11 w-11 rounded-full transition-all ${
-                    active ? "brand-gradient text-white shadow-md scale-105" : "text-foreground/55"
+                  className={`grid place-items-center h-9 w-9 rounded-full transition-all ${
+                    active ? "brand-gradient text-white shadow-sm" : "text-foreground/55"
                   }`}
                 >
-                  <Icon className="h-5 w-5" strokeWidth={active ? 2.5 : 2} />
+                  <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2.5 : 2} />
                 </span>
               </NavLink>
             );
@@ -196,7 +196,6 @@ export default function Layout() {
         </div>
       </nav>
 
-      <FloatingChatBubble />
       <MiniPlayer />
     </div>
     </LocationGate>
