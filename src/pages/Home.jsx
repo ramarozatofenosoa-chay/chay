@@ -91,8 +91,7 @@ export default function Home() {
     }
   };
 
-  const chapterTranslation =
-    devotional?.language === "en" ? "BSB" : "fra_lsg";
+  const chapterTranslation = "fra_lsg";
   const chapterLink = devotional?.scripture_reference
     ? `/bible?ref=${encodeURIComponent(devotional.scripture_reference)}&translation=${chapterTranslation}`
     : "/bible";

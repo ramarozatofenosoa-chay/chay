@@ -13,6 +13,7 @@ import {
   Highlighter,
   Copy,
   X,
+  Volume2,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { HIGHLIGHT_COLORS, LANGUAGES, VERSIONS } from "@/lib/bibleConstants";
@@ -88,7 +89,8 @@ export default function BibleReader({ onBack }) {
   const [lang, setLang] = useState("fr");
   const [selectedVersion, setSelectedVersion] = useState(() => {
     const t = new URLSearchParams(window.location.search).get("translation");
-    return t || "fra_lsg";
+    const known = t && Object.values(VERSIONS).flat().some((v) => v.id === t);
+    return known ? t : "fra_lsg";
   });
   const [books, setBooks] = useState([]);
   const [selectedBookId, setSelectedBookId] = useState("JHN");
@@ -113,6 +115,13 @@ export default function BibleReader({ onBack }) {
   const bibleCacheRef = useRef({});
 
   useEffect(() => {
+    const meta = Object.values(VERSIONS).flat().find((v) => v.id === selectedVersion);
+    if (!meta || !meta.available) {
+      setBooks([]);
+      setVerses([]);
+      setBooksStatus("unavailable");
+      return;
+    }
     const controller = new AbortController();
     async function loadBooks() {
       setBooksStatus("loading");
@@ -163,6 +172,12 @@ export default function BibleReader({ onBack }) {
     const count = selectedBook?.numberOfChapters || 1;
     return Array.from({ length: count }, (_, i) => i + 1);
   }, [selectedBook]);
+
+  const ALL_VERSIONS = useMemo(() => Object.values(VERSIONS).flat(), []);
+  const versionMeta = useMemo(
+    () => ALL_VERSIONS.find((v) => v.id === selectedVersion) || null,
+    [ALL_VERSIONS, selectedVersion]
+  );
 
   useEffect(() => {
     if (booksStatus !== "ready" || !selectedBookId || !selectedChapter) return;
@@ -301,6 +316,16 @@ export default function BibleReader({ onBack }) {
     setSearchStatus("idle");
   }
 
+  // Recherche live : se déclenche automatiquement pendant la frappe (>= 3 chars).
+  useEffect(() => {
+    const q = searchInput.trim();
+    if (q.length < 3) { setSearchResults([]); setSearchStatus("idle"); return; }
+    if (!versionMeta?.available) return;
+    const t = setTimeout(() => runSearch(q), 450);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInput, selectedVersion]);
+
   return (
     <main className="mx-auto max-w-5xl px-4 py-6 md:px-8 md:py-10">
       <div className="mb-4 flex items-center gap-2">
@@ -324,21 +349,27 @@ export default function BibleReader({ onBack }) {
       {/* Barre de recherche */}
       <div className="mb-3">
         <div className="flex items-center gap-2 rounded-2xl border border-border bg-card px-3 py-2 shadow-sm">
-          <Search className="h-5 w-5 text-muted-foreground shrink-0" />
           <input
             value={searchInput}
-            onChange={(e) => { setSearchInput(e.target.value); }}
-            onKeyDown={(e) => { if (e.key === "Enter") runSearch(searchInput); }}
+            onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Rechercher des versets par un mot ou plusieurs mots…"
             className="flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground selectable"
           />
           {searchInput && (
-            <button onClick={() => { setSearchInput(""); setSearchResults([]); setSearchStatus("idle"); }} className="text-muted-foreground hover:text-foreground">
+            <button
+              onClick={() => { setSearchInput(""); setSearchResults([]); setSearchStatus("idle"); }}
+              className="text-muted-foreground hover:text-foreground shrink-0"
+              aria-label="Effacer la recherche"
+            >
               <X className="h-4 w-4" />
             </button>
           )}
-          <button onClick={() => runSearch(searchInput)} className="rounded-xl bg-primary px-3 py-1.5 text-sm font-bold text-primary-foreground">
-            Chercher
+          <button
+            onClick={() => runSearch(searchInput)}
+            aria-label="Lancer la recherche"
+            className="shrink-0 grid place-items-center h-8 w-8 rounded-xl bg-primary text-primary-foreground"
+          >
+            <Search className="h-4 w-4" />
           </button>
         </div>
         {searchStatus === "loading" && (
@@ -429,7 +460,31 @@ export default function BibleReader({ onBack }) {
           </div>
         )}
 
+        {booksStatus === "ready" && versionMeta?.audio?.supported && (
+          <div className="border-b border-border bg-muted/40 px-5 py-3 md:px-6 flex items-center gap-3 text-sm">
+            <Volume2 className="h-4 w-4 text-muted-foreground shrink-0" />
+            <p className="text-muted-foreground">
+              {versionMeta.audio?.configured
+                ? "Audio LSG"
+                : "L'audio de la Louis Segond 1910 n'est pas encore configuré ou autorisé."}
+            </p>
+          </div>
+        )}
+
         <div className="min-h-[52vh] px-5 py-7 md:px-10 md:py-9">
+          {booksStatus === "unavailable" && (
+            <div className="flex min-h-[42vh] flex-col items-center justify-center gap-3 text-center">
+              <AlertTriangle className="h-8 w-8 text-primary" />
+              <div>
+                <p className="font-bold text-foreground/80">
+                  La source de cette version n'est pas encore configurée ou autorisée.
+                </p>
+                <p className="mt-2 max-w-md text-sm text-muted-foreground">
+                  Version : {versionMeta?.label}. Configurez une source biblique autorisée pour afficher le texte.
+                </p>
+              </div>
+            </div>
+          )}
           {chapterStatus === "loading" && (
             <div className="flex min-h-[42vh] flex-col items-center justify-center gap-3 text-muted-foreground">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />

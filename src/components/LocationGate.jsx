@@ -2,39 +2,46 @@ import React, { useEffect, useState } from "react";
 import { MapPin, Loader2, Navigation } from "lucide-react";
 
 /**
- * Bloque le lancement de l'application tant que la localisation n'est pas
- * activée. Re-vérifié à chaque ouverture (le composant reste monté tant que
- * l'utilisateur navigue, donc ne redemande pas à chaque changement de page ;
- * seul un rechargement relance le contrôle).
+ * Demande la localisation une seule fois. Le résultat (accordé, refusé ou non
+ * supporté) est mémorisé : un rafraîchissement de la page ne ré-affiche plus la
+ * demande et ne bloque plus l'accès à l'application.
  */
+const STORAGE_KEY = "chay_location_status";
+
 export default function LocationGate({ children }) {
-  const [status, setStatus] = useState("checking"); // checking | requesting | granted | denied | unsupported
+  const [status, setStatus] = useState("checking"); // checking | requesting | granted | passed
 
   const request = () => {
     if (!navigator.geolocation) {
-      setStatus("unsupported");
+      localStorage.setItem(STORAGE_KEY, "unsupported");
+      setStatus("passed");
       return;
     }
     setStatus("requesting");
     navigator.geolocation.getCurrentPosition(
-      () => setStatus("granted"),
-      () => setStatus("denied"),
+      () => { localStorage.setItem(STORAGE_KEY, "granted"); setStatus("granted"); },
+      () => { localStorage.setItem(STORAGE_KEY, "denied"); setStatus("passed"); },
       { enableHighAccuracy: false, timeout: 10000, maximumAge: 0 }
     );
   };
 
   useEffect(() => {
-    // Dans l'aperçu du builder (iframe), la géolocalisation est souvent
-    // bloquée par le navigateur ; on n'y applique pas le verrou pour garder
-    // l'aperçu navigable. L'application publiée (page principale) l'applique.
+    // Aperçu du builder (iframe) : on ne verrouille pas.
     if (window.self !== window.top) {
       setStatus("granted");
       return;
     }
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored === "granted") { setStatus("granted"); return; }
+    if (stored === "denied" || stored === "unsupported" || stored === "skipped") {
+      setStatus("passed");
+      return;
+    }
+    // Première visite : on demande une seule fois.
     request();
   }, []);
 
-  if (status === "granted") return children;
+  if (status === "granted" || status === "passed") return children;
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
@@ -50,30 +57,23 @@ export default function LocationGate({ children }) {
           Localisation requise
         </h1>
         <p className="mt-2 text-sm text-foreground/60 leading-relaxed">
-          L'Application Chay a besoin de votre localisation en temps réel pour
-          afficher des annonces pertinentes et fonctionner correctement. Elle
-          ne peut pas être lancée sans cette autorisation.
+          L'Application Chay souhaite accéder à votre localisation pour afficher
+          des annonces pertinentes. Vous pouvez continuer même sans l'activer.
         </p>
-
-        {status === "denied" && (
-          <p className="mt-4 text-sm font-medium text-destructive">
-            Accès refusé. Autorisez la localisation dans votre navigateur, puis
-            réessayez.
-          </p>
-        )}
-        {status === "unsupported" && (
-          <p className="mt-4 text-sm font-medium text-destructive">
-            La géolocalisation n'est pas supportée sur cet appareil.
-          </p>
-        )}
 
         <button
           onClick={request}
-          disabled={status === "requesting" || status === "checking"}
+          disabled={status === "requesting"}
           className="mt-6 inline-flex items-center gap-2 rounded-full brand-gradient text-white px-6 py-3 text-sm font-bold disabled:opacity-60"
         >
           <MapPin className="h-4 w-4" />
           {status === "requesting" ? "Localisation…" : "Activer ma localisation"}
+        </button>
+        <button
+          onClick={() => { localStorage.setItem(STORAGE_KEY, "skipped"); setStatus("passed"); }}
+          className="mt-3 block w-full text-sm font-semibold text-foreground/60 hover:text-foreground"
+        >
+          Continuer sans localisation
         </button>
       </div>
     </div>
