@@ -1,0 +1,79 @@
+{
+  "name": "BibleTranslation",
+  "type": "object",
+  "properties": {
+    "translation_id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "language": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string"
+    },
+    "license": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "not_configured",
+        "sync_pending",
+        "syncing",
+        "ready",
+        "partial",
+        "error"
+      ],
+      "default": "not_configured"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true
+    },
+    "lastSyncedAt": {
+      "type": "string"
+    },
+    "verseCount": {
+      "type": "number",
+      "default": 0
+    },
+    "syncCursorBookOrder": {
+      "type": "number",
+      "default": 0
+    },
+    "syncCursorChapter": {
+      "type": "number",
+      "default": 1
+    }
+  },
+  "required": [
+    "translation_id",
+    "name",
+    "language",
+    "status"
+  ],
+  "rls": {
+    "read": null,
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

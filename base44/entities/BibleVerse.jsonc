@@ -1,0 +1,54 @@
+{
+  "name": "BibleVerse",
+  "type": "object",
+  "properties": {
+    "translation": {
+      "type": "string"
+    },
+    "book": {
+      "type": "string"
+    },
+    "bookOrder": {
+      "type": "number"
+    },
+    "chapter": {
+      "type": "number"
+    },
+    "verse": {
+      "type": "number"
+    },
+    "text": {
+      "type": "string"
+    },
+    "normalizedText": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "translation",
+    "book",
+    "bookOrder",
+    "chapter",
+    "verse",
+    "text",
+    "normalizedText"
+  ],
+  "rls": {
+    "read": null,
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

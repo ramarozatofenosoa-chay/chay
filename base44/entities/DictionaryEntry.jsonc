@@ -1,0 +1,41 @@
+{
+  "name": "DictionaryEntry",
+  "type": "object",
+  "properties": {
+    "mot": {
+      "type": "string"
+    },
+    "mot_normalized": {
+      "type": "string"
+    },
+    "definition": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "mot",
+    "mot_normalized",
+    "definition"
+  ],
+  "rls": {
+    "read": null,
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
