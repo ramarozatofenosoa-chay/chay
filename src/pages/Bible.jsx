@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { BookMarked, BookOpen } from "lucide-react";
+import { BookMarked, BookOpen, Search } from "lucide-react";
 import BibleReader from "@/components/bible/BibleReader";
 import BibleDictionary from "@/components/bible/BibleDictionary";
+import BibleFullTextSearch from "@/components/bible/BibleFullTextSearch";
 
 export default function Bible() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -11,14 +12,22 @@ export default function Bible() {
   );
 
   const goHome = () => {
-    if (searchParams.get("ref") || searchParams.get("translation")) {
+    if (searchParams.get("ref") || searchParams.get("translation") || searchParams.get("verse")) {
       setSearchParams({});
     }
     setView("home");
   };
 
+  // Navigation depuis un résultat de recherche vers le lecteur.
+  const openVerse = (r) => {
+    const readerVersion = r.translation === "malagasy" ? "MG1865" : "fra_lsg";
+    setSearchParams({ translation: readerVersion, ref: `${r.book} ${r.chapter}`, verse: String(r.verse) });
+    setView("reader");
+  };
+
   if (view === "reader") return <BibleReader onBack={goHome} />;
   if (view === "dictionary") return <BibleDictionary onBack={() => setView("home")} />;
+  if (view === "search") return <BibleFullTextSearch onNavigate={openVerse} onBack={goHome} />;
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-6 md:px-8 md:py-10">
@@ -32,7 +41,7 @@ export default function Bible() {
         </div>
       </header>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <button
           onClick={() => setView("reader")}
           className="group flex flex-col items-center justify-center gap-4 rounded-3xl border border-border bg-card p-8 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
@@ -56,6 +65,19 @@ export default function Bible() {
           <div className="text-center">
             <h2 className="text-xl font-bold text-foreground">Dictionnaire</h2>
             <p className="mt-1 text-sm text-muted-foreground">Dictionnaire biblique</p>
+          </div>
+        </button>
+
+        <button
+          onClick={() => setView("search")}
+          className="group flex flex-col items-center justify-center gap-4 rounded-3xl border border-border bg-card p-8 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+        >
+          <div className="flex h-20 w-20 items-center justify-center rounded-2xl brand-gradient text-white shadow-md transition group-hover:scale-105">
+            <Search className="h-10 w-10" />
+          </div>
+          <div className="text-center">
+            <h2 className="text-xl font-bold text-foreground">Recherche</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Plein texte dans les 66 livres</p>
           </div>
         </button>
       </div>

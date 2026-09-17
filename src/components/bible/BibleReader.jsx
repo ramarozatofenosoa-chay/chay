@@ -100,6 +100,11 @@ export default function BibleReader({ onBack }) {
   const [pendingRef, setPendingRef] = useState(() =>
     new URLSearchParams(window.location.search).get("ref")
   );
+  const [pendingVerse, setPendingVerse] = useState(() => {
+    const v = new URLSearchParams(window.location.search).get("verse");
+    return v ? Number(v) : null;
+  });
+  const [highlightVerse, setHighlightVerse] = useState(null);
 
   const [booksStatus, setBooksStatus] = useState("loading");
   const [chapterStatus, setChapterStatus] = useState("idle");
@@ -129,10 +134,11 @@ export default function BibleReader({ onBack }) {
       let nextBookId = defaultId;
       let nextChapter = 1;
       if (pendingRef) {
-        const m = pendingRef.trim().match(/^(.*?)\s+(\d+)(?::\d+)?$/);
+        const m = pendingRef.trim().match(/^(.*?)\s+(\d+)(?::(\d+))?$/);
         if (m) {
           const book = loaded.find((b) => norm(b.name) === norm(m[1]) || norm(b.id) === norm(m[1]));
           if (book) { nextBookId = book.id; nextChapter = Number(m[2]); }
+          if (m[3]) setPendingVerse(Number(m[3]));
         }
         setPendingRef(null);
       } else if (!didInitRef.current) {
@@ -236,6 +242,18 @@ export default function BibleReader({ onBack }) {
     if (chapterStatus !== "ready" || !user?.id) return;
     base44.auth.updateMe({ bible_last_book: selectedBookId, bible_last_chapter: selectedChapter }).catch(() => {});
   }, [chapterStatus, selectedBookId, selectedChapter, user?.id]);
+
+  // Surligne temporairement le verset ciblé après navigation depuis la recherche.
+  useEffect(() => {
+    if (chapterStatus !== "ready" || pendingVerse == null) return;
+    const v = pendingVerse;
+    setPendingVerse(null);
+    setHighlightVerse(v);
+    const el = document.getElementById(`verse-${v}`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    const t = setTimeout(() => setHighlightVerse(null), 3500);
+    return () => clearTimeout(t);
+  }, [chapterStatus, pendingVerse]);
 
   const loadAnnotations = async () => {
     if (!selectedVersion || !selectedBookId || !selectedChapter) return;
@@ -535,11 +553,13 @@ export default function BibleReader({ onBack }) {
                   const ann = annotations[verse.number];
                   const hl = ann?.highlight_color ? HIGHLIGHT_COLORS.find((c) => c.id === ann.highlight_color) : null;
                   const isSelected = selected.includes(verse.number);
+                  const isHighlighted = highlightVerse === verse.number;
                   return (
                     <p
                       key={verse.number}
+                      id={`verse-${verse.number}`}
                       onClick={() => toggleVerse(verse.number)}
-                      className={`cursor-pointer rounded px-0.5 transition hover:bg-muted ${isSelected ? "bg-primary/10" : ""}`}
+                      className={`cursor-pointer rounded px-0.5 transition hover:bg-muted ${isHighlighted ? "bg-primary/25 ring-1 ring-primary/50" : ""} ${isSelected ? "bg-primary/10" : ""}`}
                     >
                       <sup className="mr-1.5 text-xs font-bold text-primary">{verse.number}</sup>
                       <span className={`rounded px-0.5 ${isSelected ? "bg-primary/20 ring-1 ring-primary/40" : hl ? hl.verse : ""}`}>

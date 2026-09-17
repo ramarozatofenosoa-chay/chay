@@ -12,6 +12,7 @@ import {
 import EntityCrud from "@/components/admin/EntityCrud";
 import DashboardHome from "@/components/admin/DashboardHome";
 import PublishContent from "@/components/admin/PublishContent";
+import BibleSyncPanel from "@/components/bible/BibleSyncPanel";
 import {
   LayoutDashboard,
   BookOpen,
@@ -238,6 +239,7 @@ const SECTIONS = [
 const NAV = [
   { key: "overview", label: "Tableau de bord", icon: LayoutDashboard },
   { key: "publish", label: "Publier", icon: Send },
+  { key: "bible_sync", label: "Recherche Bible", icon: BookOpen },
   ...SECTIONS.map((s) => ({ key: s.key, label: s.label, icon: s.icon })),
 ];
 
@@ -354,6 +356,8 @@ export default function Admin() {
               <DashboardHome onNavigate={setActive} />
             ) : active === "publish" ? (
               <PublishContent />
+            ) : active === "bible_sync" ? (
+              <BibleSyncPanel />
             ) : (
               <section className="rounded-[2rem] border border-border bg-background/40 p-5 md:p-6">
                 <div className="flex items-center gap-2 mb-4">
