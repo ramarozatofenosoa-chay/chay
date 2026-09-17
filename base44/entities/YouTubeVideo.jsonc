@@ -14,11 +14,17 @@
     "thumbnail_url": {
       "type": "string"
     },
+    "cover_url": {
+      "type": "string"
+    },
+    "verse_note": {
+      "type": "string"
+    },
     "section": {
       "type": "string",
       "enum": [
         "culte",
-        "predication"
+        "louange"
       ],
       "default": "culte"
     }

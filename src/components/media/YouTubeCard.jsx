@@ -1,48 +1,46 @@
 import React, { useState } from "react";
 import { Play } from "lucide-react";
+import YouTubeViewer from "@/components/media/YouTubeViewer";
 
 function ytThumb(id) {
   return `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
 }
 
 export default function YouTubeCard({ video }) {
-  const [playing, setPlaying] = useState(false);
-  const thumb = video.thumbnail_url || ytThumb(video.youtube_id);
+  const [open, setOpen] = useState(false);
+  const thumb = video.cover_url || video.thumbnail_url || ytThumb(video.youtube_id);
 
   return (
-    <div className="rounded-[1.5rem] border border-border bg-card overflow-hidden">
-      {playing ? (
-        <div className="aspect-video bg-black">
-          <iframe
-            src={`https://www.youtube-nocookie.com/embed/${video.youtube_id}?autoplay=1&rel=0`}
-            title={video.title}
-            className="w-full h-full"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        </div>
-      ) : (
-        <button
-          onClick={() => setPlaying(true)}
-          className="relative w-full aspect-video grid place-items-center group overflow-hidden"
-        >
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="group w-full text-left rounded-2xl border border-border bg-card overflow-hidden hover:-translate-y-0.5 hover:shadow-lg transition-all"
+      >
+        <div className="relative aspect-video bg-black overflow-hidden">
           <img
             src={thumb}
             alt={video.title}
-            className="absolute inset-0 w-full h-full object-cover"
             loading="lazy"
+            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-500"
           />
-          <span className="relative grid place-items-center h-14 w-14 rounded-full bg-primary/90 text-white group-hover:scale-110 transition shadow-lg">
-            <Play className="h-6 w-6 ml-0.5" fill="currentColor" />
+          <span className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition" />
+          <span className="absolute inset-0 grid place-items-center">
+            <span className="grid place-items-center h-12 w-12 rounded-full bg-primary/90 text-white shadow-lg group-hover:scale-110 transition">
+              <Play className="h-5 w-5 ml-0.5" fill="currentColor" />
+            </span>
           </span>
-        </button>
-      )}
-      <div className="p-4">
-        <h3 className="font-bold line-clamp-2">{video.title}</h3>
-        {video.category && (
-          <span className="text-xs text-foreground/45 mt-0.5 block">{video.category}</span>
-        )}
-      </div>
-    </div>
+        </div>
+        <div className="p-3">
+          <h3 className="font-bold text-sm line-clamp-2 leading-snug">{video.title}</h3>
+          {video.verse_note && (
+            <p className="mt-1.5 text-xs text-foreground/55 line-clamp-2 whitespace-pre-line">
+              {video.verse_note}
+            </p>
+          )}
+        </div>
+      </button>
+
+      <YouTubeViewer video={video} open={open} onClose={() => setOpen(false)} />
+    </>
   );
 }

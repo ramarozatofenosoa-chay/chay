@@ -1,12 +1,15 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 
-export default function ImageCrop({ file, onCancel, onConfirm }) {
+export default function ImageCrop({ file, onCancel, onConfirm, aspect = 1, allowOriginal = false }) {
   const [img, setImg] = useState(null);
   const [natural, setNatural] = useState({ w: 0, h: 0 });
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const vpRef = useRef(null);
   const dragging = useRef(null);
+
+  const VP_W = 280;
+  const VP_H = Math.round(VP_W / aspect);
 
   useEffect(() => {
     if (!file) return;
@@ -22,15 +25,13 @@ export default function ImageCrop({ file, onCancel, onConfirm }) {
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
-  const vp = vpRef.current;
-  const vpSize = vp ? vp.clientWidth : 256;
   const fitScale = natural.w
-    ? Math.max(vpSize / natural.w, vpSize / natural.h)
+    ? Math.max(VP_W / natural.w, VP_H / natural.h)
     : 1;
   const dispW = natural.w * fitScale * zoom;
   const dispH = natural.h * fitScale * zoom;
-  const maxX = Math.max(0, (dispW - vpSize) / 2);
-  const maxY = Math.max(0, (dispH - vpSize) / 2);
+  const maxX = Math.max(0, (dispW - VP_W) / 2);
+  const maxY = Math.max(0, (dispH - VP_H) / 2);
   const cx = Math.max(-maxX, Math.min(maxX, offset.x));
   const cy = Math.max(-maxY, Math.min(maxY, offset.y));
 
@@ -45,40 +46,37 @@ export default function ImageCrop({ file, onCancel, onConfirm }) {
       y: dragging.current.oy + (e.clientY - dragging.current.y),
     });
   };
-  const onPointerUp = () => {
-    dragging.current = null;
-  };
+  const onPointerUp = () => { dragging.current = null; };
 
   const confirm = useCallback(() => {
     if (!img || !natural.w) return;
-    const OUT = 512;
+    const OUT_W = 640;
+    const OUT_H = Math.round(OUT_W / aspect);
     const canvas = document.createElement("canvas");
-    canvas.width = OUT;
-    canvas.height = OUT;
+    canvas.width = OUT_W;
+    canvas.height = OUT_H;
     const ctx = canvas.getContext("2d");
-    const left0 = (vpSize - dispW) / 2 + cx;
-    const top0 = (vpSize - dispH) / 2 + cy;
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, OUT_W, OUT_H);
+    const left0 = (VP_W - dispW) / 2 + cx;
+    const top0 = (VP_H - dispH) / 2 + cy;
     const scale = fitScale * zoom;
     let sx = -left0 / scale;
     let sy = -top0 / scale;
-    let sSize = vpSize / scale;
-    sx = Math.max(0, Math.min(sx, natural.w - sSize));
-    sy = Math.max(0, Math.min(sy, natural.h - sSize));
-    sSize = Math.min(sSize, natural.w - sx, natural.h - sy);
-    if (sSize <= 0) return;
+    let sW = VP_W / scale;
+    let sH = VP_H / scale;
+    sx = Math.max(0, Math.min(sx, natural.w - sW));
+    sy = Math.max(0, Math.min(sy, natural.h - sH));
+    sW = Math.min(sW, natural.w - sx);
+    sH = Math.min(sH, natural.h - sy);
+    if (sW <= 0 || sH <= 0) return;
     const im = new Image();
     im.onload = () => {
-      ctx.drawImage(im, sx, sy, sSize, sSize, 0, 0, OUT, OUT);
-      canvas.toBlob(
-        (blob) => {
-          if (blob) onConfirm?.(blob);
-        },
-        "image/jpeg",
-        0.9
-      );
+      ctx.drawImage(im, sx, sy, sW, sH, 0, 0, OUT_W, OUT_H);
+      canvas.toBlob((blob) => { if (blob) onConfirm?.(blob); }, "image/jpeg", 0.9);
     };
     im.src = img;
-  }, [img, natural, vpSize, fitScale, zoom, cx, cy, onConfirm]);
+  }, [img, natural, fitScale, zoom, cx, cy, aspect, onConfirm]);
 
   return (
     <div className="flex flex-col items-center gap-4">
@@ -87,7 +85,8 @@ export default function ImageCrop({ file, onCancel, onConfirm }) {
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        className="relative w-60 h-60 rounded-2xl overflow-hidden bg-muted touch-none cursor-grab active:cursor-grabbing"
+        className="relative overflow-hidden bg-black touch-none cursor-grab active:cursor-grabbing rounded-xl"
+        style={{ width: VP_W, height: VP_H }}
       >
         {img && (
           <img
@@ -98,8 +97,8 @@ export default function ImageCrop({ file, onCancel, onConfirm }) {
             style={{
               width: dispW,
               height: dispH,
-              left: `${(vpSize - dispW) / 2 + cx}px`,
-              top: `${(vpSize - dispH) / 2 + cy}px`,
+              left: `${(VP_W - dispW) / 2 + cx}px`,
+              top: `${(VP_H - dispH) / 2 + cy}px`,
               maxWidth: "none",
             }}
           />
@@ -118,17 +117,16 @@ export default function ImageCrop({ file, onCancel, onConfirm }) {
         />
       </div>
       <div className="flex gap-2 w-full max-w-xs">
-        <button
-          onClick={onCancel}
-          className="flex-1 rounded-full border border-border py-2.5 text-sm font-bold hover:bg-muted"
-        >
+        <button onClick={onCancel} className="flex-1 rounded-full border border-border py-2.5 text-sm font-bold hover:bg-muted">
           Annuler
         </button>
-        <button
-          onClick={confirm}
-          className="flex-1 rounded-full brand-gradient text-white py-2.5 text-sm font-bold"
-        >
-          Valider
+        {allowOriginal && (
+          <button onClick={() => onConfirm?.(file)} className="flex-1 rounded-full border border-border py-2.5 text-sm font-bold hover:bg-muted">
+            Conserver l'original
+          </button>
+        )}
+        <button onClick={confirm} className="flex-1 rounded-full brand-gradient text-white py-2.5 text-sm font-bold">
+          Rogner
         </button>
       </div>
     </div>

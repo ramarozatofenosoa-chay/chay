@@ -13,7 +13,6 @@
     }
   },
   "required": [
-    "title",
     "image_url"
   ],
   "rls": {

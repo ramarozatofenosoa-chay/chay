@@ -8,6 +8,7 @@ import {
   Play,
   Pause,
   Headphones,
+  Star,
 } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import AddPlaylistTrackModal from "@/components/media/AddPlaylistTrackModal";
@@ -26,6 +27,9 @@ export default function PlaylistCategoryView({
   isAdmin,
   onCreatePlaylist,
   onSaved,
+  onToggleFavorite,
+  isFavorite,
+  favoriteCategory,
 }) {
   const { toast } = useToast();
   const [open, setOpen] = useState(null);
@@ -45,6 +49,16 @@ export default function PlaylistCategoryView({
       toast({ title: "Erreur", description: e.message, variant: "destructive" });
     }
   };
+
+  const favItem = (t) => ({
+    id: t.track_id,
+    title: t.title,
+    artist: t.artist,
+    audio_url: t.audio_url,
+    video_url: t.video_url,
+    cover_url: t.cover_url,
+    kind: t.kind,
+  });
 
   if (open) {
     const audioTracks = tracks.filter((t) => !isVideo && t.audio_url);
@@ -91,6 +105,13 @@ export default function PlaylistCategoryView({
                   )}
                   <div className="flex items-center gap-3 p-3">
                     <div className="flex-1 min-w-0 font-bold truncate">{t.title}</div>
+                    <button
+                      onClick={() => onToggleFavorite?.(favItem(t), favoriteCategory)}
+                      className={`h-9 w-9 grid place-items-center rounded-full hover:bg-muted ${isFavorite?.(t.track_id) ? "text-primary" : "text-foreground/40 hover:text-primary"}`}
+                      title="Ajouter à ma playlist"
+                    >
+                      <Star className="h-4 w-4" fill={isFavorite?.(t.track_id) ? "currentColor" : "none"} />
+                    </button>
                     {isAdmin && (
                       <button
                         onClick={() => removeTrack(t.id)}
@@ -132,6 +153,13 @@ export default function PlaylistCategoryView({
                     <div className="font-bold truncate">{t.title}</div>
                     {t.artist && <div className="text-xs text-foreground/55">{t.artist}</div>}
                   </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onToggleFavorite?.(favItem(t), favoriteCategory); }}
+                    className={`h-9 w-9 grid place-items-center rounded-full hover:bg-muted ${isFavorite?.(t.track_id) ? "text-primary" : "text-foreground/40 hover:text-primary"}`}
+                    title="Ajouter à ma playlist"
+                  >
+                    <Star className="h-4 w-4" fill={isFavorite?.(t.track_id) ? "currentColor" : "none"} />
+                  </button>
                   {isAdmin && (
                     <button
                       onClick={(e) => {

@@ -11,7 +11,7 @@ export default function YouTubeCategoryView({ section, youtube = [], isAdmin, on
     <div>
       <div className="flex items-center justify-between mb-5">
         <p className="text-sm text-foreground/55">
-          Vidéos YouTube — {section === "culte" ? "Cultes" : "Prédications"}.
+          Vidéos YouTube — {section === "culte" ? "Cultes" : "Louange"}.
         </p>
         {isAdmin && (
           <button
@@ -24,7 +24,7 @@ export default function YouTubeCategoryView({ section, youtube = [], isAdmin, on
       </div>
 
       {items.length ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
           {items.map((y) => (
             <YouTubeCard key={y.id} video={y} />
           ))}
@@ -33,12 +33,7 @@ export default function YouTubeCategoryView({ section, youtube = [], isAdmin, on
         <p className="text-foreground/50 text-sm">Aucune vidéo pour le moment.</p>
       )}
 
-      <AddYouTubeLinkModal
-        open={addOpen}
-        onOpenChange={setAddOpen}
-        section={section}
-        onSaved={onSaved}
-      />
+      <AddYouTubeLinkModal open={addOpen} onOpenChange={setAddOpen} section={section} onSaved={onSaved} />
     </div>
   );
 }

@@ -75,7 +75,7 @@ export default function Media() {
 
   const isAdmin = user?.role === "admin";
 
-  const addToPlaylist = async (item) => {
+  const addToPlaylist = async (item, category) => {
     try {
       if (playlist.some((p) => p.track_id === item.id)) {
         toast({ title: "Déjà dans votre playlist" });
@@ -89,6 +89,7 @@ export default function Media() {
         video_url: item.video_url || null,
         cover_url: item.cover_url || null,
         kind: item.kind || "audio",
+        category: category || "music",
       });
       toast({ title: "Ajouté à votre playlist" });
       await loadAll();

@@ -10,7 +10,7 @@ export default function CategoryGrid({ onOpen, radioPlaying, onToggleRadio }) {
         return (
           <button
             key={c.id}
-            onClick={() => (isRadio ? onToggleRadio?.() : onOpen(c.id))}
+            onClick={() => onOpen(c.id)}
             className="group flex flex-col items-center gap-2"
           >
             <span

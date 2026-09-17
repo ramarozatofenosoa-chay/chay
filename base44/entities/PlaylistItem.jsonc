@@ -27,6 +27,15 @@
         "video"
       ],
       "default": "audio"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "music",
+        "sermons",
+        "films"
+      ],
+      "default": "music"
     }
   },
   "required": [
