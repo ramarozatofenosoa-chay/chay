@@ -13,13 +13,13 @@ import {
   Highlighter,
   Copy,
   X,
-  Volume2,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { HIGHLIGHT_COLORS, LANGUAGES, VERSIONS } from "@/lib/bibleConstants";
 import VerseActionsSheet from "@/components/bible/VerseActionsSheet";
 import DrawerSelect from "@/components/DrawerSelect";
 import { getMalagasyBooks, fetchMalagasyChapter } from "@/lib/malagasyBible";
+import BibleAudioPlayer from "@/components/bible/BibleAudioPlayer";
 
 const API_BASE_URL = "https://bible.helloao.org/api";
 
@@ -493,14 +493,7 @@ export default function BibleReader({ onBack }) {
         )}
 
         {booksStatus === "ready" && versionMeta?.audio?.supported && (
-          <div className="border-b border-border bg-muted/40 px-5 py-3 md:px-6 flex items-center gap-3 text-sm">
-            <Volume2 className="h-4 w-4 text-muted-foreground shrink-0" />
-            <p className="text-muted-foreground">
-              {versionMeta.audio?.configured
-                ? "Audio LSG"
-                : "L'audio de la Louis Segond 1910 n'est pas encore configuré ou autorisé."}
-            </p>
-          </div>
+          <BibleAudioPlayer book={selectedBook} chapter={selectedChapter} />
         )}
 
         <div className="min-h-[52vh] px-5 py-7 md:px-10 md:py-9">
@@ -570,6 +563,19 @@ export default function BibleReader({ onBack }) {
           )}
         </div>
       </section>
+
+      <footer className="mt-5 px-1 text-[11px] leading-relaxed text-muted-foreground">
+        <p>{versionMeta?.attribution}</p>
+        {versionMeta?.audio?.supported && (
+          <p className="mt-1">
+            Audio : WordProject.org — Louis Segond 1910. Utilisation réservée à l'évangélisation
+            chrétienne non commerciale. Aucune publicité, vente ou utilisation commerciale.{" "}
+            <a href="https://www.wordproject.org/contact/new/disclaim.htm" target="_blank" rel="noopener noreferrer" className="text-primary underline">
+              Conditions WordProject
+            </a>
+          </p>
+        )}
+      </footer>
 
       <VerseActionsSheet
         open={sheetOpen} onOpenChange={setSheetOpen} verses={selectedVerses} annotations={annotations}
