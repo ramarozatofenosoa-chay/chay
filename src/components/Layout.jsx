@@ -135,28 +135,28 @@ export default function Layout() {
               </Link>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <Link to={navTarget("/messages")} className="relative h-11 w-11 grid place-items-center rounded-full border border-border" aria-label="Messages">
-              <MessageCircle className="h-4 w-4" />
+          <div className="flex items-center gap-1.5">
+            <Link to={navTarget("/messages")} className="relative h-9 w-9 grid place-items-center rounded-full border border-border" aria-label="Messages">
+              <MessageCircle className="h-[17px] w-[17px]" />
               {unread > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 grid place-items-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold border-2 border-background">
+                <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-0.5 grid place-items-center rounded-full bg-primary text-primary-foreground text-[9px] font-bold border-2 border-background">
                   {unread > 99 ? "99+" : unread}
                 </span>
               )}
             </Link>
-            <Link to="/notifications" className="relative h-11 w-11 grid place-items-center rounded-full border border-border" aria-label="Notifications">
-              <Bell className="h-4 w-4" />
+            <Link to="/notifications" className="relative h-9 w-9 grid place-items-center rounded-full border border-border" aria-label="Notifications">
+              <Bell className="h-[17px] w-[17px]" />
               {notifUnread > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 grid place-items-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold border-2 border-background">{notifUnread > 9 ? "9+" : notifUnread}</span>
+                <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-0.5 grid place-items-center rounded-full bg-primary text-primary-foreground text-[9px] font-bold border-2 border-background">{notifUnread > 9 ? "9+" : notifUnread}</span>
               )}
             </Link>
             <ThemeToggle />
             <Link
               to="/settings"
-              className="h-11 w-11 grid place-items-center rounded-full border border-border"
+              className="h-9 w-9 grid place-items-center rounded-full border border-border"
               aria-label="Paramètres"
             >
-              <Settings className="h-4 w-4" />
+              <Settings className="h-[17px] w-[17px]" />
             </Link>
           </div>
         </div>

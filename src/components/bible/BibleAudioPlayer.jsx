@@ -102,7 +102,7 @@ export default function BibleAudioPlayer({ book, chapter, onPrev, onNext }) {
       <audio
         ref={audioRef}
         src={url}
-        preload="metadata"
+        preload="auto"
         onLoadedMetadata={onLoadedMetadata}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
