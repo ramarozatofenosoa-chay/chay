@@ -153,10 +153,10 @@
     letter-spacing: -0.02em;
   }
   @media (max-width: 768px) {
-    html:not([data-text-size]) { font-size: 12px; }
+    html:not([data-text-size]) { font-size: 10px; }
   }
   @media (max-width: 380px) {
-    html:not([data-text-size]) { font-size: 11px; }
+    html:not([data-text-size]) { font-size: 9px; }
   }
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

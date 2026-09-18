@@ -81,16 +81,7 @@ export default function Notifications() {
         /* ignore */
       }
     }
-    if (n.type === "new_content") {
-      if (n.content_id) {
-        const c = await base44.entities.Content.get(n.content_id).catch(() => null);
-        if (c?.media_url) {
-          window.open(c.media_url, "_blank");
-          return;
-        }
-      }
-      navigate("/media");
-    }
+    if (n.type === "new_content") navigate("/media");
   };
 
   const markAll = async () => {

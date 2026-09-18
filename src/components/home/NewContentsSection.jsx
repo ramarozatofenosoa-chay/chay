@@ -69,8 +69,7 @@ export default function NewContentsSection() {
         /* ignore */
       }
     }
-    if (item.media_url) window.open(item.media_url, "_blank");
-    else navigate("/media");
+    navigate("/media");
   };
 
   if (loading || !contents.length) return null;
