@@ -2,9 +2,13 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 
 // Déclenché par le workflow "Message Push" à la création d'un message.
 // Pour chaque participant (sauf l'expéditeur) :
-//  - crée une notification in-app (UserNotification) → badge + page Notifications,
-//  - envoie une notification push native (nécessite un build mobile natif ;
-//    sans cela l'envoi échoue silencieusement).
+//  - crée une notification in-app (UserNotification, type "message") → badge
+//    + page Notifications ; la clé de déduplication "message_<id>_<uid>" garantit
+//    une notification unique par message reçu et par destinataire ;
+//  - envoie une notification push native (best effort ; nécessite un build mobile
+//    natif, sans cela l'envoi échoue silencieusement).
+// La notification n'est créée qu'après récupération du message persisté, donc
+// uniquement si le message a bien été enregistré.
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
@@ -30,26 +34,36 @@ export default async function(req) {
       return Response.json({ sent: 0 });
     }
 
-    const senderName = message.sender_name || "Quelqu'un";
-    const content = message.text ? message.text : '📷 Photo';
-    const actionUrl = '/messages?c=' + message.conversation_id;
+    const senderName = message.sender_name || 'Quelqu\'un';
+    const isImageOnly = !message.text && !!message.image_url;
+    // Aperçu sécurisé : 100 caractères max, jamais de contenu brut négatif.
+    const preview = message.text ? String(message.text).slice(0, 100) : '';
+    const title = isImageOnly
+      ? 'Vous avez reçu une photo'
+      : `${senderName} vous a envoyé un message`;
+    const notifBody = isImageOnly
+      ? `${senderName} vous a envoyé une photo`
+      : preview;
 
     let notifCreated = 0;
     let pushSent = 0;
 
     for (const uid of targets) {
-      // Notification in-app (badge + page Notifications).
+      // Notification in-app (badge + page Notifications). content_id porte
+      // l'identifiant de la conversation pour ouvrir directement le bon fil.
       try {
         await base44.asServiceRole.entities.UserNotification.create({
           user_id: uid,
           notification_id: `message_${message.id}_${uid}`,
           type: 'message',
+          content_id: message.conversation_id,
+          content_type: 'message',
           post_id: null,
           actor_id: senderId,
           actor_name: senderName,
           count: 1,
-          title: senderName,
-          message: content.slice(0, 80),
+          title,
+          message: notifBody,
           is_read: false,
         });
         notifCreated += 1;
@@ -59,10 +73,10 @@ export default async function(req) {
       try {
         await base44.asServiceRole.integrations.Core.SendPushNotification({
           user_id: uid,
-          title: senderName,
-          content,
+          title,
+          content: notifBody,
           action_label: 'Ouvrir',
-          action_url: actionUrl,
+          action_url: '/messages?c=' + message.conversation_id,
         });
         pushSent += 1;
       } catch {}

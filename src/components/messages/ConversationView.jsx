@@ -285,8 +285,13 @@ export default function ConversationView({
         ref={scrollRef}
         className="flex-1 overflow-y-auto px-3 md:px-6 py-4 space-y-1 selectable"
       >
-        {messages.map((m, i) => {
+        {messages.length === 0 ? (
+          <div className="py-16 text-center text-foreground/40 text-sm">
+            Aucun message pour le moment. Écrivez le premier !
+          </div>
+        ) : messages.map((m, i) => {
           const mine = m.sender_id === user.id;
+          const imageOnly = !!m.image_url && !m.text;
           const replied = m.reply_to_id ? repliedOf(m.reply_to_id) : null;
           const prev = messages[i - 1];
           const next = messages[i + 1];
@@ -328,9 +333,11 @@ export default function ConversationView({
                     }`}
                   >
                     <div className="font-bold">{replied.sender_name || "Membre"}</div>
-                    <div className="truncate">
-                      {replied.text || (replied.image_url ? "📷 Photo" : "")}
-                    </div>
+                    {(replied.text || replied.image_url) && (
+                      <div className="truncate">
+                        {replied.text || "📷 Photo"}
+                      </div>
+                    )}
                   </div>
                 )}
                 {editing?.id === m.id && (
@@ -354,16 +361,10 @@ export default function ConversationView({
                   onPointerLeave={cancelPress}
                   onPointerCancel={cancelPress}
                   onContextMenu={(e) => onContextMenuMenu(e, m)}
-                  className={`w-fit max-w-full rounded-2xl px-4 py-2.5 cursor-pointer select-none transition active:scale-[0.99] ${editing?.id === m.id ? "hidden" : ""} ${
-                    mine
-                      ? "brand-gradient text-white rounded-br-md"
-                      : "bg-card border border-border rounded-bl-md"
-                  } ${
-                    grouped
-                      ? mine
-                        ? "rounded-br-md"
-                        : "rounded-bl-md"
-                      : ""
+                  className={`w-fit max-w-full rounded-2xl cursor-pointer select-none transition active:scale-[0.99] ${editing?.id === m.id ? "hidden" : ""} ${
+                    imageOnly
+                      ? "p-0 bg-transparent border-0 shadow-none"
+                      : `px-4 py-2.5 ${mine ? "brand-gradient text-white rounded-br-md" : "bg-card border border-border rounded-bl-md"} ${grouped ? (mine ? "rounded-br-md" : "rounded-bl-md") : ""}`
                   }`}
                 >
                   {isGroup && !mine && !grouped && (
@@ -375,21 +376,22 @@ export default function ConversationView({
                     <button
                       type="button"
                       onClick={() => openPhoto(m)}
-                      className="block rounded-lg overflow-hidden mb-1 max-w-[220px] focus:outline-none"
-                      aria-label="Agrandir la photo"
+                      className={`block overflow-hidden focus:outline-none ${imageOnly ? "rounded-2xl" : "rounded-xl mb-1"} max-w-[240px] md:max-w-[280px]`}
+                      aria-label={`Agrandir la photo envoyée par ${m.sender_name || "Membre"}`}
                     >
                       <Image
                         src={m.image_url}
+                        alt={`Photo envoyée par ${m.sender_name || "Membre"}`}
                         fittingType="fill"
-                        className="w-full h-44"
+                        className="w-full h-48 md:h-56"
                       />
                     </button>
                   )}
-                  {m.text && (
+                  {m.text ? (
                     <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
                       {m.text}
                     </div>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -421,9 +423,11 @@ export default function ConversationView({
             <div className="text-xs font-bold text-primary">
               {replyTo.sender_name || "Membre"}
             </div>
-            <div className="text-xs text-foreground/60 truncate">
-              {replyTo.text || (replyTo.image_url ? "📷 Photo" : "")}
-            </div>
+            {(replyTo.text || replyTo.image_url) && (
+              <div className="text-xs text-foreground/60 truncate">
+                {replyTo.text || "📷 Photo"}
+              </div>
+            )}
           </div>
           <button
             onClick={() => setReplyTo(null)}

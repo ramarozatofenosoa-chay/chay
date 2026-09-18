@@ -63,10 +63,11 @@ export default function FloatingChatBubble() {
 
   if (!chat || !user || location.pathname === "/messages") return null;
 
-  const preview = last
+  const rawPreview = last
     ? (last.sender_id === user.id ? "Vous : " : "") +
       (last.text || (last.image_url ? "📷 Photo" : ""))
-    : "Reprendre la conversation";
+    : "";
+  const preview = rawPreview.trim() || "Reprendre la conversation";
 
   return (
     <button

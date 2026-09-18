@@ -33,6 +33,7 @@ const ICONS = {
   autre: FileText,
   like: Heart,
   comment: MessageCircle,
+  message: MessageCircle,
 };
 
 export default function Notifications() {
@@ -81,7 +82,13 @@ export default function Notifications() {
         /* ignore */
       }
     }
-    if (n.type === "new_content") navigate("/media");
+    if (n.type === "new_content") {
+      navigate("/media");
+    } else if (n.type === "message" || n.content_type === "message") {
+      navigate(n.content_id ? `/messages?c=${n.content_id}` : "/messages");
+    } else if (n.type === "like" || n.type === "comment") {
+      navigate("/community");
+    }
   };
 
   const markAll = async () => {
