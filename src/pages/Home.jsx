@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import PullToRefresh from "@/components/PullToRefresh";
 import SplitClock from "@/components/home/SplitClock";
-import NewContentsSection from "@/components/home/NewContentsSection";
+import QuestionLogiqueSection from "@/components/home/QuestionLogiqueSection";
 import QuickAccess from "@/components/home/QuickAccess";
 
 export default function Home() {
@@ -166,26 +166,29 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Question Logique (sous le verset du jour) */}
+      <QuestionLogiqueSection />
+
       {/* Next reunion */}
       <section className="mt-6">
-        <div className="rounded-[1.5rem] border border-border bg-card p-6 md:p-8">
-          <div className="flex items-center gap-2 mb-4">
-            <Bell className="h-5 w-5 text-primary" />
-            <h2 className="font-display font-extrabold text-xl">Prochaine réunion</h2>
+        <div className="rounded-[1.5rem] border border-border bg-card p-5 md:p-8">
+          <div className="flex items-center gap-2 mb-3">
+            <Bell className="h-4 w-4 text-primary" />
+            <h2 className="font-display font-extrabold text-base md:text-xl">Prochaine réunion</h2>
           </div>
           {loading ? (
-            <div className="h-20 bg-background rounded-2xl animate-pulse" />
+            <div className="h-16 bg-background rounded-2xl animate-pulse" />
           ) : reunion ? (
-            <div className="flex items-start gap-4">
-              <div className="h-12 w-12 rounded-2xl bg-primary/10 grid place-items-center text-primary shrink-0">
-                <CalendarDays className="h-6 w-6" />
+            <div className="flex items-start gap-3">
+              <div className="h-10 w-10 rounded-xl bg-primary/10 grid place-items-center text-primary shrink-0">
+                <CalendarDays className="h-5 w-5" />
               </div>
               <div>
-                <div className="font-bold text-lg">{reunion.title}</div>
-                <div className="text-foreground/60 text-sm mt-1">{reunion.body}</div>
+                <div className="font-bold text-sm md:text-lg">{reunion.title}</div>
+                <div className="text-foreground/60 text-xs md:text-sm mt-1">{reunion.body}</div>
                 {reunion.date && (
-                  <div className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
-                    <Clock className="h-4 w-4" />{" "}
+                  <div className="mt-1.5 inline-flex items-center gap-1.5 text-xs md:text-sm font-semibold text-primary">
+                    <Clock className="h-3.5 w-3.5" />{" "}
                     {new Date(reunion.date).toLocaleDateString("fr-FR", {
                       day: "numeric",
                       month: "long",
@@ -195,13 +198,10 @@ export default function Home() {
               </div>
             </div>
           ) : (
-            <p className="text-foreground/50">Aucune réunion annoncée pour le moment.</p>
+            <p className="text-sm text-foreground/50">Aucune réunion annoncée pour le moment.</p>
           )}
         </div>
       </section>
-
-      {/* Nouveautés & Historiques */}
-      <NewContentsSection />
 
       {/* Accès rapide */}
       <QuickAccess />

@@ -372,7 +372,7 @@ export default function BibleReader({ onBack }) {
   }, [searchInput, selectedVersion]);
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-6 md:px-8 md:py-10">
+    <main className="mx-auto max-w-5xl px-3 py-4 md:px-8 md:py-10">
       <div className="mb-4 flex items-center gap-2">
         <button onClick={onBack} className="inline-flex items-center gap-1 rounded-xl px-2 py-2 text-sm font-bold text-primary hover:bg-primary/10">
           <ChevronLeft className="h-5 w-5" /> Retour
@@ -391,74 +391,8 @@ export default function BibleReader({ onBack }) {
         </div>
       </header>
 
-      {/* Barre de recherche */}
-      <div className="mb-3">
-        <div className="flex items-center gap-2 rounded-2xl border border-border bg-card px-3 py-2 shadow-sm">
-          <input
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Rechercher des versets par un mot ou plusieurs mots…"
-            className="flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground selectable"
-          />
-          {searchInput && (
-            <button
-              onClick={() => { setSearchInput(""); setSearchResults([]); setSearchStatus("idle"); }}
-              className="text-muted-foreground hover:text-foreground shrink-0"
-              aria-label="Effacer la recherche"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-          <button
-            onClick={() => runSearch(searchInput)}
-            aria-label="Lancer la recherche"
-            className="shrink-0 grid place-items-center h-8 w-8 rounded-xl bg-primary text-primary-foreground"
-          >
-            <Search className="h-4 w-4" />
-          </button>
-        </div>
-        {searchStatus === "loading" && (
-          <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin text-primary" /> Recherche dans toute la Bible…
-          </div>
-        )}
-        {searchStatus === "error" && (
-          <p className="mt-2 text-sm text-destructive">Recherche impossible. Réessayez plus tard.</p>
-        )}
-      </div>
-
-      {versionMeta?.engine !== "helloao" && searchInput.trim() && (
-        <p className="mb-3 text-sm text-muted-foreground">
-          Recherche non disponible pour la version malgasy pour le moment.
-        </p>
-      )}
-      {/* Résultats de recherche */}
-      {searchStatus === "done" && (
-        <section className="mb-4 overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
-          <div className="border-b border-border bg-muted/50 px-4 py-3 md:px-6">
-            <h2 className="text-sm font-bold text-foreground">
-              {searchResults.length === 0 ? "Aucun verset trouvé" : `${searchResults.length} verset(s) trouvé(s)`}
-            </h2>
-          </div>
-          <div className="max-h-[45vh] overflow-y-auto px-4 py-3 md:px-6">
-            <div className="selectable space-y-2">
-              {searchResults.map((r, i) => (
-                <button
-                  key={i}
-                  onClick={() => openSearchResult(r)}
-                  className="block w-full rounded-xl px-3 py-2 text-left hover:bg-muted transition"
-                >
-                  <span className="text-sm font-bold text-primary">{r.bookName} {r.chapter}:{r.verse}</span>
-                  <span className="ml-2 text-sm text-foreground/80">{r.text}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
       <section className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
-        <div className="border-b border-border bg-muted/50 px-4 py-4 md:px-6">
+        <div className="border-b border-border bg-muted/50 px-3 py-3 md:px-6">
           {booksStatus === "loading" && (
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <Loader2 className="h-5 w-5 animate-spin text-primary" /> Chargement des livres…
@@ -473,25 +407,28 @@ export default function BibleReader({ onBack }) {
             </div>
           )}
           {booksStatus === "ready" && (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-nowrap gap-2">
               <DrawerSelect
                 value={lang}
                 onChange={(v) => handleLangChange(v)}
                 title="Langue"
-                options={LANGUAGES.map((l) => ({ label: `${l.flag} ${l.label}`, value: l.id }))}
+                triggerClassName="flex-1 min-w-0 px-3 py-2 text-xs gap-1.5"
+                options={LANGUAGES.map((l) => ({ label: l.label, value: l.id }))}
               />
               <DrawerSelect
                 value={selectedBookId}
                 onChange={(v) => { setSelectedBookId(v); setSelectedChapter(1); }}
                 title="Livre"
                 searchable
+                triggerClassName="flex-[2] min-w-0 px-3 py-2 text-xs gap-1.5"
                 options={books.map((b) => ({ label: b.name, value: b.id }))}
               />
               <DrawerSelect
                 value={selectedChapter}
                 onChange={(v) => setSelectedChapter(Number(v))}
                 title="Chapitre"
-                options={chapterNumbers.map((c) => ({ label: `Chapitre ${c}`, value: c }))}
+                triggerClassName="flex-1 min-w-0 px-3 py-2 text-xs gap-1.5"
+                options={chapterNumbers.map((c) => ({ label: String(c), value: c }))}
               />
             </div>
           )}
@@ -501,7 +438,7 @@ export default function BibleReader({ onBack }) {
           <div className="border-b border-border px-5 py-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-bold text-foreground">{selectedBook?.name} {selectedChapter}</h2>
+                <h2 className="text-base font-bold text-foreground">{selectedBook?.name} {selectedChapter}</h2>
               </div>
               {chapterStatus === "loading" && (
                 <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Chargement</span>
@@ -514,7 +451,7 @@ export default function BibleReader({ onBack }) {
           <BibleAudioPlayer book={selectedBook} chapter={selectedChapter} />
         )}
 
-        <div className="min-h-[52vh] px-5 py-7 md:px-10 md:py-9">
+        <div className="min-h-[52vh] px-4 py-5 md:px-10 md:py-9">
           {booksStatus === "unavailable" && (
             <div className="flex min-h-[42vh] flex-col items-center justify-center gap-3 text-center">
               <AlertTriangle className="h-8 w-8 text-primary" />
@@ -548,7 +485,7 @@ export default function BibleReader({ onBack }) {
           )}
           {chapterStatus === "ready" && (
             <article className="mx-auto max-w-3xl">
-              <div className="selectable space-y-4 text-[1.04rem] leading-8 text-foreground/80">
+              <div className="selectable space-y-3 text-sm md:text-[1.04rem] leading-6 md:leading-8 text-foreground/80">
                 {verses.map((verse) => {
                   const ann = annotations[verse.number];
                   const hl = ann?.highlight_color ? HIGHLIGHT_COLORS.find((c) => c.id === ann.highlight_color) : null;

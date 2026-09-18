@@ -30,14 +30,14 @@ export default function Bible() {
   if (view === "search") return <BibleFullTextSearch onNavigate={openVerse} onBack={goHome} />;
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-6 md:px-8 md:py-10">
-      <header className="mb-8 flex items-center gap-3">
-        <div className="rounded-2xl bg-primary/10 p-3">
-          <BookOpen className="h-7 w-7 text-primary" />
+    <main className="mx-auto max-w-5xl px-4 py-4 md:px-8 md:py-10">
+      <header className="mb-5 flex items-center gap-2.5">
+        <div className="rounded-xl bg-primary/10 p-2">
+          <BookOpen className="h-5 w-5 text-primary" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-foreground">La Bible</h1>
-          <p className="text-sm text-muted-foreground">Choisissez un module pour commencer</p>
+          <h1 className="text-xl md:text-2xl font-bold text-foreground">La Bible</h1>
+          <p className="text-xs text-muted-foreground">Choisissez un module pour commencer</p>
         </div>
       </header>
 
