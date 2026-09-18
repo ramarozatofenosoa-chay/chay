@@ -7,16 +7,12 @@ export const HIGHLIGHT_COLORS = [
   { id: "purple", swatch: "bg-purple-500", verse: "bg-purple-400/25" },
 ];
 
-// Langues proposées dans le lecteur.
+// Langues proposées dans le lecteur (étiquettes courtes, sans drapeau).
 export const LANGUAGES = [
-  { id: "fr", label: "Français", flag: "🇫🇷" },
-  { id: "mg", label: "Malagasy", flag: "🇲🇬" },
+  { id: "fr", label: "FR" },
+  { id: "mg", label: "MG" },
 ];
 
-// Une seule version par langue. Chaque version indique si sa source est
-// disponible (`available`) et si l'audio est supporté/configuré.
-//  - LSG : texte disponible (helloao fra_lsg), audio non encore configuré.
-//  - MG1865 : source pas encore configurée/autorisée -> message clair affiché.
 export const VERSIONS = {
   fr: [
     {

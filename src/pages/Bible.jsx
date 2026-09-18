@@ -44,40 +44,40 @@ export default function Bible() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <button
           onClick={() => setView("reader")}
-          className="group flex flex-col items-center justify-center gap-4 rounded-3xl border border-border bg-card p-8 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+          className="group flex flex-col items-center justify-center gap-3 rounded-2xl border border-border bg-card p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
         >
-          <div className="flex h-20 w-20 items-center justify-center rounded-2xl brand-gradient text-white shadow-md transition group-hover:scale-105">
-            <BookOpen className="h-10 w-10" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl brand-gradient text-white shadow-sm transition group-hover:scale-105">
+            <BookOpen className="h-6 w-6" />
           </div>
           <div className="text-center">
-            <h2 className="text-xl font-bold text-foreground">Lire la Bible</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Texte, recherche et surlignage</p>
+            <h2 className="text-base font-bold text-foreground">Lire la Bible</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">Texte, recherche et surlignage</p>
           </div>
         </button>
 
         <button
           onClick={() => setView("dictionary")}
-          className="group flex flex-col items-center justify-center gap-4 rounded-3xl border border-border bg-card p-8 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+          className="group flex flex-col items-center justify-center gap-3 rounded-2xl border border-border bg-card p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
         >
-          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-secondary text-secondary-foreground shadow-md transition group-hover:scale-105">
-            <BookMarked className="h-10 w-10" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-secondary text-secondary-foreground shadow-sm transition group-hover:scale-105">
+            <BookMarked className="h-6 w-6" />
           </div>
           <div className="text-center">
-            <h2 className="text-xl font-bold text-foreground">Dictionnaire</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Dictionnaire biblique</p>
+            <h2 className="text-base font-bold text-foreground">Dictionnaire</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">Dictionnaire biblique</p>
           </div>
         </button>
 
         <button
           onClick={() => setView("search")}
-          className="group flex flex-col items-center justify-center gap-4 rounded-3xl border border-border bg-card p-8 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+          className="group flex flex-col items-center justify-center gap-3 rounded-2xl border border-border bg-card p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
         >
-          <div className="flex h-20 w-20 items-center justify-center rounded-2xl brand-gradient text-white shadow-md transition group-hover:scale-105">
-            <Search className="h-10 w-10" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl brand-gradient text-white shadow-sm transition group-hover:scale-105">
+            <Search className="h-6 w-6" />
           </div>
           <div className="text-center">
-            <h2 className="text-xl font-bold text-foreground">Recherche</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Plein texte dans les 66 livres</p>
+            <h2 className="text-base font-bold text-foreground">Recherche</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">Plein texte dans les 66 livres</p>
           </div>
         </button>
       </div>

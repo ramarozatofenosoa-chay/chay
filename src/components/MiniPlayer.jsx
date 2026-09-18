@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Play,
   Pause,
@@ -18,7 +18,7 @@ import PlayerFullscreen from "@/components/player/PlayerFullscreen";
 
 export default function MiniPlayer() {
   const [expanded, setExpanded] = useState(false);
-  const [minimized, setMinimized] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
   const {
     currentTrack,
     isPlaying,
@@ -29,7 +29,6 @@ export default function MiniPlayer() {
     loop,
     toggleShuffle,
     toggleLoop,
-    stop,
     currentTime,
     duration,
     seek,
@@ -37,34 +36,16 @@ export default function MiniPlayer() {
     bufferedRatio,
   } = useAudioPlayer();
 
-  if (!currentTrack) return null;
+  // Réaffiche le lecteur quand une nouvelle piste démarre.
+  useEffect(() => {
+    setDismissed(false);
+  }, [currentTrack?.id]);
+
+  if (!currentTrack || dismissed) return null;
 
   const buffering = playerState === "connecting" || playerState === "buffering";
   const cover = currentTrack.cover_url;
   const LoopIcon = loop === "one" ? Repeat1 : Repeat;
-
-  if (minimized) {
-    return (
-      <>
-        <button
-          onClick={() => setMinimized(false)}
-          className="fixed bottom-20 right-3 z-50 h-12 w-12 rounded-full bg-card border border-border shadow-lg overflow-hidden grid place-items-center"
-          aria-label="Réouvrir le lecteur"
-        >
-          {cover ? (
-            <Image src={cover} fittingType="fill" className="w-full h-full" />
-          ) : (
-            <span className="w-full h-full brand-gradient grid place-items-center">
-              <Music className="h-5 w-5 text-white/90" />
-            </span>
-          )}
-        </button>
-        {expanded && (
-          <PlayerFullscreen onCollapse={() => setExpanded(false)} cover={cover} />
-        )}
-      </>
-    );
-  }
 
   return (
     <>
@@ -142,9 +123,9 @@ export default function MiniPlayer() {
               )}
             </button>
             <button
-              onClick={() => setMinimized(true)}
+              onClick={() => setDismissed(true)}
               className="h-9 w-9 grid place-items-center text-foreground/55 hover:text-foreground shrink-0"
-              aria-label="Réduire le lecteur"
+              aria-label="Masquer le lecteur"
             >
               <X className="h-4 w-4" />
             </button>

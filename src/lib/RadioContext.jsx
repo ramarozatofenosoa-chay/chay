@@ -11,17 +11,15 @@ import { useMediaPlayerState } from "@/hooks/useMediaPlayerState";
 const RadioContext = createContext(null);
 export const useRadio = () => useContext(RadioContext);
 
-const PREROLL_MS = 6000; // délai de démarrage : laisser le tampon prendre de l'avance
-const RESUME_MS = 2000;  // délai de reprise après une coupure réseau
+const PREROLL_MS = 8000; // délai de démarrage : laisser le tampon prendre de l'avance
+const RESUME_MS = 15000; // délai de reprise après une coupure réseau (tampon ~3 min via 12 tentives)
 
 export function RadioPlayerProvider({ children }) {
   const audioRef = useRef(null);
   const [retries, setRetries] = useState(0);
   const [preparing, setPreparing] = useState(false);
-  const [volume, setVolumeState] = useState(() => {
-    const v = parseFloat(localStorage.getItem("chay_radio_volume"));
-    return isNaN(v) ? 0.8 : Math.min(1, Math.max(0, v));
-  });
+  // Volume maximal : la radio suit directement le volume système du téléphone.
+  const [volume, setVolumeState] = useState(1);
   const attemptsRef = useRef(0);
   const preRollTimer = useRef(null);
   const resumeTimer = useRef(null);
@@ -100,7 +98,6 @@ export function RadioPlayerProvider({ children }) {
   const setVolume = (v) => {
     const c = Math.min(1, Math.max(0, v));
     setVolumeState(c);
-    localStorage.setItem("chay_radio_volume", String(c));
     if (audioRef.current) audioRef.current.volume = c;
   };
 
@@ -124,7 +121,7 @@ export function RadioPlayerProvider({ children }) {
     if (prev !== "error" && state === "error" && !preparing) {
       attemptsRef.current += 1;
       setRetries(attemptsRef.current);
-      if (attemptsRef.current <= 5) {
+      if (attemptsRef.current <= 12) {
         clearTimers();
         resumeTimer.current = setTimeout(() => {
           const a = audioRef.current;

@@ -102,18 +102,18 @@ export default function Home() {
       {/* Welcome */}
       <section className="animate-float-in flex items-center gap-4">
         <div>
-          <h1 className="font-display font-extrabold text-3xl md:text-4xl text-foreground">
+          <h1 className="font-display font-extrabold text-2xl md:text-4xl text-foreground">
             <span className="brand-gradient-text">ÉGLISE CHAY</span>
           </h1>
           {firstName && (
-            <p className="mt-1 text-xl md:text-2xl font-display font-bold text-foreground/80">
+            <p className="mt-1 text-lg md:text-2xl font-display font-bold text-foreground/80">
               Shalom {firstName} 
             </p>
           )}
         </div>
       </section>
 
-      <p className="mt-4 text-lg md:text-xl text-foreground/60 max-w-xl [font-family:'Gilroy',_sans-serif]">
+      <p className="mt-3 text-sm md:text-xl text-foreground/60 max-w-xl [font-family:'Gilroy',_sans-serif]">
         Tongasoa eto amin'ny Fiangonana Chay izay mitory ny Fanjakan'Andriamanitra.
       </p>
 
@@ -122,7 +122,7 @@ export default function Home() {
 
       {/* Verse of the day */}
       <section className="mt-6">
-        <div className="rounded-[2rem] brand-gradient p-8 md:p-10 text-white relative overflow-hidden glow-primary">
+        <div className="rounded-[1.5rem] md:rounded-[2rem] brand-gradient p-6 md:p-10 text-white relative overflow-hidden glow-primary">
           <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
           <div className="relative">
             <div className="flex items-center justify-between gap-3">

@@ -379,13 +379,13 @@ export default function BibleReader({ onBack }) {
         </button>
       </div>
 
-      <header className="mb-5 flex items-center gap-3">
-        <div className="rounded-2xl bg-primary/10 p-3">
-          <BookOpen className="h-7 w-7 text-primary" />
+      <header className="mb-4 flex items-center gap-2.5">
+        <div className="rounded-xl bg-primary/10 p-2">
+          <BookOpen className="h-5 w-5 text-primary" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-foreground">La Bible</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-2xl font-bold text-foreground">La Bible</h1>
+          <p className="text-xs text-muted-foreground">
             {VERSIONS[lang].find((v) => v.id === selectedVersion)?.label}
           </p>
         </div>

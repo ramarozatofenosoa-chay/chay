@@ -7,9 +7,6 @@ import {
   Play,
   Square,
   Share2,
-  Volume2,
-  Volume1,
-  VolumeX,
   Loader2,
   RadioTower,
 } from "lucide-react";
@@ -22,14 +19,11 @@ export default function RadioPlayer() {
     error,
     errorCode,
     retries,
-    volume,
     toggle,
-    setVolume,
     retryNow,
   } = useRadio();
   const { toast } = useToast();
 
-  const VolIcon = volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
   const buffering = preparing || state === "connecting" || state === "buffering";
   const statusText =
     preparing || state === "connecting"
@@ -126,20 +120,6 @@ export default function RadioPlayer() {
             )}
           </button>
         )}
-
-        <div className="w-full max-w-sm flex items-center gap-3">
-          <VolIcon className="h-5 w-5 text-foreground/60 shrink-0" />
-          <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.01}
-            value={volume}
-            onChange={(e) => setVolume(parseFloat(e.target.value))}
-            aria-label="Volume de la radio"
-            className="flex-1 accent-primary"
-          />
-        </div>
 
         <button
           onClick={share}
