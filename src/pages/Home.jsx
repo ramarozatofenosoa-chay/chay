@@ -18,6 +18,7 @@ import PullToRefresh from "@/components/PullToRefresh";
 import SplitClock from "@/components/home/SplitClock";
 import QuestionLogiqueSection from "@/components/home/QuestionLogiqueSection";
 import QuickAccess from "@/components/home/QuickAccess";
+import NewContentsSection from "@/components/home/NewContentsSection";
 
 export default function Home() {
   const { user } = useAuth();
@@ -204,6 +205,9 @@ export default function Home() {
 
       {/* Accès rapide */}
       <QuickAccess />
+
+      {/* Nouveautés */}
+      <NewContentsSection />
 
       {/* Social links */}
       <footer className="mt-12 pt-8 border-t border-border pb-6 flex flex-col items-center gap-4">
