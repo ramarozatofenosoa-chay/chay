@@ -1,0 +1,40 @@
+{
+  "name": "Community Post Notification",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "entity",
+      "events": [
+        "create"
+      ],
+      "entity_name": "CommunityPost"
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "community_post_notification",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "notify": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "notifyCommunityPost",
+            "args": {
+              "post_id": "${ .trigger.entity_id }"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Notifier la communaut\u00e9",
+            "description": "Cr\u00e9e une notification pour tous les utilisateurs"
+          }
+        }
+      }
+    ]
+  },
+  "description": "Cr\u00e9e une notification in-app pour tous les utilisateurs quand une publication est cr\u00e9\u00e9e dans la communaut\u00e9"
+}

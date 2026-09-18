@@ -62,8 +62,8 @@ export default function Layout() {
       <header className="hidden md:flex sticky top-0 z-40 px-6 pt-5">
         <div className="mx-auto w-full max-w-6xl flex items-center justify-between rounded-full border border-border bg-background/70 backdrop-blur-xl px-6 py-3 glow-soft">
           <Link to="/" className="flex items-center gap-2.5">
-            <Image src={LOGO_URL} alt="Chay" fittingType="fill" className="h-10 w-10 rounded-xl shadow-sm object-cover" />
-            <span className="font-display font-extrabold tracking-tight text-lg">
+            <Image src={LOGO_URL} alt="Chay" fittingType="fill" focalPointX={0.5} focalPointY={0.5} className="h-9 w-9 rounded-xl shadow-sm" />
+            <span className="font-display font-extrabold tracking-tight text-base">
               <span className="brand-gradient-text">ÉGLISE</span> CHAY
             </span>
           </Link>
@@ -128,8 +128,8 @@ export default function Layout() {
               </button>
             ) : (
               <Link to="/" className="flex items-center gap-2">
-                <Image src={LOGO_URL} alt="Chay" fittingType="fill" className="h-8 w-8 rounded-xl shadow-sm object-cover" />
-                <span className="font-display font-extrabold tracking-tight">
+                <Image src={LOGO_URL} alt="Chay" fittingType="fill" focalPointX={0.5} focalPointY={0.5} className="h-8 w-8 rounded-xl shadow-sm" />
+                <span className="font-display font-extrabold tracking-tight text-sm">
                   <span className="brand-gradient-text">ÉGLISE</span> CHAY
                 </span>
               </Link>

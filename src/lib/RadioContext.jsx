@@ -188,7 +188,7 @@ export function RadioPlayerProvider({ children }) {
   return (
     <RadioContext.Provider value={value}>
       {children}
-      <audio ref={audioRef} preload="none" className="hidden" />
+      <audio ref={audioRef} preload="auto" className="hidden" />
     </RadioContext.Provider>
   );
 }

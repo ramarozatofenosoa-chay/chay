@@ -19,6 +19,7 @@ const STORAGE_PREFIX = "bible_audio_pos_";
 // système (volume du téléphone) — aucun contrôle de volume à l'écran.
 export default function BibleAudioPlayer({ book, chapter, onPrev, onNext }) {
   const audioRef = useRef(null);
+  const autoPlayNextRef = useRef(false);
   const enabled = isWordProjectAudioEnabled();
   const url = enabled ? buildWordProjectAudioUrl(book, chapter) : null;
   const posKey = book && chapter ? `${STORAGE_PREFIX}${book.order}_${chapter}` : null;
@@ -46,6 +47,10 @@ export default function BibleAudioPlayer({ book, chapter, onPrev, onNext }) {
       }
     }
     setLoading(false);
+    if (autoPlayNextRef.current) {
+      autoPlayNextRef.current = false;
+      a.play().catch(() => {});
+    }
   };
 
   // Sauvegarde périodique de la position d'écoute.
@@ -101,7 +106,7 @@ export default function BibleAudioPlayer({ book, chapter, onPrev, onNext }) {
         onLoadedMetadata={onLoadedMetadata}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
-        onEnded={() => { setIsPlaying(false); saveNow(); if (onNext) onNext(); }}
+        onEnded={() => { setIsPlaying(false); saveNow(); if (onNext) { autoPlayNextRef.current = true; onNext(); } }}
         onWaiting={() => setLoading(true)}
         onPlaying={() => { setLoading(false); setError(""); }}
         onError={() => {
@@ -118,7 +123,7 @@ export default function BibleAudioPlayer({ book, chapter, onPrev, onNext }) {
 
         <div className="flex items-center gap-8">
           <button
-            onClick={onPrev}
+            onClick={() => { if (isPlaying) autoPlayNextRef.current = true; onPrev(); }}
             aria-label="Chapitre précédent"
             disabled={!onPrev}
             className="grid h-10 w-10 place-items-center rounded-xl text-foreground/70 transition hover:bg-muted disabled:opacity-30"
@@ -141,7 +146,7 @@ export default function BibleAudioPlayer({ book, chapter, onPrev, onNext }) {
           </button>
 
           <button
-            onClick={onNext}
+            onClick={() => { if (isPlaying) autoPlayNextRef.current = true; onNext(); }}
             aria-label="Chapitre suivant"
             disabled={!onNext}
             className="grid h-10 w-10 place-items-center rounded-xl text-foreground/70 transition hover:bg-muted disabled:opacity-30"

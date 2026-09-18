@@ -448,7 +448,12 @@ export default function BibleReader({ onBack }) {
         )}
 
         {booksStatus === "ready" && versionMeta?.audio?.supported && (
-          <BibleAudioPlayer book={selectedBook} chapter={selectedChapter} />
+          <BibleAudioPlayer
+            book={selectedBook}
+            chapter={selectedChapter}
+            onPrev={!isFirstChapter ? goToPreviousChapter : null}
+            onNext={!isLastChapter ? goToNextChapter : null}
+          />
         )}
 
         <div className="min-h-[52vh] px-4 py-5 md:px-10 md:py-9">

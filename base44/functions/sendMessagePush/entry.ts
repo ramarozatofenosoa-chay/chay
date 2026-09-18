@@ -1,9 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 
 // Déclenché par le workflow "Message Push" à la création d'un message.
-// Envoie une notification push native à chaque participant (sauf l'expéditeur).
-// NOTE: la délivrance réelle nécessite un build mobile natif (iOS/Android) avec
-// les identifiants push configurés ; sans cela l'envoi échoue silencieusement.
+// Pour chaque participant (sauf l'expéditeur) :
+//  - crée une notification in-app (UserNotification) → badge + page Notifications,
+//  - envoie une notification push native (nécessite un build mobile natif ;
+//    sans cela l'envoi échoue silencieusement).
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
@@ -33,8 +34,28 @@ export default async function(req) {
     const content = message.text ? message.text : '📷 Photo';
     const actionUrl = '/messages?c=' + message.conversation_id;
 
-    const results = [];
+    let notifCreated = 0;
+    let pushSent = 0;
+
     for (const uid of targets) {
+      // Notification in-app (badge + page Notifications).
+      try {
+        await base44.asServiceRole.entities.UserNotification.create({
+          user_id: uid,
+          notification_id: `message_${message.id}_${uid}`,
+          type: 'message',
+          post_id: null,
+          actor_id: senderId,
+          actor_name: senderName,
+          count: 1,
+          title: senderName,
+          message: content.slice(0, 80),
+          is_read: false,
+        });
+        notifCreated += 1;
+      } catch {}
+
+      // Push natif (best effort).
       try {
         await base44.asServiceRole.integrations.Core.SendPushNotification({
           user_id: uid,
@@ -43,16 +64,11 @@ export default async function(req) {
           action_label: 'Ouvrir',
           action_url: actionUrl,
         });
-        results.push({ uid, ok: true });
-      } catch (e) {
-        results.push({ uid, ok: false, error: e?.message || 'failed' });
-      }
+        pushSent += 1;
+      } catch {}
     }
 
-    return Response.json({
-      sent: results.filter((r) => r.ok).length,
-      total: targets.length,
-    });
+    return Response.json({ notifCreated, pushSent, total: targets.length });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
