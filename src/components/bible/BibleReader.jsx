@@ -83,6 +83,37 @@ function extractVersesFromComplete(data) {
   return out;
 }
 
+// Échappe une chaîne pour usage dans une RegExp.
+function escapeRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// Correspondance nom de livre français (avec accents/variantes) → identifiant
+// helloao (OSIS). Les références des dévotionnels sont en français, alors que
+// l'API helloao renvoie des noms anglais (John, Philippians…) : sans cette
+// table, le lien « Lire le chapitre » tombait toujours sur Jean 1.
+const FR_BOOK_TO_ID = {
+  genese: "GEN", exode: "EXO", levitique: "LEV", nombres: "NUM", deuteronomique: "DEU",
+  josue: "JOS", juges: "JDG", ruth: "RUT",
+  "1 samuel": "1SA", "2 samuel": "2SA", "1 rois": "1KI", "2 rois": "2KI",
+  "1 chroniques": "1CH", "2 chroniques": "2CH", esdras: "EZR", nehemie: "NEH", esther: "EST",
+  job: "JOB", psaumes: "PSA", psaume: "PSA", proverbes: "PRO", ecclesiaste: "ECC",
+  cantique: "SNG", "cantique des cantiques": "SNG",
+  esaie: "ISA", jeremie: "JER", lamentations: "LAM", ezechiel: "EZK", daniel: "DAN",
+  osee: "HOS", joel: "JOL", amos: "AMO", abdias: "OBA", jonas: "JON",
+  michee: "MIC", nahum: "NAM", habacuc: "HAB", sophonie: "ZEP", aggee: "HAG",
+  zacharie: "ZEC", malachie: "MAL",
+  matthieu: "MAT", marc: "MRK", luc: "LUK", jean: "JHN", actes: "ACT",
+  romains: "ROM", "1 corinthiens": "1CO", "2 corinthiens": "2CO", galates: "GAL",
+  ephesiens: "EPH", philippiens: "PHP", colossiens: "COL",
+  "1 thessaloniciens": "1TH", "2 thessaloniciens": "2TH",
+  "1 timothee": "1TI", "2 timothee": "2TI", tite: "TIT", philemon: "PHM",
+  hebreux: "HEB", jacques: "JAS",
+  "1 pierre": "1PE", "2 pierre": "2PE",
+  "1 jean": "1JN", "2 jean": "2JN", "3 jean": "3JN", jude: "JUD",
+  apocalypse: "REV",
+};
+
 export default function BibleReader({ onBack }) {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -119,6 +150,7 @@ export default function BibleReader({ onBack }) {
   const [searchResults, setSearchResults] = useState([]);
   const [searchStatus, setSearchStatus] = useState("idle"); // idle | loading | done | error
   const bibleCacheRef = useRef({});
+  const searchControllerRef = useRef(null);
 
   useEffect(() => {
     const meta = Object.values(VERSIONS).flat().find((v) => v.id === selectedVersion);
@@ -136,7 +168,12 @@ export default function BibleReader({ onBack }) {
       if (pendingRef) {
         const m = pendingRef.trim().match(/^(.*?)\s+(\d+)(?::(\d+))?$/);
         if (m) {
-          const book = loaded.find((b) => norm(b.name) === norm(m[1]) || norm(b.id) === norm(m[1]));
+          // Normalise "1er/1ère/1re Rois" → "1 rois" avant la recherche.
+          let rawBook = norm(m[1]).replace(/^(\d)\s*(?:er|ere|re|eme|ème)\s*/, "$1 ");
+          const frId = FR_BOOK_TO_ID[rawBook];
+          const book = frId
+            ? loaded.find((b) => b.id === frId)
+            : loaded.find((b) => norm(b.name) === rawBook || norm(b.id) === rawBook);
           if (book) { nextBookId = book.id; nextChapter = Number(m[2]); }
           if (m[3]) setPendingVerse(Number(m[3]));
         }
@@ -294,7 +331,10 @@ export default function BibleReader({ onBack }) {
     } catch (e) { toast({ title: "Erreur", description: e.message, variant: "destructive" }); }
   };
   const onHighlight = (colorId) => upsertMany({ highlight_color: colorId });
-  const onNote = (text) => { upsertMany({ note: text.trim() || null }); toast({ title: "Note enregistrée" }); };
+  const onNote = async (text) => {
+    await upsertMany({ note: text.trim() || null });
+    toast({ title: "Note enregistrée" });
+  };
   const onRemove = async () => upsertMany({ highlight_color: null });
 
   useEffect(() => { setSelected([]); setSheetOpen(false); }, [selectedVersion, selectedBookId, selectedChapter]);
@@ -332,23 +372,31 @@ export default function BibleReader({ onBack }) {
     const words = norm(q).split(/\s+/).filter(Boolean);
     if (words.length === 0) { setSearchResults([]); setSearchStatus("idle"); return; }
     setSearchStatus("loading");
+    // Annule toute recherche précédente (et son téléchargement) en cours.
+    if (searchControllerRef.current) searchControllerRef.current.abort();
+    const controller = new AbortController();
+    searchControllerRef.current = controller;
     try {
       let all = bibleCacheRef.current[selectedVersion];
       if (!all) {
-        const res = await fetch(`${API_BASE_URL}/${selectedVersion}/complete.simple.json`);
+        const res = await fetch(`${API_BASE_URL}/${selectedVersion}/complete.simple.json`, { signal: controller.signal });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         all = extractVersesFromComplete(data);
         bibleCacheRef.current[selectedVersion] = all;
       }
+      // Correspondance sur limites de mot : "es" ne matche plus "les"/"est".
+      const patterns = words.map((w) => new RegExp(`\\b${escapeRegex(w)}\\b`));
       const results = [];
       for (let i = 0; i < all.length && results.length < 200; i++) {
         const t = norm(all[i].text);
-        if (words.every((w) => t.includes(w))) results.push(all[i]);
+        if (patterns.every((p) => p.test(t))) results.push(all[i]);
       }
+      if (controller.signal.aborted) return;
       setSearchResults(results);
       setSearchStatus("done");
     } catch (e) {
+      if (e.name === "AbortError") return;
       setSearchStatus("error");
     }
   }

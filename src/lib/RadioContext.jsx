@@ -12,7 +12,7 @@ const RadioContext = createContext(null);
 export const useRadio = () => useContext(RadioContext);
 
 const PREROLL_MS = 8000; // délai de démarrage : laisser le tampon prendre de l'avance
-const RESUME_MS = 15000; // délai de reprise après une coupure réseau (tampon ~3 min via 12 tentives)
+const RESUME_MS = 15000; // délai de reprise après une coupure réseau (jusqu'à 12 tentatives)
 
 export function RadioPlayerProvider({ children }) {
   const audioRef = useRef(null);
@@ -114,8 +114,8 @@ export function RadioPlayerProvider({ children }) {
     }, PREROLL_MS);
   };
 
-  // Reprise après coupure réseau : 2 s après un passage à l'erreur, on relance
-  // la lecture. Plafonné à 5 tentatives pour éviter une boucle infinie.
+  // Reprise après coupure réseau : après un passage à l'erreur, on relance la
+  // lecture. Plafonné à 12 tentatives pour éviter une boucle infinie.
   useEffect(() => {
     const prev = prevStateRef.current;
     if (prev !== "error" && state === "error" && !preparing) {

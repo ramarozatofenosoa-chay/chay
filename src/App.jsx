@@ -28,6 +28,7 @@ import Contact from '@/pages/Contact';
 import Admin from '@/pages/Admin';
 import Messages from '@/pages/Messages';
 import AppLoader from '@/components/AppLoader';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import { AudioPlayerProvider } from '@/lib/AudioPlayerContext';
 import { RadioPlayerProvider } from '@/lib/RadioContext';
 
@@ -91,7 +92,9 @@ function App() {
           <RadioPlayerProvider>
           <Router>
             <ScrollToTop />
-            <AuthenticatedApp />
+            <ErrorBoundary>
+              <AuthenticatedApp />
+            </ErrorBoundary>
           </Router>
             <Toaster />
           </RadioPlayerProvider>

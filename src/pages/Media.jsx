@@ -10,16 +10,17 @@ import MediaCategory from "@/components/media/MediaCategory";
 import { useAudioPlayer } from "@/lib/AudioPlayerContext";
 import { useRadio } from "@/lib/RadioContext";
 import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/lib/AuthContext";
 import { FileText, Loader2 } from "lucide-react";
 
 export default function Media() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const { currentTrack, isPlaying, play, playQueue, toggle } = useAudioPlayer();
   const radio = useRadio();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const activeCat = searchParams.get("cat");
-  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [showCreatePlaylist, setShowCreatePlaylist] = useState(false);
@@ -64,8 +65,6 @@ export default function Media() {
   useEffect(() => {
     (async () => {
       try {
-        const me = await base44.auth.me().catch(() => null);
-        setUser(me);
         await loadAll();
       } finally {
         setLoading(false);

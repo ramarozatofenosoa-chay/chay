@@ -48,7 +48,7 @@ export default function Home() {
       const upcoming = events
         .filter((a) => a.date && new Date(a.date) >= today)
         .sort((a, b) => new Date(a.date) - new Date(b.date));
-      setReunion(upcoming[0] || events[0] || all[0] || null);
+      setReunion(upcoming[0] || null);
     } finally {
       setLoading(false);
     }
@@ -59,7 +59,6 @@ export default function Home() {
   }, []);
 
   const firstName =
-    user?.first_name ||
     (user?.full_name ? user.full_name.split(" ")[0] : "") ||
     (user?.email ? user.email.split("@")[0] : "");
 
