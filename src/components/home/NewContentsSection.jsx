@@ -1,17 +1,17 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { NEW_CONTENTS_LIMIT } from "@/lib/contentNotifications";
 import NewContentCard from "./NewContentCard";
+import ContentDetailDialog from "./ContentDetailDialog";
 import { Sparkles, History } from "lucide-react";
 
 export default function NewContentsSection() {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [contents, setContents] = useState([]);
   const [unreadIds, setUnreadIds] = useState(() => new Set());
   const [loading, setLoading] = useState(true);
+  const [active, setActive] = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -69,7 +69,7 @@ export default function NewContentsSection() {
         /* ignore */
       }
     }
-    navigate("/media");
+    setActive(item);
   };
 
   if (loading || !contents.length) return null;
@@ -114,6 +114,12 @@ export default function NewContentsSection() {
           </div>
         </section>
       )}
+
+      <ContentDetailDialog
+        item={active}
+        open={!!active}
+        onOpenChange={(v) => !v && setActive(null)}
+      />
     </>
   );
 }
