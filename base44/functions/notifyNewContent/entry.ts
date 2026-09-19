@@ -138,11 +138,6 @@ export default async function(req) {
     let pushSent = 0, pushFailed = 0;
     const pushUserIds = rows.map((r) => r.user_id);
     if (pushUserIds.length) {
-      let callerEmail = null;
-      try {
-        const sa = JSON.parse(secrets.get("FIREBASE_SERVICE_ACCOUNT") || "{}");
-        callerEmail = sa.client_email || null;
-      } catch {}
       try {
         const res = await base44.asServiceRole.functions.invoke("sendFcmPush", {
           user_ids: pushUserIds,
@@ -150,7 +145,7 @@ export default async function(req) {
           body: (content.description || content.title || "").slice(0, 60),
           target_type: "content",
           target_id: content.id,
-          caller_email: callerEmail,
+          internal_secret: secrets.get("INTERNAL_INVOKE_SECRET"),
         });
         const r = (res && (res.data || res)) || {};
         pushSent = r.sent || 0;

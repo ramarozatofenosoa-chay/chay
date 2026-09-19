@@ -24,7 +24,8 @@
           "with": {
             "function_name": "notifyCommunityPost",
             "args": {
-              "post_id": "${ .trigger.entity_id }"
+              "post_id": "${ .trigger.entity_id }",
+              "internal_secret": "chay_wf_5e8b3f9a7c2d1e6b4a8f3c9e7d2b1a5f"
             }
           },
           "then": "end",

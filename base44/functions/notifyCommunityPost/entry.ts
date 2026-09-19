@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
+import { secrets } from 'base44:runtime';
 
 // Déclenché par le workflow "Community Post Notification" à la création
 // d'une publication (CommunityPost). Crée une notification in-app
@@ -19,6 +20,16 @@ export default async function(req) {
       .catch(() => null);
     if (!post) {
       return Response.json({ error: 'post not found' }, { status: 404 });
+    }
+
+    // Auth : admin, auteur du post, OU appel interne (workflow) prouvé par secret.
+    let caller = null;
+    try { caller = await base44.auth.me(); } catch {}
+    const isInternal = body.internal_secret && body.internal_secret === secrets.get("INTERNAL_INVOKE_SECRET");
+    const isAuthor = caller && caller.id === post.created_by_id;
+    const isAdmin = caller && caller.role === "admin";
+    if (!isAdmin && !isAuthor && !isInternal) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const authorName = post.author_name || 'Un membre';

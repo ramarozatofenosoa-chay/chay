@@ -109,7 +109,7 @@ export default async function(req) {
     // Authentification : admin direct (test) OU appel interne prouvé.
     let user = null;
     try { user = await base44.auth.me(); } catch { /* appel interne */ }
-    const internalProof = body.caller_email && body.caller_email === sa.client_email;
+    const internalProof = body.internal_secret && body.internal_secret === secrets.get("INTERNAL_INVOKE_SECRET");
     if (!(user && user.role === "admin") && !internalProof) {
       return Response.json({ error: "Forbidden" }, { status: 403 });
     }

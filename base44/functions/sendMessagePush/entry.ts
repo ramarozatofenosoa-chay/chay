@@ -55,6 +55,14 @@ export default async function(req) {
       return Response.json({ error: 'message_id required' }, { status: 400 });
     }
 
+    // Auth : admin OU appel interne (workflow) prouvé par un secret haute-entropie.
+    let caller = null;
+    try { caller = await base44.auth.me(); } catch {}
+    const isInternal = body.internal_secret && body.internal_secret === secrets.get("INTERNAL_INVOKE_SECRET");
+    if (!(caller && caller.role === "admin") && !isInternal) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const message = await base44.asServiceRole.entities.Message
       .get(messageId).catch(() => null);
     if (!message) {
@@ -110,27 +118,27 @@ export default async function(req) {
 
       if (conversationOpen) { openSkipped += 1; continue; }
 
+      // Toujours créer la notification : support de l'horodatage e-mail (déduplication).
+      // Si in_app_messages désactivé, marquée lue (ni badge ni bandeau).
       let createdNotifId = null;
-      if (inAppOn) {
-        try {
-          const n = await base44.asServiceRole.entities.UserNotification.create({
-            user_id: uid,
-            notification_id: "message_" + message.id + "_" + uid,
-            type: "message",
-            content_id: message.conversation_id,
-            content_type: "message",
-            post_id: null,
-            actor_id: senderId,
-            actor_name: senderName,
-            count: 1,
-            title,
-            message: notifBody,
-            is_read: false,
-          });
-          createdNotifId = (n && n.id) || null;
-          notifCreated += 1;
-        } catch (e) {}
-      }
+      try {
+        const n = await base44.asServiceRole.entities.UserNotification.create({
+          user_id: uid,
+          notification_id: "message_" + message.id + "_" + uid,
+          type: "message",
+          content_id: message.conversation_id,
+          content_type: "message",
+          post_id: null,
+          actor_id: senderId,
+          actor_name: senderName,
+          count: 1,
+          title,
+          message: notifBody,
+          is_read: !inAppOn,
+        });
+        createdNotifId = (n && n.id) || null;
+        if (inAppOn) notifCreated += 1;
+      } catch (e) {}
 
       if (inAppOn) pushTargets.push(uid);
 
@@ -171,11 +179,6 @@ export default async function(req) {
     // Push natif FCM (lot unique pour tous les destinataires éligibles).
     let pushSent = 0, pushFailed = 0;
     if (pushTargets.length) {
-      let callerEmail = null;
-      try {
-        const sa = JSON.parse(secrets.get("FIREBASE_SERVICE_ACCOUNT") || "{}");
-        callerEmail = sa.client_email || null;
-      } catch {}
       try {
         const res = await base44.asServiceRole.functions.invoke("sendFcmPush", {
           user_ids: pushTargets,
@@ -183,7 +186,7 @@ export default async function(req) {
           body: preview || notifBody,
           target_type: "message",
           target_id: message.conversation_id,
-          caller_email: callerEmail,
+          internal_secret: secrets.get("INTERNAL_INVOKE_SECRET"),
         });
         const r = (res && (res.data || res)) || {};
         pushSent = r.sent || 0;
