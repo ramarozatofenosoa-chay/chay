@@ -1,6 +1,9 @@
+import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
+import { AnimatePresence } from "framer-motion";
+import SplashScreen from "@/components/SplashScreen";
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
@@ -83,6 +86,11 @@ const AuthenticatedApp = () => {
 
 
 function App() {
+  const [showSplash, setShowSplash] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setShowSplash(false), 5000);
+    return () => clearTimeout(t);
+  }, []);
 
   return (
     <AuthProvider>
@@ -95,6 +103,9 @@ function App() {
             <ErrorBoundary>
               <AuthenticatedApp />
             </ErrorBoundary>
+            <AnimatePresence>
+              {showSplash && <SplashScreen key="splash" />}
+            </AnimatePresence>
           </Router>
             <Toaster />
           </RadioPlayerProvider>
