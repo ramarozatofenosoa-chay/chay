@@ -17,24 +17,35 @@ export default async function(req) {
     const body = await req.json().catch(() => ({}));
     const action = body.action;
     const postId = body.post_id;
-    const authorId = body.author_id;   // destinataire = auteur du post
     const actorId = body.actor_id;     // expéditeur de l'interaction
-    const actorName = body.actor_name || "Quelqu'un";
     const text = typeof body.text === 'string' ? body.text : '';
 
-    if (!action || !postId || !authorId || !actorId) {
+    if (!action || !postId || !actorId) {
       return Response.json({ error: 'missing fields' }, { status: 400 });
     }
     // L'acteur doit correspondre à l'utilisateur authentifié (anti-usurpation).
     if (actorId !== user.id) {
       return Response.json({ error: 'actor mismatch' }, { status: 403 });
     }
+
+    const svc = base44.asServiceRole;
+
+    // Destinataire et nom déduits côté serveur : le client ne peut plus cibler
+    // un utilisateur arbitraire (author_id) ni usurper un nom (actor_name) dans
+    // le texte de notification.
+    const post = await svc.entities.CommunityPost.get(postId).catch(() => null);
+    if (!post) {
+      return Response.json({ error: 'post not found' }, { status: 404 });
+    }
+    const authorId = post.created_by_id;
+    const actorName =
+      user.full_name ||
+      (user.email ? user.email.split('@')[0] : "Quelqu'un");
+
     // On ne notifie pas l'auteur de sa propre interaction.
     if (authorId === actorId) {
       return Response.json({ skipped: 'self' });
     }
-
-    const svc = base44.asServiceRole;
 
     if (action === 'like') {
       // Regroupe les likes rapprochés non lus sur le même post.

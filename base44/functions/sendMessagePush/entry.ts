@@ -34,6 +34,23 @@ export default async function(req) {
       return Response.json({ sent: 0 });
     }
 
+    // Idempotence : on ne traite que les destinataires n'ayant pas déjà reçu
+    // de notification pour ce message. Empêche tout rejeu anonyme de recréer
+    // des notifications in-app et de renvoyer des push (anti-spam / quota).
+    const notifIds = targets.map((uid) => `message_${message.id}_${uid}`);
+    const existing = await base44.asServiceRole.entities.UserNotification
+      .filter({ notification_id: { $in: notifIds } })
+      .catch(() => []);
+    const done = new Set(
+      (Array.isArray(existing) ? existing : []).map((n) => n.notification_id)
+    );
+    const pending = targets.filter(
+      (uid) => !done.has(`message_${message.id}_${uid}`)
+    );
+    if (pending.length === 0) {
+      return Response.json({ sent: 0, skipped: 'already_notified' });
+    }
+
     const senderName = message.sender_name || 'Quelqu\'un';
     const isImageOnly = !message.text && !!message.image_url;
     // Aperçu sécurisé : 100 caractères max, jamais de contenu brut négatif.
@@ -48,7 +65,7 @@ export default async function(req) {
     let notifCreated = 0;
     let pushSent = 0;
 
-    for (const uid of targets) {
+    for (const uid of pending) {
       // Notification in-app (badge + page Notifications). content_id porte
       // l'identifiant de la conversation pour ouvrir directement le bon fil.
       try {
@@ -82,7 +99,7 @@ export default async function(req) {
       } catch {}
     }
 
-    return Response.json({ notifCreated, pushSent, total: targets.length });
+    return Response.json({ notifCreated, pushSent, total: pending.length });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

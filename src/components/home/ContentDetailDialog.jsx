@@ -21,10 +21,6 @@ const TYPE_LABELS = {
   autre: "Contenu",
 };
 
-function looksLikeHtml(s) {
-  return /<\/?(p|div|h[1-6]|ul|ol|li|strong|em|u|br|blockquote|a|span)\b/i.test(s || "");
-}
-
 // Affiche le contenu d'une nouveauté dans l'application (jamais de lien externe).
 export default function ContentDetailDialog({ item, open, onOpenChange }) {
   if (!item) return null;
@@ -68,11 +64,7 @@ export default function ContentDetailDialog({ item, open, onOpenChange }) {
 
         {item.description && (
           <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/80 leading-relaxed selectable mt-2">
-            {looksLikeHtml(item.description) ? (
-              <div dangerouslySetInnerHTML={{ __html: item.description }} />
-            ) : (
-              <ReactMarkdown>{item.description}</ReactMarkdown>
-            )}
+            <ReactMarkdown>{item.description || ""}</ReactMarkdown>
           </div>
         )}
       </DialogContent>

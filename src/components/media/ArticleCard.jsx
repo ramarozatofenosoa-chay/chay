@@ -10,10 +10,6 @@ import {
 import { Image } from "@/components/ui/image";
 import ReactMarkdown from "react-markdown";
 
-function looksLikeHtml(s) {
-  return /<\/?(p|div|h[1-6]|ul|ol|li|strong|em|u|br|blockquote|a|span)\b/i.test(s || "");
-}
-
 export default function ArticleCard({ article }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const open = searchParams.get("article") === article.id;
@@ -67,11 +63,7 @@ export default function ArticleCard({ article }) {
             )}
           </DialogHeader>
           <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/80 leading-relaxed selectable">
-            {looksLikeHtml(article.body) ? (
-              <div dangerouslySetInnerHTML={{ __html: article.body }} />
-            ) : (
-              <ReactMarkdown>{article.body}</ReactMarkdown>
-            )}
+            <ReactMarkdown>{article.body || ""}</ReactMarkdown>
           </div>
         </DialogContent>
       </Dialog>

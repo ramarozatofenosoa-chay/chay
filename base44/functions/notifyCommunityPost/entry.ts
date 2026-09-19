@@ -27,6 +27,16 @@ export default async function(req) {
     const notifId = `community_${post.id}`;
     const authorId = post.created_by_id;
 
+    // Idempotence : si les notifications pour ce post ont déjà été créées
+    // (par le workflow à la création), on sort immédiatement. Cela neutralise
+    // tout rejeu anonyme de l'endpoint HTTP (pas de spam ni de croissance BDD).
+    const already = await base44.asServiceRole.entities.UserNotification
+      .filter({ notification_id: notifId }, null, 1)
+      .catch(() => []);
+    if (Array.isArray(already) && already.length > 0) {
+      return Response.json({ skipped: 'already_notified' });
+    }
+
     // Récupère tous les utilisateurs par pagination (cap de sécurité 5000).
     const rows = [];
     let skip = 0;

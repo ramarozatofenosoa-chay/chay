@@ -23,6 +23,10 @@ export default function PhotoViewer({ images, index, onClose }) {
 
   const download = async () => {
     const url = images[i];
+    // N'ouvre que les URL http(s) — bloque les schémas dangereux (javascript:, data:).
+    if (typeof url !== "string" || !/^https?:\/\//i.test(url)) {
+      return;
+    }
     try {
       setDownloading(true);
       const res = await fetch(url);
