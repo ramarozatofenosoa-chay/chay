@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
+import { secrets } from 'base44:runtime';
 
 // Appelée par l'admin lors de la publication d'un contenu (publishContentWithNotification).
 // - Idempotent : une seule fois par contenu (notification_id "content_<id>").
@@ -6,6 +7,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 //   ayant in_app_nouveautes activé (par lots de 500, pagination des users).
 // - Envoie un e-mail à tous les utilisateurs ayant email_nouveautes activé,
 //   uniquement si send_email est vrai (réglage admin), par lots de 25.
+// - Envoie un push natif FCM aux utilisateurs ayant in_app_nouveautes activé
+//   (via sendFcmPush, par lots interne), titre = "Nouveau : " + titre du contenu.
 // Admin uniquement.
 const APP_URL = "https://chay.base44.app";
 const AMP = String.fromCharCode(38);
@@ -131,8 +134,34 @@ export default async function(req) {
       }
     }
 
+    // Push natif FCM (par lots interne) aux utilisateurs ayant in_app_nouveautes activé.
+    let pushSent = 0, pushFailed = 0;
+    const pushUserIds = rows.map((r) => r.user_id);
+    if (pushUserIds.length) {
+      let callerEmail = null;
+      try {
+        const sa = JSON.parse(secrets.get("FIREBASE_SERVICE_ACCOUNT") || "{}");
+        callerEmail = sa.client_email || null;
+      } catch {}
+      try {
+        const res = await base44.asServiceRole.functions.invoke("sendFcmPush", {
+          user_ids: pushUserIds,
+          title,
+          body: (content.description || content.title || "").slice(0, 60),
+          target_type: "content",
+          target_id: content.id,
+          caller_email: callerEmail,
+        });
+        const r = (res && (res.data || res)) || {};
+        pushSent = r.sent || 0;
+        pushFailed = r.failed || 0;
+      } catch (e) {
+        pushFailed = pushUserIds.length;
+      }
+    }
+
     return Response.json({
-      recipients: rows.length, created, emailsSent, emailsSkipped, sendEmail,
+      recipients: rows.length, created, emailsSent, emailsSkipped, pushSent, pushFailed, sendEmail,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

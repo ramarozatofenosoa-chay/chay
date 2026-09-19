@@ -15,7 +15,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { publishContentWithNotification } from "@/lib/contentNotifications";
-import { Loader2, Upload, Send, Mail, BellRing, X, Check, AlertTriangle } from "lucide-react";
+import { Loader2, Upload, Send, Mail, BellRing, Smartphone, X, Check, AlertTriangle } from "lucide-react";
 
 const TYPES = [
   ["audio", "Audio"],
@@ -46,6 +46,8 @@ export default function PublishContent() {
   const [sendEmail, setSendEmail] = useState(true);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState(null);
+  const [pushing, setPushing] = useState(false);
+  const [pushResult, setPushResult] = useState(null);
 
   // Réglage admin (persisté sur le compte) : e-mails de nouveautés en masse.
   useEffect(() => {
@@ -114,6 +116,18 @@ export default function PublishContent() {
       setTestResult({ error: (e && e.message) || String(e) });
     }
     setTesting(false);
+  };
+
+  const runPushTest = async () => {
+    setPushing(true);
+    setPushResult(null);
+    try {
+      const res = await base44.functions.invoke("sendFcmPush", { test: true });
+      setPushResult((res && (res.data || res)) || {});
+    } catch (e) {
+      setPushResult({ error: (e && e.message) || String(e) });
+    }
+    setPushing(false);
   };
 
   return (
@@ -244,6 +258,27 @@ export default function PublishContent() {
         </Button>
       </div>
 
+      {/* Test push natif */}
+      <div className="border-t border-border pt-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Smartphone className="h-4 w-4 text-primary" />
+          <h3 className="font-display font-bold text-sm">Test du push natif (Android)</h3>
+        </div>
+        <p className="text-xs text-foreground/55 mb-3">
+          Envoie un push de test à votre téléphone (uniquement si l'app mobile est
+          installée et enregistrée). Affiche le nombre de tokens trouvés et la
+          réponse brute de Firebase.
+        </p>
+        <Button variant="outline" onClick={runPushTest} disabled={pushing} className="w-full">
+          {pushing ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Smartphone className="h-4 w-4 mr-2" />
+          )}
+          Envoyer un push de test à mon téléphone
+        </Button>
+      </div>
+
       {/* Résultat du test */}
       <Dialog open={!!testResult} onOpenChange={(v) => !v && setTestResult(null)}>
         <DialogContent className="max-w-md">
@@ -290,6 +325,46 @@ export default function PublishContent() {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!pushResult} onOpenChange={(v) => !v && setPushResult(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Résultat du push de test</DialogTitle>
+            <DialogDescription>Détail de l'envoi push natif.</DialogDescription>
+          </DialogHeader>
+          {pushResult?.error ? (
+            <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/10 text-destructive text-sm">
+              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+              <span>{pushResult.error}</span>
+            </div>
+          ) : (
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-2">
+                {pushResult?.sent > 0 ? (
+                  <Check className="h-4 w-4 text-emerald-500" />
+                ) : (
+                  <X className="h-4 w-4 text-destructive" />
+                )}
+                <span className="font-bold">Tokens trouvés : {pushResult?.tokensFound ?? 0}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-emerald-500" />
+                <span>Envoyés : {pushResult?.sent ?? 0} · Échecs : {pushResult?.failed ?? 0}</span>
+              </div>
+              <div>
+                <div className="font-bold mb-1">Réponse Firebase :</div>
+                <pre className="text-xs bg-muted rounded-xl p-2 overflow-auto max-h-40">{JSON.stringify(pushResult?.firebaseResponses || [], null, 2)}</pre>
+              </div>
+              {pushResult?.tokensFound === 0 && (
+                <p className="text-xs text-foreground/55">
+                  Aucun token trouvé : installez l'app mobile Android, connectez-vous
+                  et acceptez les notifications, puis relancez le test.
+                </p>
+              )}
             </div>
           )}
         </DialogContent>

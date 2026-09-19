@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
+import { secrets } from 'base44:runtime';
 
 // Déclenché par le workflow "Message Push" à la création d'un message.
 // Pour chaque participant (sauf l'expéditeur) :
@@ -7,7 +8,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 //    et que in_app_messages est activé ;
 //  - envoie un e-mail (si email_messages activé) avec déduplication 30 min par
 //    conversation/destinataire et skip si le message a déjà été lu ;
-//  - envoie un push natif (best effort).
+//  - envoie un push natif FCM (si in_app_messages activé) via sendFcmPush
+//    (titre = expéditeur, corps = aperçu 60 car., target_type=message).
 // Idempotent via notification_id "message_<id>_<uid>".
 const ONLINE_WINDOW_MS = 2 * 60 * 1000;
 const EMAIL_DEDUP_MS = 30 * 60 * 1000;
@@ -88,7 +90,8 @@ export default async function(req) {
       ? senderName + " vous a envoyé une photo"
       : (message.text ? String(message.text).slice(0, 100) : "");
 
-    let notifCreated = 0, emailsSent = 0, emailsSkipped = 0, pushSent = 0, openSkipped = 0;
+    let notifCreated = 0, emailsSent = 0, emailsSkipped = 0, openSkipped = 0;
+    const pushTargets = []; // user_ids éligibles au push natif
 
     for (const uid of pending) {
       const recipient = await base44.asServiceRole.entities.User
@@ -129,6 +132,8 @@ export default async function(req) {
         } catch (e) {}
       }
 
+      if (inAppOn) pushTargets.push(uid);
+
       if (emailOn && recipient && recipient.email) {
         const recent = await base44.asServiceRole.entities.UserNotification
           .filter({ user_id: uid, content_id: message.conversation_id, type: "message" }, "-created_date", 10)
@@ -161,18 +166,35 @@ export default async function(req) {
           }
         }
       }
+    }
 
+    // Push natif FCM (lot unique pour tous les destinataires éligibles).
+    let pushSent = 0, pushFailed = 0;
+    if (pushTargets.length) {
+      let callerEmail = null;
       try {
-        await base44.asServiceRole.integrations.Core.SendPushNotification({
-          user_id: uid, title, content: notifBody, action_label: "Ouvrir",
-          action_url: "/messages?c=" + message.conversation_id,
+        const sa = JSON.parse(secrets.get("FIREBASE_SERVICE_ACCOUNT") || "{}");
+        callerEmail = sa.client_email || null;
+      } catch {}
+      try {
+        const res = await base44.asServiceRole.functions.invoke("sendFcmPush", {
+          user_ids: pushTargets,
+          title,
+          body: preview || notifBody,
+          target_type: "message",
+          target_id: message.conversation_id,
+          caller_email: callerEmail,
         });
-        pushSent += 1;
-      } catch (e) {}
+        const r = (res && (res.data || res)) || {};
+        pushSent = r.sent || 0;
+        pushFailed = r.failed || 0;
+      } catch (e) {
+        pushFailed = pushTargets.length;
+      }
     }
 
     return Response.json({
-      notifCreated, emailsSent, emailsSkipped, pushSent, openSkipped, total: pending.length,
+      notifCreated, emailsSent, emailsSkipped, pushSent, pushFailed, openSkipped, total: pending.length,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

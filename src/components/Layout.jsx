@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { usePresenceHeartbeat } from "@/hooks/usePresence";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import NotificationBanner from "@/components/NotificationBanner";
 
 const LOGO_URL =
@@ -28,6 +29,7 @@ const ROOT_TABS = NAV.map((n) => n.to);
 export default function Layout() {
   const { user } = useAuth();
   usePresenceHeartbeat(user);
+  usePushNotifications(navigate);
   const unread = useUnreadMessages(user);
   const notifUnread = useUnreadNotifications(user);
   const [lastParams, setLastParams] = useState({});
