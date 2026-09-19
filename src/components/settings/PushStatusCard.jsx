@@ -46,15 +46,22 @@ export default function PushStatusCard() {
       <div className="flex-1 min-w-0">
         <p className="text-xs font-bold">Notifications push (Android)</p>
         {error ? (
-          <p className="text-xs text-destructive flex items-start gap-1 mt-0.5">
-            <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
-            <span>{error}</span>
+          <p className="text-xs text-destructive flex items-start gap-1 mt-0.5 selectable">
+            <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0 shrink self-start" />
+            <span className="break-words">{error}</span>
           </p>
         ) : ok ? (
-          <p className="text-xs text-foreground/60 flex items-center gap-1 mt-0.5">
-            <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
-            Appareil enregistré pour les notifications.
-          </p>
+          <div className="mt-0.5">
+            <p className="text-xs text-foreground/60 flex items-center gap-1">
+              <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
+              Appareil enregistré pour les notifications.
+            </p>
+            {status?.token && (
+              <p className="text-[10px] text-foreground/40 mt-0.5 break-all selectable">
+                Token : {String(status.token).slice(0, 24)}…
+              </p>
+            )}
+          </div>
         ) : (
           <p className="text-xs text-foreground/55 mt-0.5">
             Enregistrement de l'appareil en cours…

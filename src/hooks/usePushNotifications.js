@@ -25,23 +25,41 @@ function isNative() {
   }
 }
 
-async function upsertToken(token, platform) {
-  const rows = await base44.entities.DeviceToken.filter({ token }, null, 1).catch(() => []);
-  const existing = Array.isArray(rows) && rows[0];
+async function upsertToken(token, platform, userId) {
+  if (!userId) {
+    throw new Error("Utilisateur non connecté : impossible d'enregistrer le token.");
+  }
   const now = new Date().toISOString();
+  let rows = [];
+  try {
+    rows = await base44.entities.DeviceToken.filter({ token }, null, 1);
+  } catch (e) {
+    throw new Error("Recherche du token existant échouée : " + (e?.message || JSON.stringify(e)));
+  }
+  const existing = Array.isArray(rows) && rows[0];
   if (existing) {
-    await base44.entities.DeviceToken.update(existing.id, {
-      is_active: true,
-      last_seen: now,
-      platform,
-    });
+    try {
+      await base44.entities.DeviceToken.update(existing.id, {
+        user_id: userId,
+        is_active: true,
+        last_seen: now,
+        platform,
+      });
+    } catch (e) {
+      throw new Error("Mise à jour du token échouée : " + (e?.message || JSON.stringify(e)));
+    }
   } else {
-    await base44.entities.DeviceToken.create({
-      token,
-      platform,
-      is_active: true,
-      last_seen: now,
-    });
+    try {
+      await base44.entities.DeviceToken.create({
+        user_id: userId,
+        token,
+        platform,
+        is_active: true,
+        last_seen: now,
+      });
+    } catch (e) {
+      throw new Error("Création du token échouée : " + (e?.message || JSON.stringify(e)));
+    }
   }
 }
 
@@ -66,6 +84,7 @@ export function usePushNotifications(navigate) {
     if (!isNative() || !isAuthenticated || !user?.id) return;
     let handles = [];
     let active = true;
+    let settled = false;
 
     const start = async () => {
       try {
@@ -97,20 +116,26 @@ export function usePushNotifications(navigate) {
         }
 
         handles.push(
-          await PushNotifications.addListener("registration", (ev) => {
+          await PushNotifications.addListener("registration", async (ev) => {
+            settled = true;
             tokenRef.current = ev.value;
-            upsertToken(ev.value, "android").catch((e) =>
+            try {
+              await upsertToken(ev.value, "android", user?.id);
+              emitStatus({ ok: true, token: ev.value });
+            } catch (e) {
               emitStatus({
-                error: "Échec de l'enregistrement du token : " + (e?.message || e),
-              })
-            );
-            emitStatus({ ok: true });
+                error: "Échec enregistrement token : " + (e?.message || JSON.stringify(e)),
+              });
+            }
           })
         );
         handles.push(
           await PushNotifications.addListener("registrationError", (err) => {
+            settled = true;
             emitStatus({
-              error: "Erreur d'enregistrement push : " + (err?.error || JSON.stringify(err)),
+              error:
+                "Erreur d'enregistrement push (FCM) : " +
+                (err?.error || err?.message || JSON.stringify(err)),
             });
           })
         );
@@ -133,8 +158,18 @@ export function usePushNotifications(navigate) {
         );
 
         await PushNotifications.register();
+        // Si FCM n'est pas initialisé côté natif (build sans google-services),
+        // aucun évènement registration/registrationError ne se déclenche.
+        setTimeout(() => {
+          if (!settled && active) {
+            emitStatus({
+              error:
+                "Aucun token FCM reçu après 10 s. Le build Android n'inclut probablement pas google-services : régénérez l'AAB via Publish → Mobile app → Create Google Play files avec « Add push notifications » activé et google-services.json uploadé.",
+            });
+          }
+        }, 10000);
       } catch (e) {
-        if (active) emitStatus({ error: e?.message || String(e) });
+        if (active) emitStatus({ error: "register() a échoué : " + (e?.message || String(e)) });
       }
     };
     start();
