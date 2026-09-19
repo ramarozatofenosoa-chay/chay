@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Sparkles, History, ArrowRight } from "lucide-react";
+import ContentDetailDialog from "./ContentDetailDialog";
 
 function describe(c) {
   const title = c?.title || "";
@@ -49,8 +49,8 @@ function describe(c) {
  * le précédent dans « Précédemment ». Un clic mène au contenu.
  */
 export default function SplitClock() {
-  const navigate = useNavigate();
   const [items, setItems] = useState([]);
+  const [active, setActive] = useState(null);
 
   useEffect(() => {
     base44.entities.Content
@@ -64,8 +64,7 @@ export default function SplitClock() {
 
   const open = (c) => {
     if (!c) return;
-    if (c.media_url) window.open(c.media_url, "_blank");
-    else navigate("/media");
+    setActive(c);
   };
 
   const Pane = ({ label, icon: Icon, item, accent }) => {
@@ -104,6 +103,12 @@ export default function SplitClock() {
         <Pane label="Précédemment" icon={History} item={previous} />
         <Pane label="Nouveauté" icon={Sparkles} item={latest} accent />
       </div>
+
+      <ContentDetailDialog
+        item={active}
+        open={!!active}
+        onOpenChange={(v) => !v && setActive(null)}
+      />
     </section>
   );
 }

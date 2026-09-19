@@ -157,19 +157,45 @@ export default function Register() {
     locStatus === "granted" &&
     !loading;
 
-  const getLocation = () => {
+  const getLocation = async () => {
     if (!navigator.geolocation) {
       setLocStatus("unsupported");
       return;
     }
     setLocStatus("loading");
+    // On interroge l'état réel de la permission via l'API Permissions : certains
+    // appareils renvoient une erreur getCurrentPosition alors que la permission
+    // OS est déjà accordée. On ne bloque alors pas l'inscription.
+    let permGranted = false;
+    try {
+      if (navigator.permissions?.query) {
+        const res = await navigator.permissions.query({ name: "geolocation" });
+        permGranted = res.state === "granted";
+      }
+    } catch {
+      /* Permissions API non disponible */
+    }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         setLocStatus("granted");
         setError("");
       },
-      () => setLocStatus("denied")
+      (err) => {
+        const code = err?.code;
+        // 1 = PERMISSION_DENIED, 2 = POSITION_UNAVAILABLE, 3 = TIMEOUT.
+        // On n'affiche « Accès refusé » que si la permission est réellement
+        // refusée. Sinon (permission accordée mais position indisponible ou
+        // timeout), on considère la localisation comme activée pour ne pas
+        // bloquer l'inscription à tort.
+        if (code === 1 && !permGranted) {
+          setLocStatus("denied");
+        } else {
+          setLocStatus("granted");
+          setError("");
+        }
+      },
+      { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
     );
   };
 
