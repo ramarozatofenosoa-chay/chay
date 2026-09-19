@@ -1,0 +1,49 @@
+{
+  "name": "DeviceToken",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Propri\u00e9taire du token (identifiant utilisateur)."
+    },
+    "token": {
+      "type": "string",
+      "description": "Token FCM d'enregistrement de l'appareil."
+    },
+    "platform": {
+      "type": "string",
+      "enum": [
+        "android",
+        "ios"
+      ],
+      "default": "android"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "last_seen": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "user_id",
+    "token",
+    "platform"
+  ],
+  "rls": {
+    "read": {
+      "data.user_id": "{{user.id}}"
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}
