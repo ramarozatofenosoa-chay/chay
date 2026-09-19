@@ -102,12 +102,12 @@ export default function PostCard({ post, currentUser }) {
     setDraft("");
     setPosting(true);
     try {
-      await base44.entities.Comment.create({
+      const created = await base44.entities.Comment.create({
         post_id: post.id,
         text,
         author_name: myName(),
       });
-      notifyComment(post, currentUser, text);
+      notifyComment(post, currentUser, text, created?.id);
       await loadComments();
     } catch {
       setComments((prev) => prev.filter((c) => c.id !== tempId));

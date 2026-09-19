@@ -86,10 +86,29 @@ export default async function(req) {
     }
 
     if (action === 'comment') {
-      const excerpt = text.slice(0, 40);
+      const commentId = body.comment_id;
+      if (!commentId) {
+        return Response.json({ error: 'comment_id required' }, { status: 400 });
+      }
+      // Preuve d'une vraie interaction : le commentaire doit exister, appartenir
+      // à l'acteur (created_by_id) et être rattaché au post indiqué.
+      const comment = await svc.entities.Comment.get(commentId).catch(() => null);
+      if (!comment || comment.post_id !== postId || comment.created_by_id !== actorId) {
+        return Response.json({ error: 'comment not found' }, { status: 404 });
+      }
+      // Déduplication déterministe : une notification par commentaire.
+      const notifId = `comment_${commentId}`;
+      const dup = await svc.entities.UserNotification.filter({
+        user_id: authorId,
+        notification_id: notifId,
+      }).catch(() => []);
+      if (Array.isArray(dup) && dup.length > 0) {
+        return Response.json({ ok: true, action: 'comment', skipped: 'already_notified' });
+      }
+      const excerpt = (comment.text || text || '').slice(0, 40);
       await svc.entities.UserNotification.create({
         user_id: authorId,
-        notification_id: `comment_${postId}_${Date.now()}`,
+        notification_id: notifId,
         type: 'comment',
         post_id: postId,
         actor_id: actorId,

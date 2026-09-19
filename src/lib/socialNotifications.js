@@ -31,8 +31,8 @@ export async function notifyLike(post, actor) {
 /**
  * Notifie l'auteur d'une publication qu'un commentaire a été reçu.
  */
-export async function notifyComment(post, actor, text) {
-  if (!post?.created_by_id || !actor?.id || post.created_by_id === actor.id) return;
+export async function notifyComment(post, actor, text, commentId) {
+  if (!post?.created_by_id || !actor?.id || post.created_by_id === actor.id || !commentId) return;
   try {
     await base44.functions.invoke("notifySocialInteraction", {
       action: "comment",
@@ -41,6 +41,7 @@ export async function notifyComment(post, actor, text) {
       actor_id: actor.id,
       actor_name: firstName(actor),
       text: text || "",
+      comment_id: commentId,
     });
   } catch {
     /* ignore */
