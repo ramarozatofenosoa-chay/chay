@@ -37,27 +37,39 @@ export default function Home() {
         </div>
       </section>
 
-      <p className="mt-3 text-sm md:text-xl text-foreground/60 max-w-xl [font-family:'Gilroy',_sans-serif]">
+      <p className="mt-3 text-sm md:text-xl text-foreground/60 max-w-xl [font-family:'Gilroy',_sans-serif] animate-float-in" style={{ animationDelay: "0.05s" }}>
         Tongasoa eto amin'ny Fiangonana Chay izay mitory ny Fanjakan'Andriamanitra.
       </p>
 
       {/* Horloge divisée */}
-      <SplitClock />
+      <div className="animate-float-in" style={{ animationDelay: "0.1s" }}>
+        <SplitClock />
+      </div>
 
       {/* Verse of the day */}
-      <VersetDuJourSection refreshKey={refreshKey} />
+      <div className="animate-float-in" style={{ animationDelay: "0.15s" }}>
+        <VersetDuJourSection refreshKey={refreshKey} />
+      </div>
 
       {/* Question Logique (sous le verset du jour) */}
-      <QuestionLogiqueSection />
+      <div className="animate-float-in" style={{ animationDelay: "0.2s" }}>
+        <QuestionLogiqueSection />
+      </div>
 
       {/* Prochaine réunion */}
-      <ProchaineReunionSection refreshKey={refreshKey} />
+      <div className="animate-float-in" style={{ animationDelay: "0.25s" }}>
+        <ProchaineReunionSection refreshKey={refreshKey} />
+      </div>
 
       {/* Accès rapide */}
-      <QuickAccess />
+      <div className="animate-float-in" style={{ animationDelay: "0.3s" }}>
+        <QuickAccess />
+      </div>
 
       {/* Nouveautés */}
-      <NewContentsSection />
+      <div className="animate-float-in" style={{ animationDelay: "0.35s" }}>
+        <NewContentsSection />
+      </div>
 
       {/* Social links */}
       <footer className="mt-12 pt-8 border-t border-border pb-6 flex flex-col items-center gap-4">
