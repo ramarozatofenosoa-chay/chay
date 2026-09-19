@@ -29,12 +29,12 @@ const ROOT_TABS = NAV.map((n) => n.to);
 export default function Layout() {
   const { user } = useAuth();
   usePresenceHeartbeat(user);
-  usePushNotifications(navigate);
   const unread = useUnreadMessages(user);
   const notifUnread = useUnreadNotifications(user);
   const [lastParams, setLastParams] = useState({});
   const location = useLocation();
   const navigate = useNavigate();
+  usePushNotifications(navigate);
   const showBack = !ROOT_TABS.includes(location.pathname);
 
   // Preserve per-tab sub-view params (?cat=, ?c=, ?game=) so switching tabs restores them
