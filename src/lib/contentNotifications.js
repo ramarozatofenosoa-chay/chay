@@ -4,50 +4,29 @@ import { base44 } from "@/api/base44Client";
 export const NEW_CONTENTS_LIMIT = 10;
 
 /**
- * Publie un contenu et déclenche automatiquement :
- *  - la création d'une notification (type new_content),
- *  - la création d'une ligne UserNotification (non lue) pour chaque utilisateur.
- * Réutilise l'authentification et les entités existantes — pas de système parallèle.
+ * Publie un contenu (statut published) puis déclenche la fonction backend
+ * notifyNewContent : fan-out des notifications in-app (par lots, paginé) +
+ * envoi des e-mails de nouveauté (si sendEmail est vrai). Idempotent par
+ * contenu (notification_id "content_<id>").
  */
-export async function publishContentWithNotification(data) {
+export async function publishContentWithNotification(data, { sendEmail = true } = {}) {
   const now = new Date().toISOString();
-  const payload = {
+  const content = await base44.entities.Content.create({
     status: "published",
     published_at: now,
     ...data,
-  };
-
-  const content = await base44.entities.Content.create(payload);
-
-  const notif = await base44.entities.AppNotification.create({
-    type: "new_content",
-    title: `Nouveau contenu : ${content.title}`,
-    message: content.description || "",
-    content_id: content.id,
-    content_type: content.type,
-    thumbnail_url: content.thumbnail_url || "",
   });
 
-  // Cible : tous les utilisateurs (l'admin peut lister les users).
-  const users = await base44.entities.User.list("-created_date", 1000);
-  const userList = Array.isArray(users) ? users : [];
-
-  const rows = userList.map((u) => ({
-    user_id: u.id,
-    notification_id: notif.id,
-    type: "new_content",
-    content_id: content.id,
-    title: notif.title,
-    message: notif.message,
-    thumbnail_url: notif.thumbnail_url,
-    content_type: content.type,
-    is_read: false,
-  }));
-
-  // bulkCreate par lots de 500.
-  for (let i = 0; i < rows.length; i += 500) {
-    await base44.entities.UserNotification.bulkCreate(rows.slice(i, i + 500));
+  let fanout = { recipients: 0, created: 0, emailsSent: 0, emailsSkipped: 0 };
+  try {
+    const res = await base44.functions.invoke("notifyNewContent", {
+      content_id: content.id,
+      send_email: sendEmail,
+    });
+    fanout = (res && (res.data || res)) || fanout;
+  } catch (e) {
+    fanout.error = (e && e.message) || String(e);
   }
 
-  return { content, notif, recipients: rows.length };
+  return { content, ...fanout };
 }

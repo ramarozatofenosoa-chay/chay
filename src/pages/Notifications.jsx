@@ -20,6 +20,7 @@ import {
   Heart,
   MessageCircle,
   Sparkles,
+  Trash2,
 } from "lucide-react";
 
 const ICONS = {
@@ -109,6 +110,15 @@ export default function Notifications() {
     }
   };
 
+  const deleteOne = async (n) => {
+    try {
+      await base44.entities.UserNotification.delete(n.id);
+      setItems((prev) => prev.filter((x) => x.id !== n.id));
+    } catch (e) {
+      toast({ title: "Erreur", description: e.message, variant: "destructive" });
+    }
+  };
+
   return (
     <div className="mx-auto max-w-2xl px-4 md:px-8 py-6 md:py-10">
       <header className="flex items-center justify-between mb-6 gap-3 flex-wrap">
@@ -136,15 +146,14 @@ export default function Notifications() {
           {items.map((n) => {
             const Icon = ICONS[n.content_type] || Sparkles;
             return (
-              <button
+              <div
                 key={n.id}
                 onClick={() => openOne(n)}
-                className={`w-full text-left rounded-2xl border p-3 flex items-start gap-3 transition min-h-[64px] ${
+                className={`w-full text-left rounded-2xl border p-3 flex items-start gap-3 transition min-h-[64px] cursor-pointer ${
                   n.is_read
                     ? "border-border bg-card"
                     : "border-primary/30 bg-primary/5"
                 }`}
-                aria-label={`${n.title}${n.is_read ? "" : ", non lu"}`}
               >
                 <span
                   className={`h-11 w-11 rounded-xl grid place-items-center shrink-0 ${
@@ -175,7 +184,14 @@ export default function Notifications() {
                     })}
                   </span>
                 </span>
-              </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); deleteOne(n); }}
+                  className="h-8 w-8 grid place-items-center rounded-full hover:bg-muted text-foreground/50 hover:text-destructive shrink-0"
+                  aria-label="Supprimer"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
             );
           })}
         </div>

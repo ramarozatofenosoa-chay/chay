@@ -89,6 +89,35 @@ export default function ConversationView({
     });
   }, [conversation?.id, messages.length, user?.id]);
 
+  // Signal "conversation ouverte" pour le système anti-notification (MemberProfile).
+  useEffect(() => {
+    if (!conversation?.id || !user?.id) return;
+    let alive = true;
+    base44.entities.MemberProfile
+      .filter({ created_by_id: user.id }, "-created_date", 1)
+      .then((rows) => {
+        if (alive && rows && rows[0]) {
+          base44.entities.MemberProfile
+            .update(rows[0].id, { active_conversation_id: conversation.id })
+            .catch(() => {});
+        }
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+      base44.entities.MemberProfile
+        .filter({ created_by_id: user.id }, "-created_date", 1)
+        .then((rows) => {
+          if (rows && rows[0]) {
+            base44.entities.MemberProfile
+              .update(rows[0].id, { active_conversation_id: "" })
+              .catch(() => {});
+          }
+        })
+        .catch(() => {});
+    };
+  }, [conversation?.id, user?.id]);
+
   // Typing indicator from conversation realtime
   useEffect(() => {
     const t = conversation?.typing_at

@@ -47,6 +47,11 @@
     "read_at": {
       "type": "string",
       "format": "date-time"
+    },
+    "email_sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Date du dernier e-mail envoy\u00e9 pour cette notification (d\u00e9duplication 30 min par conversation)."
     }
   },
   "required": [

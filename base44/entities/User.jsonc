@@ -103,6 +103,31 @@
       "type": "object",
       "additionalProperties": true,
       "description": "Pr\u00e9f\u00e9rences de l'utilisateur (affichage, notifications, confidentialit\u00e9) \u2014 persist\u00e9es sur le compte."
+    },
+    "in_app_messages": {
+      "type": "boolean",
+      "default": true,
+      "description": "Recevoir les notifications in-app pour les nouveaux messages priv\u00e9s."
+    },
+    "in_app_nouveautes": {
+      "type": "boolean",
+      "default": true,
+      "description": "Recevoir les notifications in-app pour les nouveaut\u00e9s publi\u00e9es par l'admin."
+    },
+    "email_messages": {
+      "type": "boolean",
+      "default": true,
+      "description": "Recevoir un e-mail pour les nouveaux messages priv\u00e9s."
+    },
+    "email_nouveautes": {
+      "type": "boolean",
+      "default": true,
+      "description": "Recevoir un e-mail pour les nouveaut\u00e9s publi\u00e9es par l'admin."
+    },
+    "admin_email_nouveautes": {
+      "type": "boolean",
+      "default": true,
+      "description": "R\u00e9glage admin : activer l'envoi d'e-mails de nouveaut\u00e9s en masse lors d'une publication."
     }
   },
   "required": [

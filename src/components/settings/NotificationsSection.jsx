@@ -1,6 +1,7 @@
 import React from "react";
 import { usePreferences } from "@/lib/PreferencesContext";
 import PrefSwitch from "@/components/settings/PrefSwitch";
+import NotificationDeliveryPrefs from "@/components/settings/NotificationDeliveryPrefs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -43,6 +44,12 @@ export default function NotificationsSection() {
 
   return (
     <div className="space-y-1">
+      <NotificationDeliveryPrefs />
+
+      <div className="border-t border-border my-2" />
+      <p className="text-xs font-bold uppercase tracking-wide text-foreground/50 py-1">
+        Autres notifications
+      </p>
       <PrefSwitch
         label="Autoriser les notifications"
         description="Activez ou désactivez toutes les notifications."

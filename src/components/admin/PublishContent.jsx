@@ -1,12 +1,21 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { publishContentWithNotification } from "@/lib/contentNotifications";
-import { Loader2, Upload, Send } from "lucide-react";
+import { Loader2, Upload, Send, Mail, BellRing, X, Check, AlertTriangle } from "lucide-react";
 
 const TYPES = [
   ["audio", "Audio"],
@@ -30,11 +39,29 @@ const EMPTY = {
 
 export default function PublishContent() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [form, setForm] = useState(EMPTY);
   const [uploading, setUploading] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [sendEmail, setSendEmail] = useState(true);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState(null);
+
+  // Réglage admin (persisté sur le compte) : e-mails de nouveautés en masse.
+  useEffect(() => {
+    if (user) setSendEmail(user.admin_email_nouveautes !== false);
+  }, [user]);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  const persistToggle = async (v) => {
+    setSendEmail(v);
+    try {
+      await base44.auth.updateMe({ admin_email_nouveautes: v });
+    } catch {
+      /* ignore */
+    }
+  };
 
   const upload = async (file) => {
     if (!file) return;
@@ -56,16 +83,37 @@ export default function PublishContent() {
     }
     setPublishing(true);
     try {
-      const { recipients } = await publishContentWithNotification(form);
-      toast({
-        title: "Contenu publié",
-        description: `${recipients} utilisateur(s) notifié(s).`,
-      });
+      const { recipients, created, emailsSent, error } =
+        await publishContentWithNotification(form, { sendEmail });
+      if (error) {
+        toast({
+          title: "Contenu publié (notification partielle)",
+          description: error,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Contenu publié",
+          description: `${created || recipients || 0} notification(s) · ${emailsSent || 0} e-mail(s) envoyé(s).`,
+        });
+      }
       setForm(EMPTY);
     } catch (e) {
       toast({ title: "Erreur", description: e.message, variant: "destructive" });
     }
     setPublishing(false);
+  };
+
+  const runTest = async () => {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const res = await base44.functions.invoke("sendTestNotification", {});
+      setTestResult((res && (res.data || res)) || {});
+    } catch (e) {
+      setTestResult({ error: (e && e.message) || String(e) });
+    }
+    setTesting(false);
   };
 
   return (
@@ -75,8 +123,8 @@ export default function PublishContent() {
         <h2 className="font-display font-extrabold text-xl">Publier un contenu</h2>
       </div>
       <p className="text-sm text-foreground/60">
-        La publication crée automatiquement une notification envoyée à tous les
-        utilisateurs.
+        La publication crée une notification in-app pour tous les utilisateurs et,
+        si l'option est activée, envoie un e-mail de nouveauté.
       </p>
 
       <div>
@@ -153,6 +201,20 @@ export default function PublishContent() {
         />
       </div>
 
+      {/* Réglage admin : e-mails de nouveauté en masse */}
+      <div className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3">
+        <div className="flex items-center gap-2">
+          <Mail className="h-4 w-4 text-primary" />
+          <div>
+            <div className="text-sm font-bold">E-mails de nouveauté en masse</div>
+            <p className="text-xs text-foreground/55">
+              Envoie un e-mail à tous les utilisateurs lors de la publication.
+            </p>
+          </div>
+        </div>
+        <Switch checked={sendEmail} onCheckedChange={persistToggle} />
+      </div>
+
       <Button onClick={publish} disabled={publishing} className="w-full">
         {publishing ? (
           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -161,6 +223,77 @@ export default function PublishContent() {
         )}
         Publier et notifier
       </Button>
+
+      {/* Bouton de test admin */}
+      <div className="border-t border-border pt-4">
+        <div className="flex items-center gap-2 mb-2">
+          <BellRing className="h-4 w-4 text-primary" />
+          <h3 className="font-display font-bold text-sm">Test du système de notifications</h3>
+        </div>
+        <p className="text-xs text-foreground/55 mb-3">
+          Envoie une notification de test à vous-même (in-app + e-mail) et affiche
+          le résultat détaillé.
+        </p>
+        <Button variant="outline" onClick={runTest} disabled={testing} className="w-full">
+          {testing ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <BellRing className="h-4 w-4 mr-2" />
+          )}
+          Envoyer une notification de test à moi-même
+        </Button>
+      </div>
+
+      {/* Résultat du test */}
+      <Dialog open={!!testResult} onOpenChange={(v) => !v && setTestResult(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Résultat du test</DialogTitle>
+            <DialogDescription>
+              Détail de la notification et de l'e-mail de test.
+            </DialogDescription>
+          </DialogHeader>
+          {testResult?.error ? (
+            <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/10 text-destructive text-sm">
+              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+              <span>{testResult.error}</span>
+            </div>
+          ) : (
+            <div className="space-y-3 text-sm">
+              <div className="flex items-start gap-2">
+                {testResult?.notification?.created ? (
+                  <Check className="h-4 w-4 mt-0.5 text-emerald-500 shrink-0" />
+                ) : (
+                  <X className="h-4 w-4 mt-0.5 text-destructive shrink-0" />
+                )}
+                <div>
+                  <div className="font-bold">Notification in-app</div>
+                  <div className="text-foreground/60 text-xs">
+                    {testResult?.notification?.created
+                      ? `Créée (id : ${testResult?.notification?.id || "—"})`
+                      : `Échec : ${testResult?.notification?.error || "erreur inconnue"}`}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                {testResult?.email?.sent ? (
+                  <Check className="h-4 w-4 mt-0.5 text-emerald-500 shrink-0" />
+                ) : (
+                  <X className="h-4 w-4 mt-0.5 text-destructive shrink-0" />
+                )}
+                <div>
+                  <div className="font-bold">E-mail</div>
+                  <div className="text-foreground/60 text-xs">
+                    {testResult?.email?.sent
+                      ? `Envoyé à ${testResult?.email?.to || "—"}`
+                      : `Non envoyé : ${testResult?.email?.error || "aucune adresse ou erreur"}`}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
