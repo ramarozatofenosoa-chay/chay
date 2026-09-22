@@ -163,10 +163,10 @@
   .selectable { user-select: text; -webkit-user-select: text; }
 
   /* Préférences d'affichage (appliquées via data-attributs sur <html>) */
-  html[data-text-size="sm"] { font-size: 14px; }
-  html[data-text-size="md"] { font-size: 16px; }
-  html[data-text-size="lg"] { font-size: 18px; }
-  html[data-text-size="xl"] { font-size: 20px; }
+  html[data-text-size="sm"] { --tm: 1.1; }
+  html[data-text-size="md"] { --tm: 1.3; }
+  html[data-text-size="lg"] { --tm: 1.5; }
+  html[data-text-size="xl"] { --tm: 1.7; }
   html[data-contrast="high"] { --muted-foreground: 30 10% 25%; --border: 35 15% 70%; }
   html.dark[data-contrast="high"] { --muted-foreground: 40 30% 85%; --border: 36 15% 45%; }
   .reduce-animations *, .reduce-animations *::before, .reduce-animations *::after {
@@ -182,4 +182,24 @@
 @keyframes radio-bar {
   0%, 100% { transform: scaleY(0.25); }
   50% { transform: scaleY(1); }
+}
+
+@layer utilities {
+  .text-xs  { font-size: calc(0.75rem  * var(--tm,1)); line-height: 1.4; }
+  .text-sm  { font-size: calc(0.875rem * var(--tm,1)); line-height: 1.4; }
+  .text-base{ font-size: calc(1rem     * var(--tm,1)); line-height: 1.45; }
+  .text-lg  { font-size: calc(1.125rem * var(--tm,1)); line-height: 1.4; }
+  .text-xl  { font-size: calc(1.25rem  * var(--tm,1)); line-height: 1.35; }
+  .text-2xl { font-size: calc(1.5rem   * var(--tm,1)); line-height: 1.3; }
+  .text-3xl { font-size: calc(1.875rem * var(--tm,1)); line-height: 1.25; }
+  .text-4xl { font-size: calc(2.25rem  * var(--tm,1)); line-height: 1.2; }
+  .text-5xl { font-size: calc(3rem     * var(--tm,1)); line-height: 1.15; }
+
+  /* anti-débordement horizontal du texte */
+  [data-text-size] p, [data-text-size] h1, [data-text-size] h2, [data-text-size] h3,
+  [data-text-size] h4, [data-text-size] span, [data-text-size] label, [data-text-size] button,
+  [data-text-size] a, [data-text-size] li, [data-text-size] td, [data-text-size] th {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
 }
