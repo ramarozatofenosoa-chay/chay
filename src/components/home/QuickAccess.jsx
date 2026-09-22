@@ -4,7 +4,7 @@ import { Radio, Baby, Gift, Info } from "lucide-react";
 import AboutDialog from "./AboutDialog";
 
 const ITEMS = [
-  { key: "radio", label: "Radio", icon: Radio, to: "/RadioPlayer" },
+  { key: "radio", label: "Radio", icon: Radio, to: "/RadioPlayerProvider" },
   { key: "kids", label: "Enfant", icon: Baby, to: "/kids" },
   { key: "donate", label: "Don", icon: Gift, to: "/donate" },
 ];
