@@ -4,7 +4,7 @@ import * as React from "react"
 import { Drawer as DrawerPrimitive } from "vaul"
 
 import { cn } from "@/lib/utils"
-import { useCloseModalRequest } from "@/hooks/useCloseModalRequest"
+import { useBackHandler } from "@/hooks/useBackHandler"
 
 const Drawer = ({
   shouldScaleBackground = true,
@@ -12,7 +12,7 @@ const Drawer = ({
   onOpenChange,
   ...props
 }) => {
-  useCloseModalRequest(open, () => onOpenChange?.(false));
+  useBackHandler(open, () => onOpenChange?.(false));
   return (
     <DrawerPrimitive.Root
       shouldScaleBackground={shouldScaleBackground}

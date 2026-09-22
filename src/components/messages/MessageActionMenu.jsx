@@ -1,6 +1,6 @@
 import React from "react";
 import { Reply, Copy, Trash2, Pencil } from "lucide-react";
-import { useCloseModalRequest } from "@/hooks/useCloseModalRequest";
+import { useBackHandler } from "@/hooks/useBackHandler";
 
 export default function MessageActionMenu({
   position,
@@ -12,7 +12,7 @@ export default function MessageActionMenu({
   onDelete,
   onClose,
 }) {
-  useCloseModalRequest(true, onClose);
+  useBackHandler(true, onClose);
   const left = Math.min(position.x, window.innerWidth - 210);
   const top = Math.min(position.y, window.innerHeight - 220);
 

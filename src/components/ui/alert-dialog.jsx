@@ -3,10 +3,10 @@ import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
-import { useCloseModalRequest } from "@/hooks/useCloseModalRequest"
+import { useBackHandler } from "@/hooks/useBackHandler"
 
 function AlertDialog({ open, onOpenChange, ...props }) {
-  useCloseModalRequest(open, () => onOpenChange?.(false));
+  useBackHandler(open, () => onOpenChange?.(false));
   return <AlertDialogPrimitive.Root open={open} onOpenChange={onOpenChange} {...props} />;
 }
 

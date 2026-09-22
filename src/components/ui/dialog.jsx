@@ -5,10 +5,10 @@ import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import { useCloseModalRequest } from "@/hooks/useCloseModalRequest"
+import { useBackHandler } from "@/hooks/useBackHandler"
 
 function Dialog({ open, onOpenChange, ...props }) {
-  useCloseModalRequest(open, () => onOpenChange?.(false));
+  useBackHandler(open, () => onOpenChange?.(false));
   return <DialogPrimitive.Root open={open} onOpenChange={onOpenChange} {...props} />;
 }
 

@@ -5,10 +5,10 @@ import { cva } from "class-variance-authority";
 import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import { useCloseModalRequest } from "@/hooks/useCloseModalRequest"
+import { useBackHandler } from "@/hooks/useBackHandler"
 
 function Sheet({ open, onOpenChange, ...props }) {
-  useCloseModalRequest(open, () => onOpenChange?.(false));
+  useBackHandler(open, () => onOpenChange?.(false));
   return <SheetPrimitive.Root open={open} onOpenChange={onOpenChange} {...props} />;
 }
 

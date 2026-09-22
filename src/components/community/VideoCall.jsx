@@ -1,9 +1,9 @@
 import React from "react";
 import { X } from "lucide-react";
-import { useCloseModalRequest } from "@/hooks/useCloseModalRequest";
+import { useBackHandler } from "@/hooks/useBackHandler";
 
 export default function VideoCall({ room, onClose }) {
-  useCloseModalRequest(true, onClose);
+  useBackHandler(true, onClose);
   return (
     <div className="fixed inset-0 z-50 bg-black flex flex-col pt-[env(safe-area-inset-top)]">
       <div className="flex items-center justify-between p-3 text-white bg-black/60">
