@@ -5,8 +5,12 @@ import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { useCloseModalRequest } from "@/hooks/useCloseModalRequest"
 
-const Dialog = DialogPrimitive.Root
+function Dialog({ open, onOpenChange, ...props }) {
+  useCloseModalRequest(open, () => onOpenChange?.(false));
+  return <DialogPrimitive.Root open={open} onOpenChange={onOpenChange} {...props} />;
+}
 
 const DialogTrigger = DialogPrimitive.Trigger
 

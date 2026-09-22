@@ -1,7 +1,9 @@
 import React from "react";
 import { X, Phone, Video } from "lucide-react";
+import { useCloseModalRequest } from "@/hooks/useCloseModalRequest";
 
 export default function CallOverlay({ room, mode, label, onClose }) {
+  useCloseModalRequest(true, onClose);
   const audioOnly = mode === "audio";
   const src = `https://meet.jit.si/${room}#config.prejoinPageEnabled=false&config.startWithAudioMuted=false&config.startWithVideoMuted=${audioOnly}&config.subject=${encodeURIComponent(
     "CHAY"

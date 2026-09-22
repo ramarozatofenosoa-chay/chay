@@ -14,8 +14,10 @@ import {
 import { useAudioPlayer } from "@/lib/AudioPlayerContext";
 import { Image } from "@/components/ui/image";
 import SeekBar from "./SeekBar";
+import { useCloseModalRequest } from "@/hooks/useCloseModalRequest";
 
 export default function PlayerFullscreen({ onCollapse, cover }) {
+  useCloseModalRequest(true, onCollapse);
   const {
     currentTrack,
     isPlaying,

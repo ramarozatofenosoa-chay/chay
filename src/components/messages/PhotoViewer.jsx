@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { X, ChevronLeft, ChevronRight, Download, Loader2 } from "lucide-react";
+import { useCloseModalRequest } from "@/hooks/useCloseModalRequest";
 
 /**
  * Visionneuse plein écran des photos d'une conversation.
@@ -7,6 +8,7 @@ import { X, ChevronLeft, ChevronRight, Download, Loader2 } from "lucide-react";
  * - Téléchargement direct de la photo affichée.
  */
 export default function PhotoViewer({ images, index, onClose }) {
+  useCloseModalRequest(true, onClose);
   const [i, setI] = useState(index || 0);
   const [downloading, setDownloading] = useState(false);
   const total = images.length;

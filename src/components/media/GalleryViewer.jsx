@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import { useCloseModalRequest } from "@/hooks/useCloseModalRequest";
 
 export default function GalleryViewer({ images, index, onClose }) {
+  useCloseModalRequest(true, onClose);
   const [i, setI] = useState(index || 0);
 
   useEffect(() => { setI(index || 0); }, [index]);

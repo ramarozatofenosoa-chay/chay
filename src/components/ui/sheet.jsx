@@ -5,8 +5,12 @@ import { cva } from "class-variance-authority";
 import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { useCloseModalRequest } from "@/hooks/useCloseModalRequest"
 
-const Sheet = SheetPrimitive.Root
+function Sheet({ open, onOpenChange, ...props }) {
+  useCloseModalRequest(open, () => onOpenChange?.(false));
+  return <SheetPrimitive.Root open={open} onOpenChange={onOpenChange} {...props} />;
+}
 
 const SheetTrigger = SheetPrimitive.Trigger
 

@@ -1,31 +1,44 @@
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import { App } from "@capacitor/app";
+import { hasOpenModal } from "@/hooks/useCloseModalRequest";
 
-// Gère le bouton retour matériel Android (et le cas échéant l'événement backButton
-// iOS) en une seule inscription racine. À utiliser UNE SEULE FOIS, au plus haut
-// niveau de l'app (composant rendu à l'intérieur du <Router>), jamais par écran.
+// Gère le bouton retour matériel (Android) et l'événement backButton (iOS).
+// Inscription unique au niveau racine de l'app (composant rendu à l'intérieur
+// du <Router>), jamais par écran.
 //
 // Priorité d'interception :
 //   1. Clavier ouvert  -> blur du champ actif (ferme le clavier) et stop.
-//   2. Modale/sheet/menu ouvert -> fermeture via Escape et stop.
-//   3. Historique de navigation non vide -> navigate(-1) et stop.
-//   4. Écran racine sans historique -> on n'invoque pas App.exitApp() : l'app
-//      reste au premier plan (comportement attendu : ne pas fermer brutalement).
+//   2. Modale/overlay ouvert -> émet "close-modal-request" (les overlays
+//      abonnés via useCloseModalRequest se ferment) et stop.
+//   3. Route non racine -> navigate(-1) et stop.
+//   4. Racine -> App.minimizeApp() sur Android ; rien sur iOS (comportement
+//      natif du swipe).
+//
+// On ne se fie PAS à `canGoBack` de Capacitor (désynchronisé de la pile
+// react-router en SPA) : la décision de navigation se prend via
+// useLocation().pathname.
 export function useHardwareBackButton() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Refs pour garder les dernières valeurs sans réinscrire le listener.
+  const navigateRef = useRef(navigate);
+  const pathnameRef = useRef(location.pathname);
+  useEffect(() => {
+    navigateRef.current = navigate;
+    pathnameRef.current = location.pathname;
+  });
 
   useEffect(() => {
-    // backButton est un événement Android (et web). iOS utilise le swipe natif,
-    // traité séparément. On n'enregistre rien hors plateformes concernées.
-    if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "android") return;
+    // Inscription sur Android ET iOS (aucun filtrage de plateforme).
+    // Sur web, rien à faire.
+    if (!Capacitor.isNativePlatform()) return;
 
     let handle;
-    let active = true;
-
     const register = async () => {
-      handle = await App.addListener("backButton", ({ canGoBack }) => {
+      handle = await App.addListener("backButton", () => {
         // 1. Clavier ouvert : rendre le focus au champ actif ferme le clavier.
         const ae = document.activeElement;
         const isField =
@@ -37,29 +50,31 @@ export function useHardwareBackButton() {
           return;
         }
 
-        // 2. Modale / bottom sheet / menu ouvert : fermer via Escape.
-        //    Radix Dialog et vaul Sheet répondent à Escape (onOpenChange(false)).
-        if (document.querySelector('[role="dialog"], [data-state="open"][role="dialog"]')) {
-          document.dispatchEvent(
-            new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })
-          );
+        // 2. Modale/overlay ouvert : demander la fermeture (compteur global
+        //    fiable, pas de devinette du DOM). Les overlays se ferment via
+        //    useCloseModalRequest.
+        if (hasOpenModal()) {
+          window.dispatchEvent(new Event("close-modal-request"));
           return;
         }
 
-        // 3. Historique de navigation non vide : reculer d'un cran.
-        if (canGoBack) {
-          navigate(-1);
+        // 3. Navigation : reculer d'un cran sauf à la racine.
+        if (pathnameRef.current !== "/") {
+          navigateRef.current(-1);
           return;
         }
 
-        // 4. Écran racine sans historique : ne rien faire (l'app reste ouverte).
+        // 4. Racine : minimiser sur Android, comportement natif sur iOS.
+        if (Capacitor.getPlatform() === "android") {
+          try { App.minimizeApp(); } catch {}
+        }
+        // iOS : ne rien faire (swipe natif géré à part).
       });
     };
     register();
 
     return () => {
-      active = false;
       if (handle && typeof handle.remove === "function") handle.remove();
     };
-  }, [navigate]);
+  }, []);
 }
