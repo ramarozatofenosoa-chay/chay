@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 // Compteur global des overlays actuellement ouverts dans l'app.
 // Permet au bouton retour matériel de savoir s'il doit d'abord fermer une
@@ -21,9 +21,18 @@ export function hasOpenModal() {
  *
  * `open` vaut `true` pour les overlays toujours "ouverts" tant qu'ils sont
  * montés (lecteur plein écran, visionneuse, appel, menu contextuel…).
+ *
+ * NB : `onClose` est lu via une ref pour éviter de re-souscrire l'écouteur à
+ * chaque rendu (les lecteurs re-render fréquemment via currentTime), ce qui
+ * ouvrait une fenêtre où l'événement n'avait plus de listener (retour "figé").
  */
 export function useCloseModalRequest(open, onClose) {
-  // Compteur — dépend uniquement de `open` (stable), pas de `onClose`.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
+  // Compteur — dépend uniquement de `open` (stable).
   useEffect(() => {
     if (!open) return;
     openCount += 1;
@@ -32,13 +41,16 @@ export function useCloseModalRequest(open, onClose) {
     };
   }, [open]);
 
-  // Écouteur de fermeture — dépend de `open` et `onClose`.
+  // Écouteur de fermeture — dépend uniquement de `open` (pas de re-souscription
+  // quand l'identité de onClose change). La dernière version de onClose est
+  // lue via la ref au moment où l'événement se déclenche.
   useEffect(() => {
     if (!open) return;
     const handler = () => {
-      if (typeof onClose === "function") onClose();
+      const fn = onCloseRef.current;
+      if (typeof fn === "function") fn();
     };
     window.addEventListener("close-modal-request", handler);
     return () => window.removeEventListener("close-modal-request", handler);
-  }, [open, onClose]);
+  }, [open]);
 }
