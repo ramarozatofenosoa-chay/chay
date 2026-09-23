@@ -87,7 +87,7 @@ export default function SplashScreen() {
              animate={{ opacity: 1 }}
              transition={{ duration: 1, delay: 2.5 }}
           >
-            Église Génération Chrétienne
+            Ny marina hahafaka anareo tsy ho andevo.
           </motion.p>
         </div>
       </div>
