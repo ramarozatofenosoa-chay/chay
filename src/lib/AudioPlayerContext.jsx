@@ -1,3 +1,4 @@
+import { useMediaSessionSync } from "@/hooks/useMediaSessionSync";
 import React, { createContext, useContext, useRef, useState, useEffect, useCallback } from "react";
 import { useMediaPlayerState } from "@/hooks/useMediaPlayerState";
 
