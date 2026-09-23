@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Image } from "@/components/ui/image";
 
 // ⚠️ ASSUREZ-VOUS D'AVOIR MIS À JOUR L'URL DE VOTRE LOGO ICI
-const NEW_LOGO_URL = "https://raw.githubusercontent.com/ramarozatofenosoa-chay/chay/refs/heads/main/src/public/assets/logo_carr%C3%A9-removebg-preview.png?token=GHSAT0AAAAAAEJ22B6ROJC3AHFCH3U44BWI2VULUEQ"; 
+const NEW_LOGO_URL = "https://raw.githubusercontent.com/ramarozatofenosoa-chay/chay/refs/heads/main/src/public/assets/logo_carr%C3%A9-removebg-preview.png?token=GHSAT0AAAAAAEJ22B6R7LYFFAZF6UHDMLF42VUMDOQ"; 
 
 export default function SplashScreen() {
   return (
@@ -66,7 +66,7 @@ export default function SplashScreen() {
             className="text-white text-6xl md:text-7xl tracking-tight uppercase relative font-bold"
             style={{
               // Aglio Picasso n'est pas standard sur web, on utilise une stack qui imite son style géométrique/luxe
-              fontFamily: "'Aglio Picasso', 'Montserrat', 'Helvetica Neue', sans-serif",
+              fontFamily: "'Cinzel', 'Montserrat', 'Helvetica Neue', sans-serif",
               letterSpacing: "-0.03em",
               textShadow: "0 0 20px rgba(255,255,255,0.3)", // Léger glow blanc
             }}
