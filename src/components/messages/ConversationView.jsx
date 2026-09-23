@@ -277,8 +277,7 @@ export default function ConversationView({
       .filter(Boolean);
 
   return (
-    {/* Utilisation de h-full pour s'adapter au parent Layout, et min-h-0 crucial pour le scroll Flexbox */}
-<div className="flex flex-col h-full w-full bg-background overflow-hidden relative">
+    <div className="flex flex-col h-full w-full bg-background overflow-hidden relative">
       {/* Header */}
       <div className="flex items-center gap-2.5 bg-background/85 backdrop-blur-xl border-b border-border px-3 py-2.5">
         <button
