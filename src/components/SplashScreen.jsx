@@ -11,39 +11,44 @@ export default function SplashScreen() {
       initial={{ opacity: 1 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.8, ease: "easeInOut" }} // Sortie plus lente et cinématographique
+      transition={{ duration: 0.8, ease: "easeInOut" }}
     >
-      {/* 1. Fond Animé : Gradient Radial Subtil qui Pulse */}
+      {/* 1. HALO LUMINEUX DÉGRADÉ (Violet - Rose - Bleu) 
+          Il pulse doucement pour donner vie au fond noir */}
       <motion.div
-        className="absolute inset-0 pointer-events-none"
+        className="absolute h-[60vh] w-[60vh] md:h-[80vh] md:w-[80vh] rounded-full blur-[100px] opacity-40 pointer-events-none"
         style={{
-          background: "radial-gradient(circle at center, rgba(255,255,255,0.03) 0%, transparent 70%)",
+          background: "linear-gradient(135deg, #8A56E2 0%, #FF57B2 50%, #4A6CFE 100%)",
         }}
         animate={{
-          scale: [1, 1.2, 1],
-          opacity: [0.5, 0.8, 0.5],
+          scale: [1, 1.15, 1],
+          rotate: [0, 5, 0],
+          opacity: [0.3, 0.5, 0.3],
         }}
         transition={{
-          duration: 6,
+          duration: 8,
           repeat: Infinity,
           ease: "easeInOut",
         }}
       />
+      
+      {/* Couche supplémentaire de lumière blanche subtile au centre pour détacher le texte du halo coloré */}
+      <div className="absolute inset-0 bg-radial-gradient(from-transparent via-black/20 to-black/80)" />
 
       {/* Contenu Central */}
-      <div className="relative z-10 flex flex-col items-center justify-center gap-6 px-8">
+      <div className="relative z-10 flex flex-col items-center justify-center gap-8 px-8 text-center">
         
         {/* 2. Logo avec Effet Zoom Lent & Flottant */}
         <motion.div
           initial={{ scale: 0.9, opacity: 0, y: 20 }}
           animate={{ 
-            scale: [0.9, 1.05, 1], // Petit rebond final
+            scale: [0.9, 1.05, 1], 
             opacity: 1, 
             y: 0 
           }}
           transition={{ 
             duration: 2.5, 
-            ease: [0.22, 1, 0.36, 1], // Courbe de bézier personnalisée pour un mouvement fluide
+            ease: [0.22, 1, 0.36, 1], 
             delay: 0.2 
           }}
         >
@@ -55,14 +60,15 @@ export default function SplashScreen() {
           />
         </motion.div>
 
-        {/* 3. Texte EGC - Typographie Luxe */}
+        {/* 3. Texte EGC - Police Aglio Picasso (ou équivalent luxe) */}
         <div className="flex flex-col items-center">
           <motion.h1
-            className="text-white font-serif text-5xl md:text-6xl tracking-tight uppercase relative"
+            className="text-white text-6xl md:text-7xl tracking-tight uppercase relative font-bold"
             style={{
-              fontFamily: "'Playfair Display', 'Cinzel', Georgia, serif", // Police système proche du luxe
-              fontWeight: 300, // Fine et élégante
-              letterSpacing: "-0.02em", // Lettres serrées
+              // Aglio Picasso n'est pas standard sur web, on utilise une stack qui imite son style géométrique/luxe
+              fontFamily: "'Aglio Picasso', 'Montserrat', 'Helvetica Neue', sans-serif",
+              letterSpacing: "-0.03em",
+              textShadow: "0 0 20px rgba(255,255,255,0.3)", // Léger glow blanc
             }}
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -73,18 +79,24 @@ export default function SplashScreen() {
 
           {/* 4. Ligne Séparatrice Animée (Dessin de Gauche à Droite) */}
           <motion.div
-            className="mt-3 h-[1px] bg-gradient-to-r from-transparent via-white/60 to-transparent"
-            style={{ width: "120%" }} // Légèrement plus large que le texte
+            className="mt-4 h-[1px] bg-gradient-to-r from-transparent via-white/80 to-transparent"
+            style={{ width: "140%" }} // Plus large pour encadrer la citation
             initial={{ scaleX: 0, opacity: 0 }}
             animate={{ scaleX: 1, opacity: 1 }}
             transition={{ duration: 1.2, delay: 1.8, ease: "easeInOut" }}
           />
           
-          {/* Sous-titre discret (Optionnel, peut être retiré si trop chargé) */}
+          {/* 5. Citation Malgache - Playfair Display Italic */}
           <motion.p
-             className="mt-2 text-xs md:text-sm text-white/40 tracking-[0.2em] uppercase font-light"
-             initial={{ opacity: 0 }}
-             animate={{ opacity: 1 }}
+             className="mt-6 text-lg md:text-xl text-white/90 italic leading-relaxed max-w-md mx-auto"
+             style={{
+               fontFamily: "'Playfair Display', Georgia, serif",
+               fontWeight: 400,
+               letterSpacing: "0.02em",
+               textShadow: "0 2px 10px rgba(0,0,0,0.5)", // Ombre portée pour lisibilité sur le halo
+             }}
+             initial={{ opacity: 0, y: 10 }}
+             animate={{ opacity: 1, y: 0 }}
              transition={{ duration: 1, delay: 2.5 }}
           >
             Ny marina hahafaka anareo tsy ho andevo.
@@ -92,8 +104,8 @@ export default function SplashScreen() {
         </div>
       </div>
 
-      {/* 5. Overlay Final pour assombrir légèrement les bords (Vignette effect) */}
-      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_50%,rgba(0,0,0,0.4)_100%)]" />
+      {/* Overlay Final pour vignette cinématique */}
+      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_40%,rgba(0,0,0,0.6)_100%)]" />
       
     </motion.div>
   );
