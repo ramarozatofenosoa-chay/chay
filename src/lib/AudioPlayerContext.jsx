@@ -132,6 +132,16 @@ export function AudioPlayerProvider({ children }) {
     setDuration(0);
   };
 
+     // --- SYNCHRONISATION MEDIA SESSION ANDROID ---
+   useMediaSessionSync({
+     isPlaying,
+     currentTrack,
+     onPlayPause: toggle, // Passe la fonction toggle existante
+     onNext: next,        // Passe la fonction next existante
+     onPrev: prev,        // Passe la fonction prev existante
+     onStop: stop         // Passe la fonction stop existante
+   });
+  
   const toggleShuffle = useCallback(() => {
     setShuffle((s) => {
       const ns = !s;
