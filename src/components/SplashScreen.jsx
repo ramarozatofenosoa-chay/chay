@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Image } from "@/components/ui/image";
 
 // ⚠️ ASSUREZ-VOUS D'AVOIR MIS À JOUR L'URL DE VOTRE LOGO ICI
-const NEW_LOGO_URL = "https://raw.githubusercontent.com/ramarozatofenosoa-chay/chay/refs/heads/main/src/public/assets/logo_carr%C3%A9-removebg-preview.png?token=GHSAT0AAAAAAEJ22B6R7LYFFAZF6UHDMLF42VUMDOQ"; 
+const NEW_LOGO_URL = "https://ramarozatofenosoa-chay.github.io/chay//src/public/assets/egc-logo.png"; 
 
 export default function SplashScreen() {
   return (
