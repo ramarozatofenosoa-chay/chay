@@ -32,67 +32,6 @@ export function AudioPlayerProvider({ children }) {
   const { state: playerState, bufferedRatio, seek: optimisticSeek } =
     useMediaPlayerState(audioRef, { isLive: false });
 
-  // --- NOUVEAU : GESTION MEDIA SESSION POUR LA MUSIQUE ---
-  const updateMediaSession = useCallback(() => {
-    if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
-    
-    try {
-      if (!currentTrack) {
-        // Si plus de piste, on nettoie ou on met en pause
-        navigator.mediaSession.playbackState = "none";
-        navigator.mediaSession.metadata = null;
-        return;
-      }
-
-      // 1. Définir les métadonnées visibles sur Android
-      navigator.mediaSession.metadata = new window.MediaMetadata({
-        title: currentTrack.title || "Titre inconnu",
-        artist: currentTrack.artist || currentTrack.speaker || "CHAY",
-        album: "Musique CHAY", // Distinct de "En direct" pour la radio
-        artwork: [
-          { src: currentTrack.cover_url || "/logo.png", sizes: "512x512", type: "image/png" }
-        ],
-      });
-
-      // 2. Définir l'état de lecture
-      navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
-
-      // 3. Connecter les boutons physiques/système aux fonctions React
-      navigator.mediaSession.setActionHandler("play", () => toggle());
-      navigator.mediaSession.setActionHandler("pause", () => toggle());
-      navigator.mediaSession.setActionHandler("previoustrack", () => prev());
-      navigator.mediaSession.setActionHandler("nexttrack", () => next());
-      
-      // Optionnel : Stop complet si disponible
-      navigator.mediaSession.setActionHandler("stop", () => stop());
-
-    } catch (e) {
-      console.error("MediaSession Error:", e);
-    }
-  }, [currentTrack, isPlaying]);
-
-  // Mettre à jour la session quand la piste ou l'état change
-  useEffect(() => {
-    updateMediaSession();
-  }, [updateMediaSession]);
-  
-  // Nettoyage lors du démontage
-  useEffect(() => {
-    return () => {
-       if (typeof navigator !== "undefined" && "mediaSession" in navigator) {
-         navigator.mediaSession.setActionHandler("play", null);
-         navigator.mediaSession.setActionHandler("pause", null);
-         navigator.mediaSession.setActionHandler("previoustrack", null);
-         navigator.mediaSession.setActionHandler("nexttrack", null);
-         navigator.mediaSession.setActionHandler("stop", null);
-         navigator.mediaSession.metadata = null;
-         navigator.mediaSession.playbackState = "none";
-       }
-    };
-  }, []);
-  // -------------------------------------------------------
-
-
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !currentTrack) return;
