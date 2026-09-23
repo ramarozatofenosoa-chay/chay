@@ -277,7 +277,8 @@ export default function ConversationView({
       .filter(Boolean);
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-9rem)] md:h-[calc(100dvh-10rem)] rounded-[1.5rem] border border-border bg-background overflow-hidden shadow-sm">
+    {/* Utilisation de h-full pour s'adapter au parent Layout, et min-h-0 crucial pour le scroll Flexbox */}
+<div className="flex flex-col h-full w-full bg-background overflow-hidden relative">
       {/* Header */}
       <div className="flex items-center gap-2.5 bg-background/85 backdrop-blur-xl border-b border-border px-3 py-2.5">
         <button
@@ -508,19 +509,18 @@ export default function ConversationView({
             placeholder="Message…"
             className="flex-1 rounded-full border border-border bg-card px-4 py-2.5 text-sm outline-none focus:border-primary"
           />
-          <button
-            onClick={send}
-            disabled={(!draft.trim() && !sending) || sending}
-            className="h-10 shrink-0 rounded-full brand-gradient text-white inline-flex items-center gap-1.5 px-4 disabled:opacity-50 active:scale-95 transition"
-            aria-label="Envoyer"
-          >
-            {sending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-            <span className="text-sm font-bold">Envoyer</span>
-          </button>
+       <button
+  onClick={send}
+  disabled={(!draft.trim() && !sending) || sending}
+  className="h-10 w-10 shrink-0 grid place-items-center rounded-full brand-gradient text-white disabled:opacity-50 active:scale-95 transition shadow-md"
+  aria-label="Envoyer"
+>
+  {sending ? (
+    <Loader2 className="h-5 w-5 animate-spin" />
+  ) : (
+    <Send className="h-5 w-5 ml-0.5" /> 
+  )}
+</button>
         </div>
       </div>
 
