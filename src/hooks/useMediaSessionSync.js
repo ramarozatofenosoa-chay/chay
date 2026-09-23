@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import { useEffect } from "react";
 
 /**
  * Synchronise l'état de lecture avec l'API MediaSession d'Android/iOS.
