@@ -56,16 +56,6 @@ export default function DisplaySection() {
       </div>
 
       <div>
-        <p className="text-xs font-semibold mb-1.5">Taille du texte</p>
-        <Segmented
-          options={["sm", "md", "lg", "xl"]}
-          value={prefs.text_size}
-          onChange={(v) => setPref("text_size", v)}
-          labels={["Petite", "Normale", "Grande", "XL"]}
-        />
-      </div>
-
-      <div>
         <p className="text-xs font-semibold mb-1.5">Densité de l'interface</p>
         <Segmented
           options={["comfortable", "compact"]}
