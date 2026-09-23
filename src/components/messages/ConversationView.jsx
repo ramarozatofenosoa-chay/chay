@@ -277,7 +277,7 @@ export default function ConversationView({
       .filter(Boolean);
 
   return (
-    <div className="flex flex-col h-full w-full bg-background overflow-hidden relative">
+<div className="flex flex-col h-[100dvh] w-full bg-background overflow-hidden relative">
       {/* Header */}
       <div className="flex items-center gap-2.5 bg-background/85 backdrop-blur-xl border-b border-border px-3 py-2.5">
         <button
@@ -467,59 +467,60 @@ export default function ConversationView({
           </button>
         </div>
       )}
-
       {/* Composer */}
-      <div className="relative bg-background/85 backdrop-blur-xl border-t border-border">
+      <div className="sticky bottom-0 z-10 bg-background/95 backdrop-blur-md border-t border-border px-3 py-2 safe-area-pb">
         {showEmoji && (
           <div className="absolute bottom-full left-2 right-2 mb-2">
             <EmojiPicker onPick={(em) => setDraft((d) => d + em)} />
           </div>
         )}
-        <div className="p-3 flex items-center gap-2">
+        
+        {/* Conteneur Flexible - w-full max-w-full garantit qu'il ne déborde jamais */}
+        <div className="flex items-center gap-2 w-full max-w-full mx-auto">
+          
+          {/* Bouton Emoji */}
           <button
             onClick={() => setShowEmoji((s) => !s)}
-            className={`h-10 w-10 grid place-items-center rounded-full hover:bg-muted shrink-0 transition ${
+            className={`h-10 w-10 shrink-0 grid place-items-center rounded-full hover:bg-muted transition ${
               showEmoji ? "text-primary bg-muted" : "text-foreground/60"
             }`}
             aria-label="Emojis"
           >
             <Smile className="h-5 w-5" />
           </button>
+
+          {/* Bouton Image */}
           <button
             onClick={() => fileRef.current?.click()}
-            className="h-10 w-10 grid place-items-center rounded-full hover:bg-muted shrink-0 text-foreground/60"
+            className="h-10 w-10 shrink-0 grid place-items-center rounded-full hover:bg-muted text-foreground/60"
             aria-label="Image"
           >
             <ImageIcon className="h-5 w-5" />
           </button>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => {
-              sendImage(e.target.files?.[0]);
-              e.target.value = "";
-            }}
-          />
+          
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { sendImage(e.target.files?.[0]); e.target.value = ""; }} />
+
+          {/* Champ Texte - min-w-0 EST OBLIGATOIRE POUR ÉVITER LE DÉBORDEMENT */}
           <input
             value={draft}
             onChange={onDraftChange}
             placeholder="Message…"
-            className="flex-1 rounded-full border border-border bg-card px-4 py-2.5 text-sm outline-none focus:border-primary"
+            className="flex-1 min-w-0 rounded-full border border-border bg-card px-4 py-2.5 text-sm outline-none focus:border-primary shadow-inner"
           />
-       <button
-  onClick={send}
-  disabled={(!draft.trim() && !sending) || sending}
-  className="h-10 w-10 shrink-0 grid place-items-center rounded-full brand-gradient text-white disabled:opacity-50 active:scale-95 transition shadow-md"
-  aria-label="Envoyer"
->
-  {sending ? (
-    <Loader2 className="h-5 w-5 animate-spin" />
-  ) : (
-    <Send className="h-5 w-5 ml-0.5" /> 
-  )}
-</button>
+
+          {/* Bouton Envoyer Compact (Icône seule) */}
+          <button
+            onClick={send}
+            disabled={(!draft.trim() && !sending) || sending}
+            className="h-10 w-10 shrink-0 grid place-items-center rounded-full brand-gradient text-white disabled:opacity-50 active:scale-95 transition shadow-lg"
+            aria-label="Envoyer"
+          >
+            {sending ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Send className="h-5 w-5 ml-0.5" /> 
+            )}
+          </button>
         </div>
       </div>
 
