@@ -72,14 +72,14 @@ export default function Settings() {
           <NotificationsSection />
         </SettingsSection>
 
-        <SettingsSection
-          value="display"
-          icon={Palette}
-          title="Préférences d'affichage"
-          description="Thème, langue et taille du texte"
-        >
-          <DisplaySection />
-        </SettingsSection>
+     <SettingsSection
+  value="display"
+  icon={Palette}
+  title="Préférences d'affichage"
+  description="Thème et langue"
+>
+  <DisplaySection />
+</SettingsSection>
 
         <SettingsSection
           value="spiritual"
