@@ -203,3 +203,10 @@
     word-break: break-word;
   }
 }
+
+@font-face {
+  font-family: 'Aglio Picasso';
+  src: url('https://ramarozatofenosoa-chay.github.io/chay/public/fonts/AglioPicasso-Bold.woff2') format('woff2');
+  font-weight: bold;
+  font-style: normal;
+}
