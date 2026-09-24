@@ -43,6 +43,7 @@ export default function SplitClock() {
   };
 
   // Composant interne pour un panneau (Gauche ou Droite)
+   // Composant interne pour un panneau (Gauche ou Droite) - VERSION OPTIMISÉE TEXTE COMPLET
   const Pane = ({ label, icon: Icon, item, isLatest }) => {
     const d = describe(item);
     
@@ -51,26 +52,26 @@ export default function SplitClock() {
         type="button"
         onClick={() => open(item)}
         disabled={!item}
-        className={`flex-1 p-4 text-left flex flex-col justify-between min-h-[8rem] relative group transition-colors duration-300 ${
+        className={`flex-1 p-3 text-left flex flex-col justify-between min-h-[9rem] relative group transition-colors duration-300 ${
           isLatest 
             ? "bg-primary/5 border-l border-border" // La nouveauté a une légère teinte primaire
             : "bg-card hover:bg-muted/30"           // Le précédent reste neutre
         } disabled:opacity-50 disabled:cursor-default`}
       >
         {/* En-tête du panneau : Label + Icône */}
-        <div className="flex items-center gap-2 mb-2">
-          <Icon className={`h-4 w-4 ${isLatest ? 'text-primary' : 'text-foreground/40'}`} />
-          <span className={`text-xs font-bold uppercase tracking-wider ${isLatest ? 'text-primary' : 'text-foreground/50'}`}>
+        <div className="flex items-center gap-1.5 mb-2">
+          <Icon className={`h-3 w-3 ${isLatest ? 'text-primary' : 'text-foreground/40'}`} />
+          <span className={`text-[0.65rem] font-bold uppercase tracking-wider ${isLatest ? 'text-primary' : 'text-foreground/50'}`}>
             {label}
           </span>
         </div>
 
-        {/* Contenu principal */}
+        {/* Contenu principal - POLICE RÉDUITE ET COMPACTE */}
         {item ? (
           <>
-            <p className="selectable text-sm leading-snug text-foreground/90 line-clamp-3">
+            <p className="selectable text-[0.75rem] leading-tight text-foreground/90 line-clamp-none">
               {d.noun} « {d.title} » <br/>
-              <span className="text-xs text-foreground/60">dans {d.cat}</span>
+              <span className="text-[0.65rem] text-foreground/60 block mt-0.5">dans {d.cat}</span>
             </p>
             
             {/* Navigation par flèche au lieu de texte */}
@@ -85,7 +86,7 @@ export default function SplitClock() {
       </button>
     );
   };
-
+  
   return (
     <section className="mt-6 animate-float-in">
       {/* Conteneur Principal : Grid 2 colonnes fixes */}
