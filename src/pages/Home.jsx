@@ -125,11 +125,6 @@ export default function Home() {
               </Link>
             )}
           </div>
-
-          {/* Petit copyright */}
-          <p className="text-xs text-foreground/40 text-center">
-            © {new Date().getFullYear()} Église Chay. Tous droits réservés.
-          </p>
         </footer>
       </div>
     </PullToRefresh>
