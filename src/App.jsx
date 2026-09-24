@@ -85,12 +85,21 @@ const AuthenticatedApp = () => {
 };
 
 
+// L'animation d'accueil ne s'affiche qu'une fois par session : elle ne repart
+// donc plus à chaque actualisation (sinon /bible se relancerait dessus au F5).
+const SPLASH_SESSION_KEY = "chay_splash_shown";
+
 function App() {
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(
+    () => typeof sessionStorage === "undefined" || sessionStorage.getItem(SPLASH_SESSION_KEY) !== "1"
+  );
   useEffect(() => {
+    if (!showSplash) return undefined;
+    // Marqué immédiatement : un actualisation pendant l'animation ne la rejoue pas.
+    sessionStorage.setItem(SPLASH_SESSION_KEY, "1");
     const t = setTimeout(() => setShowSplash(false), 5000);
     return () => clearTimeout(t);
-  }, []);
+  }, [showSplash]);
 
   return (
     <AuthProvider>
