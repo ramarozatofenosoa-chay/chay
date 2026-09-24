@@ -26,16 +26,16 @@ export const VERSIONS = {
       attribution: "Texte Louis Segond 1910 (domaine public) · Audio WordProject.org.",
     },
   ],
-  mg: [
+mg: [
   {
     id: "mg",
     label: "Bible Malgache (Baiboly Masina)",
-    available: true,        // ← true
-    engine: "helloao",      // ← helloao (PAS antonionavira)
-    audio: { supported: false },
-    source: "bible.helloao.org/api/mg",
-    licenseUrl: "https://bible.helloao.org/docs/",
-    attribution: "Traduction Baiboly Masina via Bible.HelloAO.org",
+    available: true,            // ← OBLIGATOIREMENT true, sinon "source non configurée"
+    engine: "antonionavira",    // ← on revient à ta source d'origine
+    audio: { supported: false, configured: false },
+    source: "baiboly.antonionavira.mg",
+    licenseUrl: "https://baiboly.antonionavira.mg/",
+    attribution: "Baiboly Malagasy 1865.",
   },
 ],
 };
