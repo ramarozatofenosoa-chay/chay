@@ -6,7 +6,7 @@ import PullToRefresh from "@/components/PullToRefresh";
 import SplitClock from "@/components/home/SplitClock";
 import QuestionLogiqueSection from "@/components/home/QuestionLogiqueSection";
 import QuickAccess from "@/components/home/QuickAccess";
-import NewContentsSection from "@/components/home/NewContentsSection";
+// ❌ SUPPRIMÉ : import NewContentsSection from "@/components/home/NewContentsSection";
 import VersetDuJourSection from "@/components/home/VersetDuJourSection";
 import ProchaineReunionSection from "@/components/home/ProchaineReunionSection";
 
@@ -66,10 +66,12 @@ export default function Home() {
         <QuickAccess />
       </div>
 
-      {/* Nouveautés */}
+      {/* ❌ SUPPRIMÉ : Le bloc Nouveautés */}
+      {/* 
       <div className="animate-float-in" style={{ animationDelay: "0.35s" }}>
         <NewContentsSection />
-      </div>
+      </div> 
+      */}
 
       {/* Social links */}
       <footer className="mt-12 pt-8 border-t border-border pb-6 flex flex-col items-center gap-4">
