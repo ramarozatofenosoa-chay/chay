@@ -131,3 +131,7 @@ export default function Home() {
             © {new Date().getFullYear()} Église Chay. Tous droits réservés.
           </p>
         </footer>
+      </div>
+    </PullToRefresh>
+  );
+}
