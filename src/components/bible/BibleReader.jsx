@@ -18,10 +18,9 @@ import { useToast } from "@/components/ui/use-toast";
 import { HIGHLIGHT_COLORS, LANGUAGES, VERSIONS } from "@/lib/bibleConstants";
 import VerseActionsSheet from "@/components/bible/VerseActionsSheet";
 import DrawerSelect from "@/components/DrawerSelect";
+import { getMalagasyBooks, fetchMalagasyChapter } from "@/lib/malagasyBible";
 import BibleAudioPlayer from "@/components/bible/BibleAudioPlayer";
 
-// ✅ Source unique et rapide pour TOUTES les langues (FR + MG) : API HelloAO (AWS).
-// Plus aucune dépendance à antonionavira / malagasyBible.
 const API_BASE_URL = "https://bible.helloao.org/api";
 
 function getBooksUrl(translationId) {
@@ -153,7 +152,6 @@ export default function BibleReader({ onBack }) {
   const bibleCacheRef = useRef({});
   const searchControllerRef = useRef(null);
 
-  // --- CHARGEMENT DES LIVRES (uniforme FR + MG via HelloAO) ---
   useEffect(() => {
     const meta = Object.values(VERSIONS).flat().find((v) => v.id === selectedVersion);
     if (!meta || !meta.available) {
@@ -190,7 +188,21 @@ export default function BibleReader({ onBack }) {
       return { nextBookId, nextChapter };
     };
 
-    // ✅ Plus de branche antonionavira : tout le monde passe par HelloAO.
+    // Version malgache : catalogue local (API antonionavira, pas de fetch de liste).
+    if (meta.engine === "antonionavira") {
+      const loaded = getMalagasyBooks();
+      const { nextBookId, nextChapter } = resolveInitial(
+        loaded,
+        loaded.find((b) => b.id === "matio")?.id || loaded[0].id
+      );
+      setBooks(loaded);
+      setSelectedBookId(nextBookId);
+      setSelectedChapter(nextChapter);
+      setBooksStatus("ready");
+      return;
+    }
+
+    // Version helloao (LSG) : fetch de la liste des livres.
     const controller = new AbortController();
     async function loadBooks() {
       setBooksStatus("loading");
@@ -231,7 +243,6 @@ export default function BibleReader({ onBack }) {
     [ALL_VERSIONS, selectedVersion]
   );
 
-  // --- CHARGEMENT DU CHAPITRE (uniforme FR + MG via HelloAO) ---
   useEffect(() => {
     if (booksStatus !== "ready" || !selectedBookId || !selectedChapter) return;
     const controller = new AbortController();
@@ -240,11 +251,16 @@ export default function BibleReader({ onBack }) {
       setVerses([]);
       setErrorMessage("");
       try {
-        // ✅ Logique unique et rapide pour les deux langues.
-        const res = await fetch(getChapterUrl(selectedVersion, selectedBookId, selectedChapter), { signal: controller.signal });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        const loaded = normalizeChapterResponse(data);
+        let loaded;
+        if (versionMeta?.engine === "antonionavira") {
+          if (!selectedBook) throw new Error("Livre introuvable.");
+          loaded = await fetchMalagasyChapter(selectedBook, selectedChapter);
+        } else {
+          const res = await fetch(getChapterUrl(selectedVersion, selectedBookId, selectedChapter), { signal: controller.signal });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          loaded = normalizeChapterResponse(data);
+        }
         if (!loaded || loaded.length === 0) throw new Error("Aucun verset trouvé pour ce chapitre.");
         setVerses(loaded);
         setChapterStatus("ready");
@@ -257,7 +273,7 @@ export default function BibleReader({ onBack }) {
     loadChapter();
     loadAnnotations();
     return () => controller.abort();
-  }, [booksStatus, selectedVersion, selectedBookId, selectedChapter]);
+  }, [booksStatus, selectedVersion, selectedBookId, selectedChapter, versionMeta, selectedBook]);
 
   useEffect(() => {
     if (chapterStatus !== "ready" || !user?.id) return;
@@ -394,7 +410,6 @@ export default function BibleReader({ onBack }) {
   }
 
   // Recherche live : se déclenche automatiquement pendant la frappe (>= 3 chars).
-  // ✅ Fonctionne désormais en MG aussi, puisque MG est sur helloao.
   useEffect(() => {
     const q = searchInput.trim();
     if (q.length < 3) { setSearchResults([]); setSearchStatus("idle"); return; }
@@ -558,19 +573,6 @@ export default function BibleReader({ onBack }) {
           )}
         </div>
       </section>
-
-      <footer className="mt-5 px-1 text-[11px] leading-relaxed text-muted-foreground">
-        <p>{versionMeta?.attribution}</p>
-        {versionMeta?.audio?.supported && (
-          <p className="mt-1">
-            Audio : WordProject.org — Louis Segond 1910. Utilisation réservée à l'évangélisation
-            chrétienne non commerciale. Aucune publicité, vente ou utilisation commerciale.{" "}
-            <a href="https://www.wordproject.org/contact/new/disclaim.htm" target="_blank" rel="noopener noreferrer" className="text-primary underline">
-              Conditions WordProject
-            </a>
-          </p>
-        )}
-      </footer>
 
       <VerseActionsSheet
         open={sheetOpen} onOpenChange={setSheetOpen} verses={selectedVerses} annotations={annotations}
