@@ -110,3 +110,10 @@ export default function SplashScreen() {
     </motion.div>
   );
 }
+
+style={{ 
+  fontFamily: "'Cinzel', 'Playfair Display', serif", 
+  fontWeight: 700 // Cinzel est plus beau en gras/lourd pour un logo
+}}
+
+
