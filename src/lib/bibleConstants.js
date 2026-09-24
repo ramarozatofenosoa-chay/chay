@@ -27,7 +27,6 @@ export const VERSIONS = {
     },
   ],
   mg: [
- mg: [
   {
     id: "mg",
     label: "Bible Malgache (Baiboly Masina)",
