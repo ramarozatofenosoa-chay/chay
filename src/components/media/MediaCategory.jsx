@@ -12,7 +12,7 @@ import { YOUTUBE_SECTIONS } from "@/lib/mediaConstants";
 const TITLES = {
   radio: "Radio",
   music: "Musique",
-  sermons: "Prédications",
+  sermons: "Prédication",
   films: "Films",
   youtube: "YouTube",
   articles: "Articles",
