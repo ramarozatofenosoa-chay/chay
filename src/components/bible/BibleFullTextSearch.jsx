@@ -1,8 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, Search } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import BibleSearchBar from "@/components/bible/BibleSearchBar";
 import BibleSearchResults from "@/components/bible/BibleSearchResults";
+import { getSearchBooks } from "@/lib/bibleSearch";
 
 const PAGE_SIZE = 20;
 
@@ -12,6 +13,8 @@ const PAGE_SIZE = 20;
 export default function BibleFullTextSearch({ onNavigate, onBack }) {
   const [query, setQuery] = useState("");
   const [translation, setTranslation] = useState("lsg1910");
+  // Concordance : 0 = tous les livres, sinon le bookOrder (1-66) du livre choisi.
+  const [book, setBook] = useState(0);
   const [statuses, setStatuses] = useState({});
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
@@ -19,6 +22,11 @@ export default function BibleFullTextSearch({ onNavigate, onBack }) {
   const [status, setStatus] = useState("idle");
   const [translationStatus, setTranslationStatus] = useState(null);
   const latestRequestId = useRef(0);
+
+  // Les libellés changent avec la traduction (Matthieu / Matio) mais pas le
+  // bookOrder : passer de LSG à malgache conserve bien le livre sélectionné.
+  const books = useMemo(() => getSearchBooks(translation), [translation]);
+  const bookLabel = book ? (books.find((b) => b.order === book)?.label || "") : "";
 
   useEffect(() => {
     base44.entities.BibleTranslation.list()
@@ -39,6 +47,7 @@ export default function BibleFullTextSearch({ onNavigate, onBack }) {
       const res = await base44.functions.invoke("searchBibleVerses", {
         query: trimmed,
         translation,
+        bookOrder: book || null, // null = tous les livres
         limit: PAGE_SIZE,
         offset,
       });
@@ -66,7 +75,7 @@ export default function BibleFullTextSearch({ onNavigate, onBack }) {
     const t = setTimeout(() => runSearch(0, false), 300);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, translation]);
+  }, [query, translation, book]);
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-6 md:px-8 md:py-10">
@@ -80,14 +89,17 @@ export default function BibleFullTextSearch({ onNavigate, onBack }) {
           <Search className="h-7 w-7 text-primary" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Recherche biblique</h1>
-          <p className="text-xs text-muted-foreground">Plein texte dans les 66 livres</p>
+          <h1 className="text-2xl font-bold text-foreground">Concordance biblique</h1>
+          <p className="text-xs text-muted-foreground">Un livre précis, ou toute la Bible (66 livres)</p>
         </div>
       </header>
       <div className="mb-3">
         <BibleSearchBar
           query={query}
           onQueryChange={setQuery}
+          book={book}
+          onBookChange={setBook}
+          books={books}
           translation={translation}
           onTranslationChange={setTranslation}
           statuses={statuses}
@@ -100,6 +112,8 @@ export default function BibleFullTextSearch({ onNavigate, onBack }) {
           items={items}
           total={total}
           hasMore={hasMore}
+          scopeLabel={bookLabel}
+          books={books}
           translation={translation}
           translationStatus={translationStatus}
           onLoadMore={() => runSearch(items.length, true)}

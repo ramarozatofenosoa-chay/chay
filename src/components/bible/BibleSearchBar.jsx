@@ -14,6 +14,9 @@ const STATUS_LABEL = {
 export default function BibleSearchBar({
   query,
   onQueryChange,
+  book,
+  onBookChange,
+  books,
   translation,
   onTranslationChange,
   statuses,
@@ -43,6 +46,20 @@ export default function BibleSearchBar({
           <X className="h-4 w-4" />
         </button>
       )}
+      {/* Concordance : filtre sur un livre (bookOrder) ou sur les 66 livres. */}
+      <select
+        value={book}
+        onChange={(e) => onBookChange(Number(e.target.value))}
+        aria-label="Livre à rechercher"
+        className="max-w-[9.5rem] shrink-0 rounded-xl border border-border bg-background px-2 py-1.5 text-xs font-semibold outline-none"
+      >
+        <option value={0}>📖 Tous les livres</option>
+        {books.map((b) => (
+          <option key={b.order} value={b.order}>
+            {b.label}
+          </option>
+        ))}
+      </select>
       <select
         value={translation}
         onChange={(e) => onTranslationChange(e.target.value)}

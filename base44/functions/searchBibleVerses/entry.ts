@@ -46,6 +46,12 @@ export default async function (req) {
     const limit = Math.min(Math.max(Number(body?.limit) || 20, 1), 100);
     const offset = Math.max(Number(body?.offset) || 0, 0);
 
+    // Concordance : bookOrder 1-66 = un livre précis, sinon recherche dans toute
+    // la Bible. Le filtrage se fait sur le numéro (et jamais sur le nom du livre,
+    // qui diffère entre LSG « MATTHIEU » et malgache « Matio »).
+    const rawBookOrder = Number(body?.bookOrder);
+    const bookOrder = Number.isInteger(rawBookOrder) && rawBookOrder >= 1 && rawBookOrder <= 66 ? rawBookOrder : 0;
+
     if (rawQuery.replace(/\s/g, '').length < 2) {
       return Response.json({ total: 0, items: [], hasMore: false, error: 'query_too_short' });
     }
@@ -63,6 +69,7 @@ export default async function (req) {
 
     const matches = [];
     for (const v of all) {
+      if (bookOrder && v.bookOrder !== bookOrder) continue;
       if (v.normalizedText && v.normalizedText.includes(normalizedQuery)) {
         matches.push({
           translation, book: v.book, bookOrder: v.bookOrder,

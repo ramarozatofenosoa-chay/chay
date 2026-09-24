@@ -25,12 +25,18 @@ export default function BibleSearchResults({
   items,
   total,
   hasMore,
+  scopeLabel,
+  books,
   translation,
   translationStatus,
   onLoadMore,
   onSelect,
 }) {
   const language = translation === "malagasy" ? "mg" : "fr";
+
+  // Affiche un libellé lisible (« Matthieu ») plutôt que le nom brut stocké en
+  // base (« MATTHIEU » côté LSG). Repli sur la valeur d'origine si inconnu.
+  const labelFor = (order) => books?.find((b) => b.order === order)?.label || null;
 
   if (status === "idle") return null;
   if (status === "too_short") {
@@ -58,7 +64,9 @@ export default function BibleSearchResults({
           </span>
         ) : (
           <h2 className="text-xs font-bold text-foreground">
-            {total === 0 ? `Aucun verset trouvé pour « ${query} »` : `${total} verset(s) trouvé(s) pour « ${query} »`}
+            {total === 0
+              ? `Aucun verset trouvé${scopeLabel ? ` dans « ${scopeLabel} »` : ""} pour « ${query} »`
+              : `${total} verset(s) trouvé(s)${scopeLabel ? ` dans « ${scopeLabel} »` : ""} pour « ${query} »`}
           </h2>
         )}
       </div>
@@ -71,7 +79,7 @@ export default function BibleSearchResults({
                   onClick={() => onSelect(r)}
                   className="block w-full rounded-xl px-3 py-2 text-left text-xs hover:bg-muted transition focus-visible:ring-2 focus-visible:ring-primary"
                 >
-                  <span className="font-bold text-primary">{r.book} {r.chapter}:{r.verse}</span>
+                  <span className="font-bold text-primary">{labelFor(r.bookOrder) || r.book} {r.chapter}:{r.verse}</span>
                   <span className="ml-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                     {r.translation === "malagasy" ? "MG" : "LSG"}
                   </span>
