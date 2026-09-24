@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Heart, MessageCircle, Send, Loader2 } from "lucide-react";
+import { Heart, MessageCircle, Send, Loader2, X, Maximize2 } from "lucide-react"; // Ajout de X et Maximize2
 import { Image } from "@/components/ui/image";
 import { notifyComment, notifyLike } from "@/lib/socialNotifications";
 import {
@@ -19,6 +19,9 @@ export default function PostCard({ post, currentUser }) {
   const [reactions, setReactions] = useState([]);
   const [showLikes, setShowLikes] = useState(false);
   const [likeBusy, setLikeBusy] = useState(false);
+  
+  // NOUVEL ÉTAT POUR LE VIEWER D'IMAGE
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
 
   const isMine = currentUser && post.created_by_id === currentUser.id;
   const displayName = post.author_name || (isMine ? "Vous" : "Membre");
@@ -118,7 +121,9 @@ export default function PostCard({ post, currentUser }) {
   };
 
   return (
-    <div className="rounded-[1.5rem] border border-border bg-card p-5 md:p-6">
+    <div className="rounded-[1.5rem] border border-border bg-card p-5 md:p-6 relative">
+      
+      {/* En-tête du post */}
       <div className="flex items-center gap-3 mb-3">
         <div className="h-11 w-11 rounded-full brand-gradient grid place-items-center text-white font-display font-bold">
           {displayName[0]?.toUpperCase()}
@@ -136,23 +141,34 @@ export default function PostCard({ post, currentUser }) {
         </div>
       </div>
 
+      {/* Texte du post */}
       {post.text && (
         <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/85">
           {post.text}
         </p>
       )}
 
+          {/* IMAGE CLIQUABLE - PROPORTIONS RESPECTÉES */}
       {post.image_url && (
-        <div className="mt-3 rounded-2xl overflow-hidden border border-border">
+        <div 
+          className="mt-3 rounded-2xl overflow-hidden border border-border cursor-zoom-in group relative bg-muted/20 flex justify-center items-center"
+          onClick={() => setIsViewerOpen(true)}
+        >
           <Image
             src={post.image_url}
             alt=""
-            fittingType="fill"
-            className="w-full max-h-96 object-cover"
+            fittingType="contain" // Force le respect des proportions
+            className="w-full h-auto max-h-[80vh] object-contain transition-transform duration-300 group-hover:scale-[1.02]"
           />
+          
+          {/* Petit indicateur visuel au survol */}
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none">
+             <Maximize2 className="h-6 w-6 text-white drop-shadow-md" />
+          </div>
         </div>
       )}
 
+      {/* Actions (Like / Commentaire) */}
       <div className="flex items-center gap-5 mt-4 pt-4 border-t border-border text-sm font-semibold text-foreground/55">
         <div className={`inline-flex items-center gap-1.5 ${liked ? "text-primary" : ""}`}>
           <button
@@ -184,6 +200,7 @@ export default function PostCard({ post, currentUser }) {
         </button>
       </div>
 
+      {/* Section Commentaires */}
       {showComments && (
         <div className="mt-4 space-y-3">
           {loadingComments ? (
@@ -231,6 +248,7 @@ export default function PostCard({ post, currentUser }) {
         </div>
       )}
 
+      {/* MODAL LIKES */}
       <Dialog open={showLikes} onOpenChange={setShowLikes}>
         <DialogContent>
           <DialogHeader>
@@ -254,6 +272,34 @@ export default function PostCard({ post, currentUser }) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* LIGHTBOX / VIEWER PLEIN ÉCRAN */}
+      {isViewerOpen && post.image_url && (
+        <div 
+          className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setIsViewerOpen(false)} // Fermer si on clique sur le fond
+        >
+          {/* Bouton Fermer (X) */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsViewerOpen(false);
+            }}
+            className="absolute top-4 right-4 h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 text-white grid place-items-center transition-all shadow-lg border border-white/20 z-10"
+            aria-label="Fermer"
+          >
+            <X className="h-6 w-6" />
+          </button>
+
+          {/* L'image en grand */}
+          <img 
+            src={post.image_url} 
+            alt="Vue agrandie" 
+            className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg shadow-2xl animate-scale-in"
+            onClick={(e) => e.stopPropagation()} // Empêcher la fermeture quand on clique SUR l'image
+          />
+        </div>
+      )}
     </div>
   );
 }
