@@ -28,14 +28,15 @@ export const VERSIONS = {
   ],
   mg: [
     {
-      id: "MG1865",
-      label: "Baiboly Malagasy 1865 (MG1865)",
-      available: true,
-      engine: "antonionavira",
-      audio: { supported: false, configured: false },
-      source: "baiboly.antonionavira.mg",
-      licenseUrl: "https://baiboly.antonionavira.mg/",
-      attribution: "Baiboly Malagasy 1865.",
+      // ✅ CHANGEMENT RADICAL ICI
+      id: "mg", 
+      label: "Bible Malgache (Baiboly Masina)",
+      available: true,       // ⬅️ Passé à TRUE pour qu'elle soit sélectionnable
+      engine: "helloao",     // ⬅️ Changé de 'antonionavira' vers 'helloao' (L'API RAPIDE)
+      audio: { supported: false }, // HelloAO ne fournit pas d'audio MG gratuit/standard comme LSG
+      source: "bible.helloao.org/api/mg",
+      licenseUrl: "https://bible.helloao.org/docs/",
+      attribution: "Traduction Baiboly Masina via API Bible.HelloAO.org",
     },
   ],
 };
