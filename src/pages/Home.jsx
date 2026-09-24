@@ -75,18 +75,18 @@ export default function Home() {
         </div> 
         */}
 
-        {/* Footer avec liens sociaux simplifiés en icônes */}
+             {/* Footer avec liens sociaux simplifiés en icônes BLANCES */}
         <footer className="mt-12 pt-8 border-t border-border pb-6 flex flex-col items-center gap-6">
           
           {/* Conteneur des icônes sociales */}
           <div className="flex items-center justify-center gap-4">
             
-            {/* Lien Site Web (Nouveau) */}
+            {/* Lien Site Web */}
             <a
               href="https://www.chay.fr/"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-card border border-border text-foreground hover:bg-primary hover:text-white hover:border-primary transition-all duration-300 shadow-sm"
+              className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-card border border-border text-white hover:bg-primary hover:border-primary transition-all duration-300 shadow-sm"
               aria-label="Site Web Église Chay"
             >
               <Globe className="h-5 w-5" />
@@ -97,7 +97,7 @@ export default function Home() {
               href="https://www.facebook.com/www.chay.fr"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-card border border-border text-blue-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all duration-300 shadow-sm"
+              className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-card border border-border text-white hover:bg-primary hover:border-primary transition-all duration-300 shadow-sm"
               aria-label="Facebook"
             >
               <Facebook className="h-5 w-5" />
@@ -108,7 +108,7 @@ export default function Home() {
               href="https://www.youtube.com/@EgliseChay.fr-tv"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-card border border-border text-red-600 hover:bg-red-600 hover:text-white hover:border-red-600 transition-all duration-300 shadow-sm"
+              className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-card border border-border text-white hover:bg-primary hover:border-primary transition-all duration-300 shadow-sm"
               aria-label="YouTube"
             >
               <Youtube className="h-5 w-5" />
@@ -118,7 +118,7 @@ export default function Home() {
             {user?.role === "admin" && (
               <Link
                 to="/admin"
-                className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-card border border-border text-purple-600 hover:bg-purple-600 hover:text-white hover:border-purple-600 transition-all duration-300 shadow-sm"
+                className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-card border border-border text-white hover:bg-primary hover:border-primary transition-all duration-300 shadow-sm"
                 aria-label="Administration"
               >
                 <Shield className="h-5 w-5" />
@@ -126,12 +126,8 @@ export default function Home() {
             )}
           </div>
 
-          {/* Petit copyright ou note légale optionnelle */}
+          {/* Petit copyright */}
           <p className="text-xs text-foreground/40 text-center">
             © {new Date().getFullYear()} Église Chay. Tous droits réservés.
           </p>
         </footer>
-      </div>
-    </PullToRefresh>
-  );
-}
