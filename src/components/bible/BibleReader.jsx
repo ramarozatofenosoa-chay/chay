@@ -243,25 +243,57 @@ export default function BibleReader({ onBack }) {
     [ALL_VERSIONS, selectedVersion]
   );
 
-  useEffect(() => {
+    useEffect(() => {
     if (booksStatus !== "ready" || !selectedBookId || !selectedChapter) return;
+    
     const controller = new AbortController();
+    
     async function loadChapter() {
       setChapterStatus("loading");
       setVerses([]);
       setErrorMessage("");
+      
       try {
         let loaded;
+        
+        // --- LOGIQUE SPÉCIALE POUR LA BIBLE MALGACHE (CACHE LOCALSTORAGE) ---
         if (versionMeta?.engine === "antonionavira") {
           if (!selectedBook) throw new Error("Livre introuvable.");
-          loaded = await fetchMalagasyChapter(selectedBook, selectedChapter);
-        } else {
+          
+          // 1. Créer une clé unique pour ce chapitre malgache
+          const cacheKey = `bible_mg_${selectedBook.id}_${selectedChapter}`;
+          
+          // 2. Vérifier si on a déjà ces données en mémoire locale
+          const cachedData = localStorage.getItem(cacheKey);
+          if (cachedData) {
+            console.log("✅ Chargé depuis le cache local (Malgache)");
+            loaded = JSON.parse(cachedData);
+          } else {
+            // 3. Sinon, appeler la fonction lente originale
+            console.log("🔄 Appel API Malgache (lent)...");
+            loaded = await fetchMalagasyChapter(selectedBook, selectedChapter);
+            
+            // 4. Sauvegarder immédiatement dans le cache pour la prochaine fois
+            try {
+              localStorage.setItem(cacheKey, JSON.stringify(loaded));
+              console.log("💾 Données sauvegardées en cache");
+            } catch (e) {
+              console.warn("Cache plein", e);
+            }
+          }
+        } 
+        // --- FIN LOGIQUE MALGACHE ---
+        
+        else {
+          // Logique standard HelloAO (rapide)
           const res = await fetch(getChapterUrl(selectedVersion, selectedBookId, selectedChapter), { signal: controller.signal });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data = await res.json();
           loaded = normalizeChapterResponse(data);
         }
+
         if (!loaded || loaded.length === 0) throw new Error("Aucun verset trouvé pour ce chapitre.");
+        
         setVerses(loaded);
         setChapterStatus("ready");
       } catch (e) {
@@ -270,11 +302,12 @@ export default function BibleReader({ onBack }) {
         setErrorMessage(e.message);
       }
     }
+    
     loadChapter();
     loadAnnotations();
     return () => controller.abort();
   }, [booksStatus, selectedVersion, selectedBookId, selectedChapter, versionMeta, selectedBook]);
-
+  
   useEffect(() => {
     if (chapterStatus !== "ready" || !user?.id) return;
     base44.auth.updateMe({ bible_last_book: selectedBookId, bible_last_chapter: selectedChapter }).catch(() => {});
@@ -573,19 +606,6 @@ export default function BibleReader({ onBack }) {
           )}
         </div>
       </section>
-
-      <footer className="mt-5 px-1 text-[11px] leading-relaxed text-muted-foreground">
-        <p>{versionMeta?.attribution}</p>
-        {versionMeta?.audio?.supported && (
-          <p className="mt-1">
-            Audio : WordProject.org — Louis Segond 1910. Utilisation réservée à l'évangélisation
-            chrétienne non commerciale. Aucune publicité, vente ou utilisation commerciale.{" "}
-            <a href="https://www.wordproject.org/contact/new/disclaim.htm" target="_blank" rel="noopener noreferrer" className="text-primary underline">
-              Conditions WordProject
-            </a>
-          </p>
-        )}
-      </footer>
 
       <VerseActionsSheet
         open={sheetOpen} onOpenChange={setSheetOpen} verses={selectedVerses} annotations={annotations}
