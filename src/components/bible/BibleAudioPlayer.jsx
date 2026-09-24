@@ -254,11 +254,11 @@ export default function BibleAudioPlayer({ book, chapter, onPrev, onNext }) {
             tabIndex={0}
             className="relative h-2 w-full cursor-pointer touch-none select-none rounded-full bg-muted"
           >
-            {/* Tampon (ce qui est déjà téléchargé) */}
-            <div
-              className="absolute inset-y-0 left-0 rounded-full bg-foreground/15"
-              style={{ width: `${bufferedPct}%` }}
-            />
+          {/* Tampon (ce qui est déjà téléchargé) — bleu doux */}
+<div
+  className="absolute inset-y-0 left-0 rounded-full bg-sky-400/30"
+  style={{ width: `${bufferedPct}%` }}
+/>
             {/* Progression lue */}
             <div
               className="absolute inset-y-0 left-0 rounded-full brand-gradient"
