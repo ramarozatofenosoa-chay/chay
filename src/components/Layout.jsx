@@ -51,12 +51,17 @@ export default function Layout() {
     if (isActive) return path; // tapping the active tab resets to its root
     if (path === "/media") return path; // Multimédia revient toujours à la grille d'accueil
     if (path === "/messages") return path; // Messages revient toujours à la liste des conversations
+    if (path === "/bible") return path; // La Bible revient toujours au menu des modules
     const stored = lastParams[path];
     return stored ? `${path}${stored}` : path;
   };
 
   const urlParams = new URLSearchParams(location.search);
-  const hasSubView = urlParams.get("cat") || urlParams.get("c") || urlParams.get("game");
+  const hasSubView =
+    urlParams.get("cat") ||
+    urlParams.get("c") ||
+    urlParams.get("game") ||
+    urlParams.get("view"); // sous-écrans Biblette (lecteur, dictionnaire, recherche)
 
   return (
     <LocationGate>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { Play, Pause, Trash2 } from "lucide-react";
 
 export default function PlaylistSection({ items, currentTrackId, isPlaying, onPlay, onRemove }) {

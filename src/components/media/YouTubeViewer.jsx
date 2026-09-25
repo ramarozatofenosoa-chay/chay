@@ -1,9 +1,13 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Maximize2, Minimize2, StickyNote, Printer } from "lucide-react";
+import { useBackHandler } from "@/hooks/useBackHandler";
 
 export default function YouTubeViewer({ video, open, onClose }) {
   const [expanded, setExpanded] = useState(false);
+
+  // Le bouton retour du téléphone ferme la vidéo au lieu de naviguer.
+  useBackHandler(Boolean(open && video), onClose);
 
   React.useEffect(() => {
     if (!open) setExpanded(false);

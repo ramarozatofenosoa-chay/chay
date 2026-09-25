@@ -8,7 +8,6 @@ import {
   ChevronRight,
   Loader2,
   RefreshCw,
-  Search,
   StickyNote,
   Highlighter,
   Copy,

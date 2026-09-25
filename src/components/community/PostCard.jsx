@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Heart, MessageCircle, Send, Loader2, X, Maximize2 } from "lucide-react"; // Ajout de X et Maximize2
 import { Image } from "@/components/ui/image";
+import { useBackHandler } from "@/hooks/useBackHandler";
 import { notifyComment, notifyLike } from "@/lib/socialNotifications";
 import {
   Dialog,
@@ -22,6 +23,8 @@ export default function PostCard({ post, currentUser }) {
   
   // NOUVEL ÉTAT POUR LE VIEWER D'IMAGE
   const [isViewerOpen, setIsViewerOpen] = useState(false);
+  // Le bouton retour du téléphone ferme la visionneuse au lieu de quitter la page.
+  useBackHandler(isViewerOpen, () => setIsViewerOpen(false));
 
   const isMine = currentUser && post.created_by_id === currentUser.id;
   const displayName = post.author_name || (isMine ? "Vous" : "Membre");

@@ -1,5 +1,4 @@
 import React from "react";
-import { Link } from "react-router-dom";
 import { Baby, BookOpen, Gamepad2, Film, Palette } from "lucide-react";
 import ColoringBook from "@/components/kids/ColoringBook";
 

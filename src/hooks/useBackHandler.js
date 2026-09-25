@@ -28,8 +28,15 @@ const MARKER = { chayOverlay: true };
 const closers = []; // pile des callbacks de fermeture (sommet = overlay le plus profond)
 let popInstalled = false;
 
-function onPopState() {
-  if (closers.length === 0) return;
+function onPopState(event) {
+  if (closers.length === 0) {
+    // Entrée MARKER orpheline : elle reste enterrée quand une navigation a eu
+    // lieu pendant qu'une superposition était ouverte. Sans ce saut, le retour
+    // atterrit dessus — même URL, rien ne bouge — et l'utilisateur croit que
+    // le bouton retour est cassé.
+    if (event && event.state && event.state.chayOverlay) window.history.back();
+    return;
+  }
   const close = closers.pop();
   try { close(); } catch {}
   // S'il reste des superpositions ouvertes, on repousse l'entrée synthétique
