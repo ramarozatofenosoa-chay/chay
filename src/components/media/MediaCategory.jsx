@@ -7,7 +7,7 @@ import PlaylistCategoryView from "@/components/media/PlaylistCategoryView";
 import YouTubeCategoryView from "@/components/media/YouTubeCategoryView";
 import FavoritesView from "@/components/media/FavoritesView";
 import GalleryViewer from "@/components/media/GalleryViewer";
-import { YOUTUBE_SECTIONS } from "@/lib/mediaConstants";
+import { YOUTUBE_SECTIONS, GALLERY_SECTIONS, normalizeSection } from "@/lib/mediaConstants";
 
 const TITLES = {
   radio: "Radio",
@@ -34,6 +34,24 @@ function SearchBar({ query, setQuery, placeholder }) {
   );
 }
 
+// Tuile de section au même gabarit que la grille Multimédia (CategoryGrid) :
+// pastille carrée aspect-square + icône h-9/h-10 + libellé text-xs/md:text-sm.
+function SectionTile({ item, onClick }) {
+  const Icon = item.icon;
+  return (
+    <button onClick={onClick} className="group flex flex-col items-center gap-2">
+      <span
+        className={`relative aspect-square w-full rounded-[1.5rem] bg-gradient-to-br ${item.tone} grid place-items-center text-white shadow-sm group-hover:-translate-y-1 group-hover:shadow-lg transition-all`}
+      >
+        <Icon className="h-9 w-9 md:h-10 md:w-10" />
+      </span>
+      <span className="text-xs md:text-sm font-semibold text-foreground/70 text-center leading-tight">
+        {item.label}
+      </span>
+    </button>
+  );
+}
+
 export default function MediaCategory({
   cat, data, query, setQuery, onBack,
   currentTrack, isPlaying, play, playQueue, toggle,
@@ -43,13 +61,19 @@ export default function MediaCategory({
 }) {
   const { articles, youtube, gallery, playlist } = data;
   const [ytSection, setYtSection] = useState(null);
+  const [gallerySection, setGallerySection] = useState(null);
   const [galleryIdx, setGalleryIdx] = useState(null);
 
   const q = query.trim().toLowerCase();
   const match = (t) => (q ? (t || "").toLowerCase().includes(q) : true);
   const fArticles = articles.filter((a) => match(a.title) || match(a.category));
 
-  const galleryImages = gallery.map((g) => g.image_url).filter(Boolean);
+  // Une photo n'apparaît que dans SA section : celles dont le champ
+  // `category` est vide (les photos publiées avant l'ajout des sections)
+  // ne sont donc visibles nulle part.
+  const sectionImages = gallery.filter(
+    (g) => normalizeSection(g.category) === gallerySection
+  );
 
   return (
     <div>
@@ -95,22 +119,10 @@ export default function MediaCategory({
       {cat === "youtube" && (
         <div>
           {!ytSection ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md">
-              {YOUTUBE_SECTIONS.map((s) => {
-                const Icon = s.icon;
-                return (
-                  <button
-                    key={s.id}
-                    onClick={() => setYtSection(s.id)}
-                    className="group flex flex-col items-center justify-center gap-4 rounded-3xl border border-border bg-card p-8 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                  >
-                    <div className={`flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br ${s.tone} text-white shadow-md transition group-hover:scale-105`}>
-                      <Icon className="h-10 w-10" />
-                    </div>
-                    <h3 className="text-xl font-bold text-foreground">{s.label}</h3>
-                  </button>
-                );
-              })}
+            <div className="grid grid-cols-4 gap-4 md:gap-6 max-w-md">
+              {YOUTUBE_SECTIONS.map((s) => (
+                <SectionTile key={s.id} item={s} onClick={() => setYtSection(s.id)} />
+              ))}
             </div>
           ) : (
             <div>
@@ -140,24 +152,54 @@ export default function MediaCategory({
       )}
 
       {cat === "gallery" && (
-        <>
-          {gallery.length ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {gallery.map((g, i) => (
-                <button
-                  key={g.id}
-                  onClick={() => setGalleryIdx(i)}
-                  className="block aspect-square overflow-hidden bg-muted group"
-                >
-                  <Image src={g.image_url} fittingType="fill" className="w-full h-full group-hover:scale-105 transition" />
-                </button>
+        <div>
+          {!gallerySection ? (
+            <div className="grid grid-cols-4 gap-4 md:gap-6 max-w-md">
+              {GALLERY_SECTIONS.map((s) => (
+                <SectionTile
+                  key={s.id}
+                  item={s}
+                  onClick={() => {
+                    setGallerySection(s.id);
+                    setGalleryIdx(null);
+                  }}
+                />
               ))}
             </div>
           ) : (
-            <p className="text-foreground/50 text-sm">Aucune image dans la galerie.</p>
+            <>
+              <button
+                onClick={() => {
+                  setGallerySection(null);
+                  setGalleryIdx(null);
+                }}
+                className="inline-flex items-center gap-1 mb-4 text-sm font-bold text-primary hover:bg-primary/10 rounded-xl px-2 py-2"
+              >
+                <ChevronLeft className="h-5 w-5" /> Galerie
+              </button>
+
+              {sectionImages.length ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {sectionImages.map((g, i) => (
+                    <button
+                      key={g.id}
+                      onClick={() => setGalleryIdx(i)}
+                      className="block aspect-square overflow-hidden bg-muted group"
+                    >
+                      <Image src={g.image_url} fittingType="fill" className="w-full h-full group-hover:scale-105 transition" />
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-foreground/50 text-sm">
+                  Aucune image dans cette section.
+                </p>
+              )}
+
+              <GalleryViewer items={sectionImages} index={galleryIdx} onClose={() => setGalleryIdx(null)} />
+            </>
           )}
-          <GalleryViewer images={galleryImages} index={galleryIdx} onClose={() => setGalleryIdx(null)} />
-        </>
+        </div>
       )}
 
       {cat === "playlist" && (

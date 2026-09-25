@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Image } from "@/components/ui/image";
 import EntityForm from "@/components/admin/EntityForm";
 
 export default function EntityCrud({
@@ -18,6 +19,7 @@ export default function EntityCrud({
   readOnly,
   detailField,
   emptyLabel,
+  thumbField,
 }) {
   const { toast } = useToast();
   const [items, setItems] = useState([]);
@@ -100,6 +102,19 @@ export default function EntityCrud({
               key={item.id}
               className="flex items-start gap-3 rounded-xl border border-border bg-card p-3"
             >
+              {/* Vignette carrée recadrée automatiquement (object-fit: cover).
+                  On évite `rounded-xl` : ici il vaut 32px, ce qui arrondirait
+                  un carré de 48px en cercle. */}
+              {thumbField && item[thumbField] && (
+                <div className="h-12 w-12 shrink-0 overflow-hidden rounded-[12px] bg-muted ring-1 ring-border">
+                  {/* fittingType="fill" = recadrage carré automatique */}
+                  <Image
+                    src={item[thumbField]}
+                    fittingType="fill"
+                    className="h-full w-full"
+                  />
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <div className="font-bold text-sm truncate">
                   {listColumns.map((c) => item[c]).filter(Boolean).join(" · ") ||

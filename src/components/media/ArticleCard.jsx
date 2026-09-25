@@ -10,18 +10,69 @@ import {
 import { Image } from "@/components/ui/image";
 import ReactMarkdown from "react-markdown";
 
+// Le corps d'article existe sous deux formes :
+//  - HTML, produit par l'éditeur riche de l'app Multimédia (ReactQuill)
+//  - texte/Markdown, saisi dans le champ « Contenu » de l'admin
+// On détecte le HTML pour ne jamais afficher des balises brutes.
+const looksLikeHtml = (s) => /<[a-z][^>]*>/i.test(s || "");
+
+function ArticleBody({ body }) {
+  if (!body) return null;
+
+  if (looksLikeHtml(body)) {
+    // Contenu rédigé par un administrateur de l'église uniquement.
+    return (
+      <div
+        className="article-body"
+        dangerouslySetInnerHTML={{ __html: body }}
+      />
+    );
+  }
+  return (
+    <div className="article-body">
+      <ReactMarkdown>{body}</ReactMarkdown>
+    </div>
+  );
+}
+
+function formatDate(value) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("fr-FR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 export default function ArticleCard({ article }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const open = searchParams.get("article") === article.id;
+
+  // IMPORTANT : on part des paramètres DÉJÀ présents (?cat=articles) avant
+  // d'ajouter `article`. Avec setSearchParams({ article }), React Router
+  // remplace toute la chaîne de requête : `cat` disparaît, Media.jsx perd son
+  // activeCat et la page retombe sur la grille de catégories au lieu
+  // d'ouvrir l'article.
   const setOpen = (v) => {
-    if (v) setSearchParams({ article: article.id });
-    else setSearchParams({}, { replace: true });
+    const next = new URLSearchParams(searchParams);
+    if (v) next.set("article", article.id);
+    else next.delete("article");
+    // Ouverture = nouvelle entrée d'historique (le retour ferme l'article) ;
+    // fermeture = remplacement (pas d'entrée fantôme dans l'historique).
+    setSearchParams(next, { replace: !v });
   };
+
+  const date = formatDate(article.created_date);
+
   return (
     <>
       <button
+        type="button"
         onClick={() => setOpen(true)}
-        className="text-left rounded-[1.5rem] border border-border bg-card overflow-hidden hover:-translate-y-1 hover:shadow-lg transition-all w-full"
+        aria-label={`Lire l'article : ${article.title || "sans titre"}`}
+        className="text-left rounded-[1.5rem] border border-border bg-card overflow-hidden hover:-translate-y-1 hover:shadow-lg transition-all w-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
         {article.cover_url ? (
           <div className="h-40 overflow-hidden">
@@ -42,28 +93,64 @@ export default function ArticleCard({ article }) {
           {article.excerpt && (
             <p className="text-sm text-foreground/55 mt-2 line-clamp-3">{article.excerpt}</p>
           )}
-          {article.author && (
-            <p className="text-xs text-foreground/40 mt-3">Par {article.author}</p>
-          )}
+          <div className="mt-3 flex items-center gap-2 text-xs text-foreground/40">
+            {article.author && <span>Par {article.author}</span>}
+            {article.author && date && <span aria-hidden="true">·</span>}
+            {date && <span>{date}</span>}
+          </div>
+          <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-primary">
+            Lire l'article
+            <span aria-hidden="true">→</span>
+          </span>
         </div>
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          {article.cover_url && (
-            <Image src={article.cover_url} fittingType="fill" className="w-full h-48 rounded-xl mb-4" />
-          )}
-          <DialogHeader>
-            <DialogTitle className="text-2xl">{article.title}</DialogTitle>
-            {article.author && (
-              <DialogDescription>
-                Par {article.author}
-                {article.category ? ` · ${article.category}` : ""}
-              </DialogDescription>
+        <DialogContent className="max-w-2xl max-h-[88vh] overflow-y-auto sm:rounded-3xl">
+          <div className="pr-7">
+            {article.cover_url ? (
+              <Image
+                src={article.cover_url}
+                fittingType="fill"
+                className="w-full h-44 md:h-56 rounded-2xl object-cover mb-5"
+              />
+            ) : (
+              <div className="w-full h-32 rounded-2xl brand-gradient mb-5" />
             )}
-          </DialogHeader>
-          <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/80 leading-relaxed selectable">
-            <ReactMarkdown>{article.body || ""}</ReactMarkdown>
+
+            <DialogHeader className="gap-0">
+              {article.category && (
+                <span className="mb-3 inline-flex w-fit items-center rounded-full bg-primary/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-primary">
+                  {article.category}
+                </span>
+              )}
+              <DialogTitle className="font-display text-2xl md:text-3xl font-extrabold leading-[1.15] tracking-normal text-foreground">
+                {article.title}
+              </DialogTitle>
+              {(article.author || date) && (
+                <DialogDescription className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-foreground/55">
+                  {article.author && (
+                    <span className="font-semibold text-foreground/75">
+                      Par {article.author}
+                    </span>
+                  )}
+                  {article.author && date && (
+                    <span aria-hidden="true" className="text-foreground/30">·</span>
+                  )}
+                  {date && <span>{date}</span>}
+                </DialogDescription>
+              )}
+            </DialogHeader>
+
+            <div className="my-5 h-px bg-border" />
+
+            <ArticleBody body={article.body} />
+
+            {!article.body && (
+              <p className="text-sm text-foreground/50 italic">
+                Cet article ne contient pas encore de contenu.
+              </p>
+            )}
           </div>
         </DialogContent>
       </Dialog>

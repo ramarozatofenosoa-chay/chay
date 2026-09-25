@@ -210,3 +210,111 @@
   font-weight: bold;
   font-style: normal;
 }
+
+/* ── Lecture d'article ──────────────────────────────────────────────────────
+   Le projet n'installe pas @tailwindcss/typography : les classes « prose »
+   utilisées auparavant n'avaient donc AUCUN effet et le texte s'affichait
+   brut. Ces règles remplacent l'extension pour un confort de lecture correct,
+   dans les deux thèmes (clair et sombre). */
+.article-body {
+  max-width: 100%;
+  color: hsl(var(--foreground) / 0.85);
+  font-size: 1.0625rem;
+  line-height: 1.78;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  text-wrap: pretty;
+}
+.article-body > *:first-child { margin-top: 0; }
+.article-body p { margin-top: 1.05em; }
+.article-body h1,
+.article-body h2,
+.article-body h3,
+.article-body h4 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  line-height: 1.25;
+  color: hsl(var(--foreground));
+  overflow-wrap: anywhere;
+}
+.article-body h1 { font-size: 1.55em; margin-top: 1.7em; }
+.article-body h2 { font-size: 1.32em; margin-top: 1.55em; }
+.article-body h3 { font-size: 1.16em; margin-top: 1.4em; }
+.article-body h4 { font-size: 1.04em; margin-top: 1.3em; }
+.article-body h1:first-child,
+.article-body h2:first-child,
+.article-body h3:first-child,
+.article-body h4:first-child { margin-top: 0; }
+
+.article-body strong,
+.article-body b {
+  font-weight: 800;
+  color: hsl(var(--foreground));
+}
+.article-body em { font-style: italic; }
+.article-body a {
+  color: hsl(var(--primary));
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.article-body a:hover { opacity: 0.8; }
+
+.article-body ul,
+.article-body ol { margin-top: 1em; padding-left: 1.4em; }
+.article-body ul { list-style: disc; }
+.article-body ol { list-style: decimal; }
+.article-body li { margin-top: 0.45em; }
+.article-body li::marker { color: hsl(var(--primary)); }
+
+.article-body blockquote {
+  margin-top: 1.3em;
+  padding: 0.85em 1.1em;
+  border-left: 3px solid hsl(var(--primary));
+  border-radius: 0 0.9rem 0.9rem 0;
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground) / 0.75);
+  font-style: italic;
+}
+.article-body hr {
+  margin-top: 2em;
+  border: 0;
+  border-top: 1px solid hsl(var(--border));
+}
+.article-body img {
+  display: block;
+  margin-top: 1.4em;
+  width: 100%;
+  border-radius: 1rem;
+}
+.article-body code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  padding: 0.15em 0.4em;
+  border-radius: 0.4em;
+  background: hsl(var(--muted));
+}
+.article-body pre {
+  margin-top: 1.2em;
+  padding: 1em;
+  border-radius: 1rem;
+  background: hsl(var(--muted));
+  overflow-x: auto;
+}
+.article-body pre code { padding: 0; background: none; }
+.article-body table {
+  width: 100%;
+  margin-top: 1.2em;
+  border-collapse: collapse;
+  font-size: 0.95em;
+}
+.article-body th,
+.article-body td {
+  padding: 0.5em 0.7em;
+  border: 1px solid hsl(var(--border));
+  text-align: left;
+}
+.article-body th {
+  background: hsl(var(--muted));
+  font-weight: 700;
+}

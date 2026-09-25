@@ -7,6 +7,8 @@ import {
   Youtube,
   Image as ImageIcon,
   ListMusic,
+  Church,
+  Lightbulb,
 } from "lucide-react";
 
 export const RADIO_URL =
@@ -32,3 +34,20 @@ export const YOUTUBE_SECTIONS = [
   { id: "culte", label: "Culte", icon: Youtube, tone: "from-[#FF4D2D] to-[#FF57B2]" },
   { id: "louange", label: "Louange", icon: Youtube, tone: "from-[#8A56E2] to-[#4A6CFE]" },
 ];
+
+// Sections de la Galerie. `id` = valeur enregistrée dans le champ `category`
+// de l'entité GalleryImage (saisie via la liste déroulante de l'admin).
+export const GALLERY_SECTIONS = [
+  { id: "eglise", label: "Église", icon: Church, tone: "from-[#2E6F40] to-[#4A6CFE]" },
+  { id: "mindset", label: "Mindset", icon: Lightbulb, tone: "from-[#8A56E2] to-[#FF57B2]" },
+];
+
+// Compare une valeur saisie à la main (« Église », « EGLISE », « eglise »…)
+// avec l'id d'une section, sans se faire piéger par les accents ni la casse.
+export const normalizeSection = (value) =>
+  (value || "")
+    .toString()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();

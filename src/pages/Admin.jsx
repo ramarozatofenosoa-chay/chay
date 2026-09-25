@@ -30,6 +30,7 @@ import {
   Send,
   Newspaper,
 } from "lucide-react";
+import { GALLERY_SECTIONS } from "@/lib/mediaConstants";
 
 const LANGS = [
   { value: "fr", label: "Français" },
@@ -163,10 +164,17 @@ const SECTIONS = [
     icon: ImageIcon,
     sort: "-created_date",
     listColumns: ["title", "category"],
+    // Vignette carrée (recadrée automatiquement) à gauche de chaque ligne.
+    thumbField: "image_url",
     fields: [
       { name: "title", label: "Titre", type: "text", required: true },
       { name: "image_url", label: "Image", type: "file", required: true, accept: "image/*" },
-      { name: "category", label: "Catégorie", type: "text" },
+      {
+        name: "category",
+        label: "Section",
+        type: "select",
+        options: GALLERY_SECTIONS.map((s) => ({ value: s.id, label: s.label })),
+      },
     ],
   },
   {
@@ -378,6 +386,7 @@ export default function Admin() {
                     sort={section.sort}
                     readOnly={section.readOnly}
                     detailField={section.detailField}
+                    thumbField={section.thumbField}
                   />
                 )}
               </section>
