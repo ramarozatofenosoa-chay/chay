@@ -23,7 +23,10 @@ export default function CategoryGrid({ onOpen, radioPlaying, onToggleRadio }) {
                 </span>
               )}
             </span>
-            <span className="text-xs md:text-sm font-semibold text-foreground/70 text-center leading-tight">
+            {/* whitespace-nowrap : « Prédications » ne doit JAMAIS casser au
+                milieu du mot (le « s » seul sur une 2e ligne) — même avec une
+                grande taille de texte réglée dans l'app. */}
+            <span className="text-2xs md:text-sm font-semibold text-foreground/70 text-center leading-tight whitespace-nowrap">
               {c.label}
             </span>
           </button>

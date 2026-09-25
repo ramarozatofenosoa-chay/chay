@@ -26,11 +26,13 @@ export default function FavoritesView({
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold transition ${
+              aria-label={t.label}
+              aria-pressed={tab === t.id}
+              className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-bold transition ${
                 tab === t.id ? "bg-primary text-primary-foreground" : "text-foreground/60"
               }`}
             >
-              <Icon className="h-4 w-4" /> {t.label}
+              <Icon className="h-4 w-4" />
             </button>
           );
         })}

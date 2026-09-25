@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronLeft, ChevronRight, MessageCircle, Send, Loader2 } from "lucide-react";
 import { useBackHandler } from "@/hooks/useBackHandler";
+import { parseWixMediaUrl, buildTransformUrl } from "@/components/ui/image-helpers";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 
@@ -21,11 +22,39 @@ export default function GalleryViewer({ items = [], index, onClose }) {
   const { user } = useAuth();
 
   const [i, setI] = useState(index || 0);
+  // Synchronisation de l'index pendant le rendu (et non dans un useEffect) :
+  // l'état `i` est corrigé AVANT le premier rendu, donc toucher la photo n°3
+  // n'affiche jamais la photo n°0 pendant une frame. Avec `key={i}` sur l'image,
+  // un rendu « faux » forçait un remontage + un rechargement du fichier —
+  // c'était le petit clignotement à la touche. À la fermeture (index = null)
+  // on ne réinitialise PAS `i` : la photo affichée reste stable pendant
+  // l'animation de sortie au lieu de basculer sur la première.
+  const [prevIndex, setPrevIndex] = useState(index);
+  if (index !== prevIndex) {
+    setPrevIndex(index);
+    if (index !== null && index !== undefined) setI(index);
+  }
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState([]);
   const [loadingComments, setLoadingComments] = useState(false);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+
+  // ── Anti-clignotement ──────────────────────────────────────────────────
+  // 1. On ne montre l'image qu'une fois entièrement téléchargée : un gros
+  //    JPEG se peint par à-coups (progressif) et la photo « clignote »
+  //    plusieurs secondes au moment du toucher.
+  // 2. On demande une version à la taille de l'écran plutôt que l'original
+  //    (souvent plusieurs Mo) : le chargement devient instantané.
+  const imgRef = useRef(null);
+  const [loadedSrc, setLoadedSrc] = useState(null);
+  const [failedTransform, setFailedTransform] = useState(null);
+  const [viewWidth] = useState(() =>
+    Math.min(
+      2400,
+      Math.max(1200, Math.round((window.innerWidth || 1200) * Math.min(window.devicePixelRatio || 1, 2)))
+    )
+  );
 
   const touch = useRef(null);
   const swiped = useRef(false);
@@ -35,15 +64,33 @@ export default function GalleryViewer({ items = [], index, onClose }) {
   const current = isOpen ? items[i] : null;
   const key = current && current.id ? commentKey(current.id) : null;
 
+  const sourceUrl = (current && current.image_url) || null;
+  const parsedUrl = sourceUrl ? parseWixMediaUrl(sourceUrl) : null;
+  const transformSrc = parsedUrl
+    ? buildTransformUrl(parsedUrl, {
+        width: viewWidth,
+        height: undefined,
+        crop: undefined,
+        focalPoint: undefined,
+        quality: 85,
+      })
+    : null;
+  const displaySrc =
+    transformSrc && failedTransform !== transformSrc ? transformSrc : sourceUrl;
+  const isLoaded = Boolean(displaySrc && loadedSrc === displaySrc);
+
+  // Une photo déjà en cache peut avoir fini de charger avant que React
+  // n'ait pu capter onLoad : on vérifie l'état réel de l'élément.
+  useEffect(() => {
+    const el = imgRef.current;
+    if (displaySrc && el && el.complete && el.naturalWidth > 0) setLoadedSrc(displaySrc);
+  }, [displaySrc, i]);
+
   // Retour matériel : on ferme d'abord les commentaires, puis la photo.
   // (Le viewer n'est plus « toujours ouvert » : sinon il empilait une entrée
   // d'historique fantôme à chaque ouverture de la catégorie Galerie.)
   useBackHandler(isOpen, onClose);
   useBackHandler(showComments && isOpen, () => setShowComments(false));
-
-  useEffect(() => {
-    setI(index || 0);
-  }, [index]);
 
   // Chargement des commentaires de la photo affichée.
   useEffect(() => {
@@ -205,15 +252,34 @@ export default function GalleryViewer({ items = [], index, onClose }) {
             </>
           )}
 
+          {/* Indicateur tant que la photo n'est pas entièrement chargée */}
+          {!isLoaded && (
+            <div className="absolute inset-0 grid place-items-center pointer-events-none z-10">
+              <Loader2 className="h-8 w-8 animate-spin text-white/50" />
+            </div>
+          )}
+
           <motion.img
+            ref={imgRef}
             key={i}
             initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
+            animate={isLoaded ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.96 }}
             transition={{ duration: 0.2 }}
-            src={current?.image_url}
+            src={displaySrc || undefined}
             alt=""
             draggable={false}
             onClick={(e) => e.stopPropagation()}
+            onLoad={() => { if (displaySrc) setLoadedSrc(displaySrc); }}
+            onError={() => {
+              // 1re erreur = transform refusée → on retente l'original ;
+              // 2e erreur = fichier réellement cassé → on affiche quand même
+              // (image en erreur du navigateur) plutôt qu'une rotation infinie.
+              if (transformSrc && failedTransform !== transformSrc) {
+                setFailedTransform(transformSrc);
+              } else if (sourceUrl) {
+                setLoadedSrc(sourceUrl);
+              }
+            }}
             className={`max-w-[92vw] object-contain select-none transition-[max-height] duration-200 ${
               showComments ? "max-h-[52vh]" : "max-h-[88vh]"
             }`}
