@@ -12,6 +12,10 @@
       "type": "string",
       "format": "date"
     },
+    "event_date": {
+      "type": "string",
+      "format": "date"
+    },
     "type": {
       "type": "string",
       "enum": [

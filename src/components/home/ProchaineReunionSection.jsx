@@ -47,7 +47,9 @@ export default function ProchaineReunionSection({ refreshKey = 0 }) {
     id: undefined, // entrée sélectionnée dans le planning ; undefined = nouvelle
     title: "",
     body: "",
-    date: toISODate(),
+    date: toISODate(), // date de publication (clé du planning)
+    event_date: "", // date de la réunion affichée sur la carte
+    __legacy: false, // annonce d'avant les deux dates : comportement inchangé
   });
 
   // File « à publier » : on enregistre plusieurs réunions dans la fenêtre,
@@ -55,13 +57,25 @@ export default function ProchaineReunionSection({ refreshKey = 0 }) {
   const { pending, publishing, stage, discard, publish } = useStagedPublish({
     entity: base44.entities.Announcement,
     dateField: "date",
-    build: (p) => ({
-      title: (p.title || "").trim(),
-      body: (p.body || "").trim() || "",
-      date: p.date,
-      type: "event",
-      language: "fr",
-    }),
+    build: (p) => {
+      const payload = {
+        title: (p.title || "").trim(),
+        body: (p.body || "").trim() || "",
+        date: p.date,
+        type: "event",
+        language: "fr",
+      };
+      if (p.event_date) {
+        payload.event_date = p.event_date;
+      } else if (!p.__legacy) {
+        // Nouvelle annonce sans date de réunion saisie : la réunion a lieu le
+        // même jour que la publication.
+        payload.event_date = p.date;
+      }
+      // Annonce ancienne laissée telle quelle : on n'ajoute pas le champ, son
+      // affichage reste exactement celui d'avant.
+      return payload;
+    },
     // On met à jour l'entrée sélectionnée ; à défaut on en crée une. Une
     // collision de date est REFUSÉE plutôt qu'écrasée : deux réunions peuvent
     // cohabiter un même jour, remplacer silencieusement l'autre ferait perdre
@@ -72,12 +86,25 @@ export default function ProchaineReunionSection({ refreshKey = 0 }) {
     },
   });
 
-  // Plus proche réunion à venir : aujourd'hui ou plus tard, la première.
+  // Date de réunion affichée : les annonces d'avant la séparation des deux
+  // dates n'ont pas de `event_date` — leur unique date servait des deux rôles.
+  const meetingOf = (a) => a.event_date || a.date;
+
+  // Prochaine réunion à venir : réunion pas encore passée ET affiche déjà
+  // publiée. Exemple : l'affiche est publiée demain, la réunion est dimanche
+  // → rien aujourd'hui, la carte apparaît demain et affiche « dimanche ».
+  // Une annonce sans date de réunion distincte garde l'ancien comportement
+  // (visible tant que sa date n'est pas passée).
   const upcomingOf = (list) => {
     const now = toISODate();
     const upcoming = list
-      .filter((a) => a.date >= now)
-      .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+      .filter((a) => {
+        const evt = meetingOf(a);
+        return evt >= now && (!a.event_date || a.date <= now);
+      })
+      .sort((a, b) =>
+        meetingOf(a) < meetingOf(b) ? -1 : meetingOf(a) > meetingOf(b) ? 1 : 0
+      );
     return upcoming[0] || null;
   };
 
@@ -122,6 +149,11 @@ export default function ProchaineReunionSection({ refreshKey = 0 }) {
       title: base?.title || "",
       body: base?.body || "",
       date: base?.date || toISODate(),
+      // Vide = annonce ancienne (une seule date) : son comportement reste
+      // inchangé. Nouvelle annonce : la réunion a lieu le même jour que la
+      // publication tant que le champ n'est pas rempli.
+      event_date: base?.event_date || "",
+      __legacy: Boolean(base?.id) && !base?.event_date,
     });
     setEditing(true);
     loadPlanning();
@@ -134,6 +166,8 @@ export default function ProchaineReunionSection({ refreshKey = 0 }) {
       title: entry?.title || "",
       body: entry?.body || "",
       date: day,
+      event_date: entry?.event_date || "",
+      __legacy: Boolean(entry?.id) && !entry?.event_date,
     });
   };
 
@@ -148,6 +182,10 @@ export default function ProchaineReunionSection({ refreshKey = 0 }) {
     }
     if (!isISODate(day)) {
       toast({ title: "Date invalide", variant: "destructive" });
+      return;
+    }
+    if (draft.event_date && !isISODate(draft.event_date)) {
+      toast({ title: "Date de réunion invalide", variant: "destructive" });
       return;
     }
     const res = stage(
@@ -168,6 +206,8 @@ export default function ProchaineReunionSection({ refreshKey = 0 }) {
       title: "",
       body: "",
       date: addDaysISO(day, 1),
+      event_date: "",
+      __legacy: false,
     });
   };
 
@@ -227,15 +267,23 @@ export default function ProchaineReunionSection({ refreshKey = 0 }) {
 
   const today = toISODate();
   const dateHint = !isISODate(draft.date)
-    ? "Choisissez une date."
+    ? "Choisissez une date de publication."
     : draft.date < today
-      ? "Date passée : cette réunion n'apparaîtra plus dans « Prochaine réunion »."
+      ? "Déjà publié : l'affiche reste affichée jusqu'à la date de la réunion."
       : draft.date === today
-        ? "Apparaît dès aujourd'hui."
-        : `Apparaîtra automatiquement le ${formatISODate(draft.date, { long: true })}.`;
+        ? "Publié aujourd'hui."
+        : `L'affiche apparaîtra automatiquement le ${formatISODate(draft.date, { long: true })}.`;
 
-  const reunionDate = reunion?.date
-    ? fromISODate(reunion.date)?.toLocaleDateString("fr-FR", {
+  const meetingHint = !draft.event_date
+    ? "Vide : la réunion a lieu le même jour que la publication."
+    : !isISODate(draft.event_date)
+      ? "Date de réunion invalide."
+      : isISODate(draft.date) && draft.event_date < draft.date
+        ? "La réunion est antérieure à la publication : elle n'apparaîtra pas sur l'accueil."
+        : `Date affichée sur la carte : ${formatISODate(draft.event_date, { long: true })}.`;
+
+  const reunionDate = reunion
+    ? fromISODate(meetingOf(reunion))?.toLocaleDateString("fr-FR", {
         day: "numeric",
         month: "long",
       })
@@ -293,9 +341,10 @@ export default function ProchaineReunionSection({ refreshKey = 0 }) {
           <DialogHeader>
             <DialogTitle>Programmer la prochaine réunion</DialogTitle>
             <DialogDescription>
-              Renseignez le titre, la description et la date : la réunion
-              apparaît automatiquement dans « Prochaine réunion » dès cette
-              date.
+              La date de publication programme l'apparition de l'affiche sur
+              l'accueil ; la date de la réunion est celle affichée sur la
+              carte. Elles peuvent être différentes : publié demain, réunion
+              dimanche.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -321,7 +370,7 @@ export default function ProchaineReunionSection({ refreshKey = 0 }) {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="pr-date">Date</Label>
+              <Label htmlFor="pr-date">Date de publication</Label>
               <Input
                 id="pr-date"
                 type="date"
@@ -334,6 +383,19 @@ export default function ProchaineReunionSection({ refreshKey = 0 }) {
                 className="selectable"
               />
               <p className="text-xs text-muted-foreground">{dateHint}</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="pr-event-date">Date de la réunion</Label>
+              <Input
+                id="pr-event-date"
+                type="date"
+                value={draft.event_date}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, event_date: e.target.value }))
+                }
+                className="selectable"
+              />
+              <p className="text-xs text-muted-foreground">{meetingHint}</p>
             </div>
 
             <Button
@@ -351,7 +413,14 @@ export default function ProchaineReunionSection({ refreshKey = 0 }) {
             focusDate={draft.date}
             entries={[...pending, ...events]}
             dateField="date"
-            labelFor={(e) => e.title || ""}
+            labelFor={(e) => {
+              // La ligne = date de publication ; on rappelle la date de la
+              // réunion quand elle est différente.
+              const title = e.title || "";
+              return e.event_date && e.event_date !== e.date
+                ? `${title} · ${formatISODate(e.event_date)}`
+                : title;
+            }}
             onPick={editOn}
             onDelete={removeOn}
             loading={planningLoading}
