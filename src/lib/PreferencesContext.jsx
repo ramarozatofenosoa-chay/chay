@@ -47,6 +47,12 @@ export const DEFAULT_PREFS = {
   profile_private: false,
   location_personalization: false,
   presence_visible: true,
+  // Fuseau horaire du navigateur — lu par les fonctions backend (ex. : envoi
+  // du verset du jour à l'heure locale de l'utilisateur). Défaut Europe/Paris.
+  tz:
+    (typeof Intl !== "undefined" &&
+      Intl.DateTimeFormat().resolvedOptions().timeZone) ||
+    "Europe/Paris",
 };
 
 function loadLocal() {

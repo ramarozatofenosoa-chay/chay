@@ -126,6 +126,31 @@ export default async function(req) {
     const targetType = body.target_type || "";
     const targetId = body.target_id || "";
 
+    // Push navigateur (Web Push) — mêmes destinataires que le push natif.
+    // Invoqué AVANT la vérification des tokens : un utilisateur sans app
+    // Android reçoit quand même la notification sur son navigateur.
+    let webPush = { sent: 0, failed: 0, subscriptions: 0, skipped: null };
+    try {
+      const res = await base44.asServiceRole.functions.invoke("sendWebPush", {
+        user_ids: userIds,
+        title,
+        body: msgBody,
+        target_type: targetType,
+        target_id: targetId,
+        internal_secret: secrets.get("INTERNAL_INVOKE_SECRET"),
+      });
+      const r = (res && (res.data || res)) || {};
+      webPush = {
+        sent: r.sent || 0,
+        failed: r.failed || 0,
+        subscriptions: r.subscriptions || 0,
+        skipped: r.skipped || null,
+      };
+    } catch (e) {
+      // Le push natif doit continuer même si le push navigateur échoue.
+      webPush.skipped = "invoke_failed";
+    }
+
     // Récupération des tokens actifs.
     const tokenRecords = [];
     for (const uid of userIds) {
@@ -136,7 +161,7 @@ export default async function(req) {
     }
 
     if (tokenRecords.length === 0) {
-      return Response.json({ sent: 0, tokensFound: 0, failed: 0, firebaseResponses: [] });
+      return Response.json({ sent: 0, tokensFound: 0, failed: 0, firebaseResponses: [], webPush });
     }
 
     const accessToken = await getAccessToken(sa);
@@ -173,6 +198,7 @@ export default async function(req) {
       tokensFound: tokenRecords.length,
       invalidDeactivated: invalidIds.length,
       firebaseResponses,
+      webPush,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

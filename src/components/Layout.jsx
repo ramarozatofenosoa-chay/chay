@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { NavLink, Link, useLocation, useNavigate } from "react-router-dom";
 import { Home, Users, BookOpen, PlayCircle, Gamepad2, Bell, User, ChevronLeft, Settings, MessageCircle } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -11,6 +11,7 @@ import { usePresenceHeartbeat } from "@/hooks/usePresence";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { syncWebPush, disableWebPush, onWebPushNotificationClick } from "@/lib/webPush";
 import NotificationBanner from "@/components/NotificationBanner";
 
 const LOGO_URL =
@@ -27,7 +28,7 @@ const NAV = [
 const ROOT_TABS = NAV.map((n) => n.to);
 
 export default function Layout() {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   usePresenceHeartbeat(user);
   const unread = useUnreadMessages(user);
   const notifUnread = useUnreadNotifications(user);
@@ -35,6 +36,27 @@ export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   usePushNotifications(navigate);
+  const webPushSynced = useRef(false);
+
+  // Push navigateur : (ré)abonne silencieusement si la permission est déjà
+  // accordée ; désabonne cet appareil à la déconnexion (comme le token FCM).
+  useEffect(() => {
+    if (isAuthenticated && user?.id) {
+      syncWebPush(user.id).finally(() => {
+        webPushSynced.current = true;
+      });
+    } else if (!isAuthenticated && webPushSynced.current) {
+      webPushSynced.current = false;
+      disableWebPush();
+    }
+  }, [isAuthenticated, user?.id]);
+
+  // Clic sur une notification push navigateur : ouvre la bonne page.
+  useEffect(
+    () => onWebPushNotificationClick((data) => navigate(data?.url || "/")),
+    [navigate]
+  );
+
   const showBack = !ROOT_TABS.includes(location.pathname);
 
   // Preserve per-tab sub-view params (?cat=, ?c=, ?game=) so switching tabs restores them

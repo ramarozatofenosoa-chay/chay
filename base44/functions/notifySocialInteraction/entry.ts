@@ -47,6 +47,19 @@ export default async function(req) {
       return Response.json({ skipped: 'self' });
     }
 
+    // Préférences du destinataire : coupure générale + likes/commentaires.
+    const author = await svc.entities.User.get(authorId).catch(() => null);
+    const prefs = (author && author.settings) || {};
+    if (prefs.notifications_enabled === false) {
+      return Response.json({ skipped: 'notifications_disabled' });
+    }
+    if (action === 'like' && prefs.notif_likes === false) {
+      return Response.json({ skipped: 'pref_likes' });
+    }
+    if (action === 'comment' && prefs.notif_comments === false) {
+      return Response.json({ skipped: 'pref_comments' });
+    }
+
     if (action === 'like') {
       // Regroupe les likes rapprochés non lus sur le même post.
       const existing = await svc.entities.UserNotification.filter({

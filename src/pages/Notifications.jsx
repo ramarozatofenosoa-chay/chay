@@ -83,7 +83,9 @@ export default function Notifications() {
         /* ignore */
       }
     }
-    if (n.type === "new_content") {
+    if (n.type === "daily_verse" || n.content_type === "devotional") {
+      navigate("/");
+    } else if (n.type === "new_content") {
       navigate("/media");
     } else if (n.type === "message" || n.content_type === "message") {
       navigate(n.content_id ? `/messages?c=${n.content_id}` : "/messages");

@@ -58,6 +58,8 @@ export default async function(req) {
       const arr = Array.isArray(batch) ? batch : [];
       for (const u of arr) {
         if (u.id === authorId) continue;
+        // Préférence générale : notifications coupées → pas de notification.
+        if (u.settings && u.settings.notifications_enabled === false) continue;
         rows.push({
           user_id: u.id,
           notification_id: notifId,

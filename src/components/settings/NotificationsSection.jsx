@@ -3,6 +3,7 @@ import { usePreferences } from "@/lib/PreferencesContext";
 import PrefSwitch from "@/components/settings/PrefSwitch";
 import NotificationDeliveryPrefs from "@/components/settings/NotificationDeliveryPrefs";
 import PushStatusCard from "@/components/settings/PushStatusCard";
+import WebPushCard from "@/components/settings/WebPushCard";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -46,6 +47,7 @@ export default function NotificationsSection() {
   return (
     <div className="space-y-1">
       <PushStatusCard />
+      <WebPushCard />
       <NotificationDeliveryPrefs />
 
       <div className="border-t border-border my-2" />
@@ -77,6 +79,11 @@ export default function NotificationsSection() {
                 className="h-9 w-28"
               />
             </div>
+            <p className="text-xs text-foreground/50">
+              Envoi quotidien programmé à 07:00 (Europe/Paris) : une heure
+              antérieure sera honorée à 07:00 ; les heures après 07:00 ne sont
+              pas encore prises en charge.
+            </p>
             <div>
               <Label className="text-xs">Jours</Label>
               <div className="flex flex-wrap gap-1.5 mt-1">
@@ -182,9 +189,9 @@ export default function NotificationsSection() {
         />
 
         <p className="text-xs text-foreground/50 px-1 pt-1">
-          Les préférences sont enregistrées sur votre compte. L'envoi effectif
-          des notifications (verset du jour, push) nécessite un service planifié
-          côté serveur — fonctionnalité en cours de déploiement.
+          Les préférences sont enregistrées sur votre compte et appliquées à
+          l'envoi : messages, nouveautés et verset du jour (tous les jours à
+          07:00).
         </p>
       </div>
     </div>

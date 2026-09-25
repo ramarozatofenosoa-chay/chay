@@ -104,7 +104,9 @@ export default async function(req) {
     for (const uid of pending) {
       const recipient = await base44.asServiceRole.entities.User
         .get(uid).catch(() => null);
-      const inAppOn = !recipient || recipient.in_app_messages !== false;
+      const prefs = (recipient && recipient.settings) || {};
+      const inAppOn = !recipient
+        || (recipient.in_app_messages !== false && prefs.notifications_enabled !== false);
       const emailOn = !recipient || recipient.email_messages !== false;
 
       const profRows = await base44.asServiceRole.entities.MemberProfile
@@ -140,7 +142,7 @@ export default async function(req) {
         if (inAppOn) notifCreated += 1;
       } catch (e) {}
 
-      if (inAppOn) pushTargets.push(uid);
+      if (inAppOn && prefs.notif_push !== false) pushTargets.push(uid);
 
       if (emailOn && recipient && recipient.email) {
         const recent = await base44.asServiceRole.entities.UserNotification

@@ -25,8 +25,8 @@ export default function PushStatusCard() {
       <div className="flex items-start gap-2 rounded-xl border border-border bg-muted/40 p-3 mb-1">
         <Smartphone className="h-4 w-4 mt-0.5 text-foreground/50 shrink-0" />
         <p className="text-xs text-foreground/55">
-          Les notifications push natives sont disponibles uniquement dans
-          l'application mobile Android.
+          Push natif : réservé à l'application mobile Android. Sur ce
+          navigateur, utilisez « Notifications du navigateur » ci-dessous.
         </p>
       </div>
     );

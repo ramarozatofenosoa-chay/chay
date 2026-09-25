@@ -1,0 +1,38 @@
+{
+  "name": "Verset du jour",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "cron_expression": "0 7 * * *",
+      "timezone": "Europe/Paris"
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "verset_du_jour",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "notify_verse": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "notifyDailyVerse",
+            "args": {
+              "internal_secret": "chay_wf_5e8b3f9a7c2d1e6b4a8f3c9e7d2b1a5f"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Verset du jour",
+            "description": "Envoie le verset du jour aux utilisateurs abonn\u00e9s"
+          }
+        }
+      }
+    ]
+  },
+  "description": "Chaque jour \u00e0 07:00 (Europe/Paris) : envoie le verset du jour aux utilisateurs abonn\u00e9s (heure demand\u00e9e \u2264 07:00, jour coch\u00e9) \u2014 notification in-app + push Android + push navigateur."
+}

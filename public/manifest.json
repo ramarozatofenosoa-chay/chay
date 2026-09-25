@@ -1,0 +1,19 @@
+{
+  "name": "ÉGLISE CHAY",
+  "short_name": "CHAY",
+  "lang": "fr",
+  "description": "ÉGLISE CHAY — Communauté chrétienne bilingue : Bible, médias, radio, jeux, enfants et dons.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#FDFBF7",
+  "theme_color": "#FDFBF7",
+  "icons": [
+    {
+      "src": "https://base44.com/logo_v2.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

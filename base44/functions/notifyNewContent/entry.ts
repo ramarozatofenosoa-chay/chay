@@ -71,13 +71,17 @@ export default async function(req) {
     const messageText = (content.description || "").slice(0, 160);
 
     const rows = [];
+    const pushIds = []; // destinataires push (notifications push activées)
     let skip = 0;
     while (skip < 5000) {
       const batch = await base44.asServiceRole.entities.User
         .list('-created_date', 500, skip).catch(() => []);
       const arr = Array.isArray(batch) ? batch : [];
       for (const u of arr) {
+        const s = u.settings || {};
         if (u.in_app_nouveautes === false) continue;
+        if (s.notifications_enabled === false) continue;
+        if (s.notif_push !== false) pushIds.push(u.id);
         rows.push({
           user_id: u.id,
           notification_id: notifId,
@@ -134,9 +138,10 @@ export default async function(req) {
       }
     }
 
-    // Push natif FCM (par lots interne) aux utilisateurs ayant in_app_nouveautes activé.
+    // Push (FCM + navigateur via sendWebPush) : uniquement les utilisateurs
+    // ayant notifications push activées.
     let pushSent = 0, pushFailed = 0;
-    const pushUserIds = rows.map((r) => r.user_id);
+    const pushUserIds = pushIds;
     if (pushUserIds.length) {
       try {
         const res = await base44.asServiceRole.functions.invoke("sendFcmPush", {
