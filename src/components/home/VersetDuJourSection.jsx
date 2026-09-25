@@ -133,8 +133,11 @@ export default function VersetDuJourSection({ refreshKey = 0 }) {
 
   return (
     <section className="mt-6">
-      <div className="rounded-[1.5rem] md:rounded-[2rem] brand-gradient p-6 md:p-10 text-white relative overflow-hidden glow-primary">
-        <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+      {/* Format ramené à celui du widget Préc./Nouv. juste en dessous : mêmes
+          retraits (1,5–1,5), texte réduit, bouton discret — la carte ne doit
+          plus écraser le reste de l'accueil. */}
+      <div className="rounded-[1.5rem] brand-gradient p-4 md:p-6 text-white relative overflow-hidden glow-primary">
+        <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
         <div className="relative">
           <div className="flex items-center justify-between gap-3">
             <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-wide">
@@ -151,7 +154,7 @@ export default function VersetDuJourSection({ refreshKey = 0 }) {
               )}
               <button
                 onClick={shareVerse}
-                className="h-8 w-8 grid place-items-center rounded-full bg-white/15 hover:bg-white/25 transition"
+                className="h-7 w-7 grid place-items-center rounded-full bg-white/15 hover:bg-white/25 transition"
                 aria-label="Partager le verset"
               >
                 <Share2 className="h-4 w-4" />
@@ -159,27 +162,27 @@ export default function VersetDuJourSection({ refreshKey = 0 }) {
             </div>
           </div>
           {loading ? (
-            <div className="mt-5 space-y-3">
-              <div className="h-7 w-3/4 bg-white/20 rounded animate-pulse" />
-              <div className="h-7 w-2/3 bg-white/20 rounded animate-pulse" />
+            <div className="mt-4 space-y-2">
+              <div className="h-5 w-3/4 bg-white/20 rounded animate-pulse" />
+              <div className="h-5 w-2/3 bg-white/20 rounded animate-pulse" />
             </div>
           ) : devotional ? (
             <>
-              <p className="selectable mt-4 text-base md:text-lg font-light leading-snug [font-family:'Montserrat',sans-serif]">
+              <p className="selectable mt-3 text-sm md:text-base font-light leading-snug [font-family:'Montserrat',sans-serif]">
                 « {devotional.verse_text || devotional.title} »
               </p>
-              <p className="mt-2 text-sm font-medium text-white/75 [font-family:'Montserrat',sans-serif]">
+              <p className="mt-1.5 text-xs font-medium text-white/75 [font-family:'Montserrat',sans-serif]">
                 — {devotional.scripture_reference}
               </p>
               <Link
                 to={chapterLink}
-                className="mt-6 inline-flex items-center gap-2 rounded-full bg-white text-neutral-900 px-5 py-2.5 text-sm font-bold hover:scale-105 transition"
+                className="mt-4 inline-flex items-center gap-2 rounded-full bg-white text-neutral-900 px-4 py-2 text-xs font-bold hover:scale-105 transition"
               >
                 Lire le chapitre <ArrowRight className="h-4 w-4" />
               </Link>
             </>
           ) : (
-            <p className="selectable mt-4 text-base md:text-lg font-light leading-snug [font-family:'Montserrat',sans-serif]">
+            <p className="selectable mt-3 text-sm md:text-base font-light leading-snug [font-family:'Montserrat',sans-serif]">
               « Je puis tout par celui qui me fortifie. » — Philippiens 4:13
             </p>
           )}
