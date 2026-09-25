@@ -55,7 +55,7 @@ export default function Home() {
 
         {/* Question Logique */}
         <div className="animate-float-in mt-6" style={{ animationDelay: "0.2s" }}>
-          <QuestionLogiqueSection />
+          <QuestionLogiqueSection refreshKey={refreshKey} />
         </div>
 
         {/* Prochaine réunion */}
