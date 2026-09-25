@@ -77,7 +77,14 @@ export default function MediaCategory({
       setYtSection(null);
     }
   };
-  useBackHandler(Boolean(gallerySection) && galleryIdx == null, backFromSection);
+  // ⚠️ Ne PAS conditionner ce handler à `galleryIdx == null` : faire passer
+  // `open` de true à false au moment exact où la photo s'ouvre déclenche le
+  // nettoyage du hook (dernier closer + entrée MARKER en tête → `history.back()`)
+  // et cette navigation referme la photo immédiatement : le clic ne fait rien.
+  // Les deux superpositions partagent l'entrée d'historique et la pile est
+  // ordonnée par ouverture, donc le retour ferme d'abord la photo, puis la
+  // section — sans garde.
+  useBackHandler(Boolean(gallerySection), backFromSection);
   useBackHandler(Boolean(ytSection), () => setYtSection(null));
 
   const handleBack = () => {

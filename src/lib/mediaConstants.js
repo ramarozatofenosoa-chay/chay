@@ -7,7 +7,7 @@ import {
   Youtube,
   Image as ImageIcon,
   ListMusic,
-  Church,
+  Home,
   Lightbulb,
 } from "lucide-react";
 
@@ -38,7 +38,7 @@ export const YOUTUBE_SECTIONS = [
 // Sections de la Galerie. `id` = valeur enregistrée dans le champ `category`
 // de l'entité GalleryImage (saisie via la liste déroulante de l'admin).
 export const GALLERY_SECTIONS = [
-  { id: "eglise", label: "Église", icon: Church, tone: "from-[#2E6F40] to-[#4A6CFE]" },
+  { id: "eglise", label: "Église", icon: Home, tone: "from-[#2E6F40] to-[#4A6CFE]" },
   { id: "mindset", label: "Mindset", icon: Lightbulb, tone: "from-[#8A56E2] to-[#FF57B2]" },
 ];
 
