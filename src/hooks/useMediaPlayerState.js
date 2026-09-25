@@ -8,7 +8,10 @@ import { useEffect, useRef, useState, useCallback } from "react";
 //   playing     — lecture en cours
 //   paused      — en pause (y compris juste après canplay si lecture non demandée)
 //   error       — flux en échec / connexion perdue
-export function useMediaPlayerState(mediaRef, { isLive = false, errorTimeoutMs = 3000 } = {}) {
+// errorTimeoutMs : durée au-delà de laquelle une lecture bloquée devient une
+// panne. Une micro-coupure de 3 s est fréquente et normale sur réseau mobile :
+// on attend bien plus longtemps avant d'interrompre la lecture pour si peu.
+export function useMediaPlayerState(mediaRef, { isLive = false, errorTimeoutMs = 15000 } = {}) {
   const [state, setState] = useState("idle");
   const [bufferedRatio, setBufferedRatio] = useState(0);
   const [errorCode, setErrorCode] = useState(undefined);

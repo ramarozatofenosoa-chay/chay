@@ -4,7 +4,8 @@ import { Radio, Baby, Gift, Info } from "lucide-react";
 import AboutDialog from "./AboutDialog";
 
 const ITEMS = [
-  { key: "radio", label: "Radio", icon: Radio, to: "/media" },
+  // /media?cat=radio ouvre directement le lecteur de radio (sinon on tombe sur la grille).
+  { key: "radio", label: "Radio", icon: Radio, to: "/media?cat=radio" },
   { key: "kids", label: "Enfant", icon: Baby, to: "/kids" },
   { key: "donate", label: "Don", icon: Gift, to: "/donate" },
 ];

@@ -6,13 +6,30 @@ import React, {
   useState,
 } from "react";
 import { RADIO_URL, RADIO_LOGO } from "@/lib/mediaConstants";
+import { isRadioMseSupported, startRadioStream } from "@/lib/radioMse";
 import { useMediaPlayerState } from "@/hooks/useMediaPlayerState";
 
 const RadioContext = createContext(null);
 export const useRadio = () => useContext(RadioContext);
 
-const PREROLL_MS = 8000; // délai de démarrage : laisser le tampon prendre de l'avance
-const RESUME_MS = 15000; // délai de reprise après une coupure réseau (jusqu'à 12 tentatives)
+// Pré-roll adaptatif : on lance le son dès que le tampon contient
+// PREROLL_MIN_BUFFER_S secondes (au plus tôt après PREROLL_MIN_MS), avec un
+// plafond dur de PREROLL_MAX_MS ms. Là où l'ancien code attendait toujours
+// 8 s avant le moindre son, on lance dès que le tampon est prêt.
+const PREROLL_MAX_MS = 5000;
+const PREROLL_MIN_MS = 1200;
+// MSE : le backlog serveur arrive en bloc, 2 s de tampon sont atteintes en
+// moins d'une seconde. Repli <audio> : Chrome plafonne à ~2,2 s. Un seuil
+// supérieur à 2 s nous projeterait donc sur le plafond du repli — on garde 2 s.
+const PREROLL_MIN_BUFFER_S = 2;
+// Lecture MSE disponible (Chrome/Edge et Android). Sinon : chemin <audio>.
+const USE_MSE = isRadioMseSupported();
+const RESUME_MS = 6000; // délai de reprise après une coupure réseau
+// Tolérance avant de déclarer une panne : 3 s sans données est fréquent et
+// normal sur réseau mobile, ce n'est pas une panne.
+const RADIO_STALL_MS = 25000;
+
+export const MAX_RADIO_RETRIES = 12;
 
 export function RadioPlayerProvider({ children }) {
   const audioRef = useRef(null);
@@ -22,11 +39,17 @@ export function RadioPlayerProvider({ children }) {
   const [volume, setVolumeState] = useState(1);
   const attemptsRef = useRef(0);
   const preRollTimer = useRef(null);
+  const prerollPoll = useRef(null);
   const resumeTimer = useRef(null);
   const prevStateRef = useRef("idle");
+  // Flux MSE en cours (null en mode repli <audio>).
+  const streamRef = useRef(null);
 
   // Machine à états partagée — radio en direct (isLive = true).
-  const { state, errorCode } = useMediaPlayerState(audioRef, { isLive: true });
+  const { state, errorCode } = useMediaPlayerState(audioRef, {
+    isLive: true,
+    errorTimeoutMs: RADIO_STALL_MS,
+  });
 
   const isPlaying = state === "playing";
   const isLoading = state === "connecting" || state === "buffering";
@@ -36,6 +59,10 @@ export function RadioPlayerProvider({ children }) {
     if (preRollTimer.current) {
       clearTimeout(preRollTimer.current);
       preRollTimer.current = null;
+    }
+    if (prerollPoll.current) {
+      clearInterval(prerollPoll.current);
+      prerollPoll.current = null;
     }
     if (resumeTimer.current) {
       clearTimeout(resumeTimer.current);
@@ -56,11 +83,69 @@ export function RadioPlayerProvider({ children }) {
     } catch {}
   };
 
+  const stopStream = () => {
+    const s = streamRef.current;
+    if (!s) return;
+    streamRef.current = null;
+    try {
+      s.stop();
+    } catch {}
+  };
+
+  // Échec du flux MSE (réseau coupé, flux fermé) : on le remonte comme une
+  // erreur du <audio> pour réutiliser la reprise existante (6 s, 12 essais).
+  const onStreamFailed = () => {
+    const a = audioRef.current;
+    if (!a) return;
+    try {
+      a.dispatchEvent(new Event("error"));
+    } catch {}
+  };
+
   const loadStream = () => {
     const a = audioRef.current;
     if (!a) return;
+    stopStream();
+    if (USE_MSE) {
+      streamRef.current = startRadioStream(a, RADIO_URL, { onFailed: onStreamFailed });
+      if (streamRef.current) return; // on lit nous-mêmes les octets du flux
+    }
     a.src = RADIO_URL;
     a.load();
+  };
+
+  // Pré-roll adaptatif : on lance le son dès que le tampon contient
+  // PREROLL_MIN_BUFFER_S secondes, sans jamais dépasser PREROLL_MAX_MS.
+  const beginPreroll = () => {
+    clearTimers();
+    let done = false;
+
+    const bufferedSeconds = () => {
+      try {
+        const el = audioRef.current;
+        if (!el || !el.buffered.length) return 0;
+        return el.buffered.end(el.buffered.length - 1) - el.buffered.start(0);
+      } catch {
+        return 0;
+      }
+    };
+
+    const finish = () => {
+      if (done) return;
+      done = true;
+      clearTimers();
+      setPreparing(false);
+      const el = audioRef.current;
+      if (el) el.play().catch(() => {});
+    };
+
+    const startedAt = Date.now();
+    prerollPoll.current = setInterval(() => {
+      const elapsed = Date.now() - startedAt;
+      if (elapsed < PREROLL_MIN_MS) return;
+      if (bufferedSeconds() >= PREROLL_MIN_BUFFER_S || elapsed >= PREROLL_MAX_MS) finish();
+    }, 200);
+    preRollTimer.current = setTimeout(finish, PREROLL_MAX_MS);
   };
 
   const play = () => {
@@ -71,17 +156,13 @@ export function RadioPlayerProvider({ children }) {
     setRetries(0);
     setPreparing(true);
     loadStream();
-    // Pré-roll de 6 s : on attend que le tampon se remplisse avant de lancer le son.
-    preRollTimer.current = setTimeout(() => {
-      setPreparing(false);
-      const aa = audioRef.current;
-      if (aa) aa.play().catch(() => {});
-    }, PREROLL_MS);
+    beginPreroll();
   };
 
   const stop = () => {
     clearTimers();
     setPreparing(false);
+    stopStream();
     const a = audioRef.current;
     if (a) {
       a.pause();
@@ -107,11 +188,7 @@ export function RadioPlayerProvider({ children }) {
     setRetries(0);
     setPreparing(true);
     loadStream();
-    preRollTimer.current = setTimeout(() => {
-      setPreparing(false);
-      const aa = audioRef.current;
-      if (aa) aa.play().catch(() => {});
-    }, PREROLL_MS);
+    beginPreroll();
   };
 
   // Reprise après coupure réseau : après un passage à l'erreur, on relance la
@@ -121,15 +198,14 @@ export function RadioPlayerProvider({ children }) {
     if (prev !== "error" && state === "error" && !preparing) {
       attemptsRef.current += 1;
       setRetries(attemptsRef.current);
-      if (attemptsRef.current <= 12) {
+      if (attemptsRef.current <= MAX_RADIO_RETRIES) {
         clearTimers();
         resumeTimer.current = setTimeout(() => {
-          const a = audioRef.current;
-          if (a) {
-            a.src = RADIO_URL;
-            a.load();
-            a.play().catch(() => {});
-          }
+          // Même chemin qu'un démarrage normal : on affiche « Connexion… »
+          // et on laisse le tampon se remplir avant de relancer le son.
+          setPreparing(true);
+          loadStream();
+          beginPreroll();
         }, RESUME_MS);
       }
     }
@@ -164,6 +240,7 @@ export function RadioPlayerProvider({ children }) {
     return () => {
       document.removeEventListener("play", onAnyMediaPlay, true);
       clearTimers();
+      stopStream();
       a.pause();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

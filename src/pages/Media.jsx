@@ -159,16 +159,20 @@ export default function Media() {
     <PullToRefresh mode="window" onRefresh={loadAll}>
     <div className="mx-auto max-w-6xl px-4 md:px-8 py-6 md:py-12">
       <header className="mb-6 flex items-end justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="display-fluid">
-            <span className="brand-gradient-text">Multimédia</span>
-          </h1>
-          <p className="mt-3 text-base md:text-lg text-foreground/60">
-            Musique, prédications, films, articles et plus encore.
-          </p>
-        </div>
+        {/* Titre de page masqué dès qu'une catégorie est ouverte : on ne doit
+            plus lire « Multimédia » quand on est sur la Radio (ou ailleurs). */}
+        {!activeCat && (
+          <div>
+            <h1 className="display-fluid">
+              <span className="brand-gradient-text">Multimédia</span>
+            </h1>
+            <p className="mt-3 text-base md:text-lg text-foreground/60">
+              Musique, prédications, films, articles et plus encore.
+            </p>
+          </div>
+        )}
         {isAdmin && (
-          <div className="flex gap-2">
+          <div className={`flex gap-2 ${activeCat ? "ml-auto" : ""}`}>
             <button
               onClick={() => setShowAdd(true)}
               className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-bold hover:bg-muted transition"
@@ -179,7 +183,9 @@ export default function Media() {
         )}
       </header>
 
-      {loading ? (
+      {/* La radio n'a besoin d'aucun contenu : on ne la fait pas attendre les
+          9 chargements de la page Multimédia, elle s'ouvre donc immédiatement. */}
+      {loading && activeCat !== "radio" ? (
         <div className="flex items-center justify-center py-24">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>

@@ -18,6 +18,7 @@ export default function VideoPlayer({ src, poster, className = "" }) {
         controlsList="nodownload"
         disablePictureInPicture
         poster={poster}
+        preload="auto"
         className="w-full h-full"
       />
       {buffering && (

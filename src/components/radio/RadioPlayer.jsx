@@ -1,5 +1,5 @@
 import React from "react";
-import { useRadio } from "@/lib/RadioContext";
+import { useRadio, MAX_RADIO_RETRIES } from "@/lib/RadioContext";
 import Visualizer from "@/components/radio/Visualizer";
 import { useToast } from "@/components/ui/use-toast";
 import { RADIO_LOGO } from "@/lib/mediaConstants";
@@ -87,7 +87,7 @@ export default function RadioPlayer() {
             </p>
             {retries < 5 ? (
               <p className="text-xs text-foreground/50 mt-1">
-                Nouvelle tentative automatique… ({retries}/5)
+                Nouvelle tentative automatique… ({retries}/{MAX_RADIO_RETRIES})
               </p>
             ) : (
               <button

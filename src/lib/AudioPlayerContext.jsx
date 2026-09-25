@@ -214,6 +214,7 @@ export function AudioPlayerProvider({ children }) {
     >
       <audio
         ref={audioRef}
+        preload="auto"
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
         onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
