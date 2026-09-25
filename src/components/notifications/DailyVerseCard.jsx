@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Bell, BellOff } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { toISODate } from "@/lib/localDate";
 
 export default function DailyVerseCard({ user }) {
   const [enabled, setEnabled] = useState(false);
@@ -22,7 +23,9 @@ export default function DailyVerseCard({ user }) {
     const check = async () => {
       const now = new Date();
       const hhmm = now.toTimeString().slice(0, 5);
-      const today = now.toISOString().split("T")[0];
+      // Date LOCALE : toISOString() renvoie l'heure UTC et faisait partir la
+      // notification sur la date d'hier entre minuit et 3 h (UTC+3).
+      const today = toISODate(now);
       if (hhmm === time && lastRef.current !== today) {
         lastRef.current = today;
         try {

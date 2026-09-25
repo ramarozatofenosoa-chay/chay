@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
-import { BookOpen, ArrowRight, Share2, Pencil, Check, X } from "lucide-react";
+import { BookOpen, ArrowRight, Share2, Pencil, Check, X, Plus, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -16,39 +16,58 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  toISODate,
+  addDaysISO,
+  formatISODate,
+  isISODate,
+} from "@/lib/localDate";
 
-const todayISO = () => new Date().toISOString().split("T")[0];
+// Fenêtre de programmation affichée dans la boîte de dialogue.
+const PLANNING_DAYS = 30;
 
 // Verset du jour : affiche le dévotional du jour (carte dégradée) et permet
-// à un administrateur de l'ajouter/modifier directement (bouton "Ajouter"),
-// sur le même principe que la Question Logique.
+// à un administrateur de le programmer à l'avance (jusqu'à 30 jours via la
+// liste, au-delà via le champ date). L'affichage est automatique : le jour
+// J, c'est l'entrée datée de J qui apparaît, sans intervention.
 export default function VersetDuJourSection({ refreshKey = 0 }) {
   const { user } = useAuth();
   const { toast } = useToast();
   const isAdmin = user?.role === "admin";
-  const [devotional, setDevotional] = useState(null);
+  const [devotional, setDevotional] = useState(null); // verset affiché
+  const [todayDev, setTodayDev] = useState(null); // verset daté d'aujourd'hui
+  const [all, setAll] = useState([]); // entrées récentes, pour le planning
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [draft, setDraft] = useState({
     scripture_reference: "",
     verse_text: "",
-    reading_date: todayISO(),
+    reading_date: toISODate(),
   });
 
   const load = async () => {
     try {
-      const today = todayISO();
-      const [todayDevs, allDevs] = await Promise.all([
+      const today = toISODate();
+      const [todayDevs, recent] = await Promise.all([
         base44.entities.Devotional
           .filter({ reading_date: today }, "-reading_date", 1)
           .catch(() => []),
-        base44.entities.Devotional.list("-reading_date", 1).catch(() => []),
+        base44.entities.Devotional.list("-reading_date", 100).catch(() => []),
       ]);
-      const todayDev =
-        Array.isArray(todayDevs) && todayDevs.length ? todayDevs[0] : null;
-      const fallback = Array.isArray(allDevs) ? allDevs[0] : null;
-      setDevotional(todayDev || fallback || null);
+      const list = Array.isArray(recent) ? recent : [];
+      const current =
+        Array.isArray(todayDevs) && todayDevs[0] ? todayDevs[0] : null;
+      // Repli : le dernier verset antérieur à aujourd'hui, en excluant
+      // explicitement les dates futures. C'était le bug : on prenait le
+      // dernier dévotional créé, donc un verset programmé pour plus tard
+      // s'affichait immédiatement.
+      const past =
+        list.find((d) => isISODate(d.reading_date) && d.reading_date < today) ||
+        null;
+      setAll(list);
+      setTodayDev(current);
+      setDevotional(current || past || null);
     } finally {
       setLoading(false);
     }
@@ -59,19 +78,36 @@ export default function VersetDuJourSection({ refreshKey = 0 }) {
   }, [refreshKey]);
 
   const openEdit = () => {
+    // On repart du verset affiché mais on cible AUJOURD'HUI : publier comble
+    // le trou du jour plutôt que de retoucher un verset déjà passé.
+    const base = todayDev || devotional;
     setDraft({
-      scripture_reference: devotional?.scripture_reference || "",
-      verse_text: devotional?.verse_text || devotional?.title || "",
-      reading_date: devotional?.reading_date || todayISO(),
+      scripture_reference: base?.scripture_reference || "",
+      verse_text: base?.verse_text || base?.title || "",
+      reading_date: toISODate(),
     });
     setEditing(true);
+  };
+
+  // Clic sur une ligne du planning : charge ce jour dans le formulaire.
+  const editOn = (day, entry) => {
+    setDraft({
+      scripture_reference: entry?.scripture_reference || "",
+      verse_text: entry?.verse_text || entry?.title || "",
+      reading_date: day,
+    });
   };
 
   const save = async () => {
     const ref = draft.scripture_reference.trim();
     const verse = draft.verse_text.trim();
+    const day = draft.reading_date;
     if (!ref || !verse) {
       toast({ title: "Référence et verset requis", variant: "destructive" });
+      return;
+    }
+    if (!isISODate(day)) {
+      toast({ title: "Date invalide", variant: "destructive" });
       return;
     }
     setSaving(true);
@@ -81,21 +117,41 @@ export default function VersetDuJourSection({ refreshKey = 0 }) {
         scripture_reference: ref,
         verse_text: verse,
         content: verse,
-        reading_date: draft.reading_date || todayISO(),
+        reading_date: day,
         language: "fr",
       };
-      if (devotional) {
-        await base44.entities.Devotional.update(devotional.id, payload);
+      // Une seule entrée par date : si ce jour est déjà programmé, on met à
+      // jour au lieu de créer un doublon affiché deux fois.
+      const existing =
+        all.find((d) => d.reading_date === day) ||
+        (devotional && devotional.reading_date === day ? devotional : null);
+      if (existing) {
+        await base44.entities.Devotional.update(existing.id, payload);
       } else {
         await base44.entities.Devotional.create(payload);
       }
-      toast({ title: "Verset du jour publié" });
+      toast({
+        title: "Verset publié",
+        description: `Affichage le ${formatISODate(day, { long: true })}`,
+      });
       setEditing(false);
       await load();
     } catch (e) {
       toast({ title: "Erreur", description: e.message, variant: "destructive" });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const removeOn = async (entry) => {
+    const when = formatISODate(entry.reading_date, { long: true });
+    if (!window.confirm(`Supprimer le verset du ${when} ?`)) return;
+    try {
+      await base44.entities.Devotional.delete(entry.id);
+      toast({ title: "Verset supprimé", description: when });
+      await load();
+    } catch (e) {
+      toast({ title: "Erreur", description: e.message, variant: "destructive" });
     }
   };
 
@@ -130,6 +186,27 @@ export default function VersetDuJourSection({ refreshKey = 0 }) {
   const chapterLink = devotional?.scripture_reference
     ? `/bible?ref=${encodeURIComponent(devotional.scripture_reference)}&translation=fra_lsg`
     : "/bible";
+
+  // ── Données du planning (30 prochains jours) ──────────────────────────
+  const today = toISODate();
+  const byDate = {};
+  for (const d of all) {
+    if (isISODate(d.reading_date) && !byDate[d.reading_date]) {
+      byDate[d.reading_date] = d;
+    }
+  }
+  const days = Array.from({ length: PLANNING_DAYS }, (_, k) =>
+    addDaysISO(today, k)
+  );
+  const filledCount = days.filter((d) => byDate[d]).length;
+
+  const dateHint = !isISODate(draft.reading_date)
+    ? "Choisissez une date d'affichage."
+    : draft.reading_date < today
+      ? "Date passée : ce verset ne s'affichera plus automatiquement."
+      : draft.reading_date === today
+        ? "S'affiche aujourd'hui."
+        : `S'affichera automatiquement le ${formatISODate(draft.reading_date, { long: true })}.`;
 
   return (
     <section className="mt-6">
@@ -174,6 +251,14 @@ export default function VersetDuJourSection({ refreshKey = 0 }) {
               <p className="mt-1.5 text-xs font-medium text-white/75 [font-family:'Montserrat',sans-serif]">
                 — {devotional.scripture_reference}
               </p>
+              {/* Rappel admin : la carte montre un verset antérieur faute
+                  d'entrée pour aujourd'hui. */}
+              {isAdmin && !todayDev && isISODate(devotional.reading_date) && (
+                <p className="mt-1 text-xs text-white/70 [font-family:'Montserrat',sans-serif]">
+                  Aucun verset programmé pour aujourd'hui — dernier publié le{" "}
+                  {formatISODate(devotional.reading_date, { long: true })}.
+                </p>
+              )}
               <Link
                 to={chapterLink}
                 className="mt-4 inline-flex items-center gap-2 rounded-full bg-white text-neutral-900 px-4 py-2 text-xs font-bold hover:scale-105 transition"
@@ -190,14 +275,29 @@ export default function VersetDuJourSection({ refreshKey = 0 }) {
       </div>
 
       <Dialog open={editing} onOpenChange={setEditing}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Verset du jour</DialogTitle>
+            <DialogTitle>Programmer le verset du jour</DialogTitle>
             <DialogDescription>
-              Renseignez la référence et le texte du verset affiché sur l'accueil.
+              Choisissez la date d'affichage : le verset apparaît seul sur
+              l'accueil le jour choisi, sans autre action.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="vd-date">Date d'affichage</Label>
+              <Input
+                id="vd-date"
+                type="date"
+                value={draft.reading_date}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, reading_date: e.target.value }))
+                }
+                className="selectable"
+              />
+              <p className="text-xs text-muted-foreground">{dateHint}</p>
+            </div>
             <div className="space-y-1.5">
               <Label htmlFor="vd-ref">Référence</Label>
               <Input
@@ -223,22 +323,73 @@ export default function VersetDuJourSection({ refreshKey = 0 }) {
                 className="selectable"
               />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="vd-date">Date de lecture</Label>
-              <Input
-                id="vd-date"
-                type="date"
-                value={draft.reading_date}
-                onChange={(e) =>
-                  setDraft((d) => ({ ...d, reading_date: e.target.value }))
-                }
-                className="selectable"
-              />
-            </div>
           </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold">30 prochains jours</span>
+              <span className="text-xs text-muted-foreground">
+                {filledCount}/{PLANNING_DAYS} remplis
+              </span>
+            </div>
+            <ul className="rounded-xl border border-border divide-y divide-border max-h-56 overflow-y-auto">
+              {days.map((day) => {
+                const entry = byDate[day];
+                const isToday = day === today;
+                return (
+                  <li key={day} className="flex items-center gap-2 px-3 py-2">
+                    <div className="flex-1 min-w-0">
+                      <div
+                        className={`text-xs font-bold ${
+                          isToday ? "text-primary" : "text-foreground/80"
+                        }`}
+                      >
+                        {formatISODate(day)}
+                        {isToday ? " · aujourd'hui" : ""}
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {entry
+                          ? entry.scripture_reference || entry.title
+                          : "— vide —"}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => editOn(day, entry)}
+                      className="h-7 w-7 grid place-items-center rounded-full border border-border hover:bg-muted transition shrink-0"
+                      aria-label={
+                        entry ? `Modifier le ${formatISODate(day)}` : `Ajouter le ${formatISODate(day)}`
+                      }
+                    >
+                      {entry ? (
+                        <Pencil className="h-3.5 w-3.5" />
+                      ) : (
+                        <Plus className="h-3.5 w-3.5" />
+                      )}
+                    </button>
+                    {entry && (
+                      <button
+                        type="button"
+                        onClick={() => removeOn(entry)}
+                        className="h-7 w-7 grid place-items-center rounded-full border border-border hover:bg-destructive/10 hover:text-destructive transition shrink-0"
+                        aria-label={`Supprimer le verset du ${formatISODate(day)}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="text-xs text-muted-foreground">
+              La liste couvre 30 jours ; une date plus lointaine reste
+              programmable via le champ « Date d'affichage ».
+            </p>
+          </div>
+
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setEditing(false)} disabled={saving}>
-              <X className="h-4 w-4 mr-1.5" /> Annuler
+              <X className="h-4 w-4 mr-1.5" /> Fermer
             </Button>
             <Button onClick={save} disabled={saving}>
               <Check className="h-4 w-4 mr-1.5" /> {saving ? "Publication…" : "Publier"}
