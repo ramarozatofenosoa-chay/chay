@@ -26,7 +26,7 @@ import { useEffect, useRef } from "react";
 
 const MARKER = { chayOverlay: true };
 const closers = []; // pile des callbacks de fermeture (sommet = overlay le plus profond)
-let popInstalled = false;
+const POP_KEY = "__chay_popstate_installed__";
 
 function onPopState(event) {
   if (closers.length === 0) {
@@ -46,9 +46,9 @@ function onPopState(event) {
 }
 
 function ensurePopListener() {
-  if (popInstalled) return;
+  if (window[POP_KEY]) return;
   window.addEventListener("popstate", onPopState);
-  popInstalled = true;
+  window[POP_KEY] = true;
 }
 
 export function hasOpenOverlay() {
