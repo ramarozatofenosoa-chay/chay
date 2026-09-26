@@ -1,10 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Maximize2, Minimize2, StickyNote, Printer } from "lucide-react";
 import { useBackHandler } from "@/hooks/useBackHandler";
 
 export default function YouTubeViewer({ video, open, onClose }) {
   const [expanded, setExpanded] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
+  const containerRef = useRef(null);
 
   // Le bouton retour du téléphone ferme la vidéo au lieu de naviguer.
   useBackHandler(Boolean(open && video), onClose);
@@ -12,6 +14,36 @@ export default function YouTubeViewer({ video, open, onClose }) {
   React.useEffect(() => {
     if (!open) setExpanded(false);
   }, [open]);
+
+  // Effacer le plein écran quand on ferme
+  React.useEffect(() => {
+    if (!open && fullscreen) {
+      (document.fullscreenElement || document.webkitFullscreenElement)?.exitFullscreen?.();
+      setFullscreen(false);
+    }
+  }, [open, fullscreen]);
+
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await containerRef.current?.requestFullscreen?.();
+        setFullscreen(true);
+      } else {
+        await document.exitFullscreen();
+        setFullscreen(false);
+      }
+    } catch {}
+  };
+
+  const handleExpand = () => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+      setFullscreen(false);
+      setExpanded(false);
+    } else {
+      setExpanded((v) => !v);
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -30,6 +62,7 @@ export default function YouTubeViewer({ video, open, onClose }) {
             exit={{ scale: 0.95, opacity: 0 }}
             transition={{ type: "spring", stiffness: 260, damping: 26 }}
             onClick={(e) => e.stopPropagation()}
+            ref={containerRef}
             className={`relative ${expanded ? "fixed inset-0 grid place-items-center bg-black" : "w-[92vw] max-w-3xl"}`}
           >
             <div className={expanded ? "w-full h-full grid place-items-center" : ""}>
@@ -47,11 +80,18 @@ export default function YouTubeViewer({ video, open, onClose }) {
                 {/* Toolbar */}
                 <div className="absolute top-2 right-2 flex items-center gap-2">
                   <button
-                    onClick={() => setExpanded((v) => !v)}
+                    onClick={handleExpand}
                     className="h-9 w-9 grid place-items-center rounded-full bg-black/60 text-white hover:bg-black/80"
-                    title={expanded ? "Réduire" : "Plein écran (fond noir)"}
+                    title={expanded ? "Réduire" : "Zoom"}
                   >
                     {expanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                  </button>
+                  <button
+                    onClick={toggleFullscreen}
+                    className="h-9 w-9 grid place-items-center rounded-full bg-black/60 text-white hover:bg-black/80"
+                    title={fullscreen ? "Quitter plein écran" : "Plein écran"}
+                  >
+                    {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                   </button>
                   <button
                     onClick={onClose}

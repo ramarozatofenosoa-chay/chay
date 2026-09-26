@@ -33,6 +33,7 @@ export const CATEGORIES = [
 export const YOUTUBE_SECTIONS = [
   { id: "culte", label: "Culte", icon: Youtube, tone: "from-[#FF4D2D] to-[#FF57B2]" },
   { id: "louange", label: "Louange", icon: Youtube, tone: "from-[#8A56E2] to-[#4A6CFE]" },
+  { id: "celebration", label: "Célébration", icon: Youtube, tone: "from-[#FFD700] to-[#FF4D2D]" },
 ];
 
 // Sections de la Galerie. `id` = valeur enregistrée dans le champ `category`

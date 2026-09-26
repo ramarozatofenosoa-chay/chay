@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import ContentAddModal from "@/components/media/ContentAddModal";
+
 import CreatePlaylistModal from "@/components/media/CreatePlaylistModal";
 import PlaylistPicker from "@/components/media/PlaylistPicker";
 import PullToRefresh from "@/components/PullToRefresh";
@@ -11,7 +11,7 @@ import { useAudioPlayer } from "@/lib/AudioPlayerContext";
 import { useRadio } from "@/lib/RadioContext";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/lib/AuthContext";
-import { FileText, Loader2, Trash2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 
 export default function Media() {
   const { toast } = useToast();
@@ -22,7 +22,6 @@ export default function Media() {
   const navigate = useNavigate();
   const activeCat = searchParams.get("cat");
   const [loading, setLoading] = useState(true);
-  const [showAdd, setShowAdd] = useState(false);
   const [showCreatePlaylist, setShowCreatePlaylist] = useState(false);
   const [createCat, setCreateCat] = useState("music");
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -48,7 +47,7 @@ export default function Media() {
       base44.entities.Sermon.list("-date", 30).catch(() => []),
       base44.entities.Video.list("-created_date", 30).catch(() => []),
       base44.entities.Article.list("-created_date", 20).catch(() => []),
-      base44.entities.YouTubeVideo.list("-created_date", 20).catch(() => []),
+      base44.entities.YouTubeVideo.list("-created_date").catch(() => []),
       base44.entities.GalleryImage.list("-created_date", 30).catch(() => []),
       base44.entities.PlaylistItem.list("-created_date", 50).catch(() => []),
       base44.entities.Playlist.list("-created_date", 50).catch(() => []),
@@ -194,16 +193,6 @@ export default function Media() {
             </p>
           </div>
         )}
-        {isAdmin && (
-          <div className={`flex gap-2 ${activeCat ? "ml-auto" : ""}`}>
-            <button
-              onClick={() => setShowAdd(true)}
-              className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-bold hover:bg-muted transition"
-            >
-              <FileText className="h-4 w-4" /> Contenu
-            </button>
-          </div>
-        )}
       </header>
 
       {loading && activeCat !== "radio" ? (
@@ -239,7 +228,7 @@ export default function Media() {
         <CategoryGrid onOpen={openCat} radioPlaying={radio.isPlaying} onToggleRadio={() => radio.toggle()} />
       )}
 
-      {showAdd && <ContentAddModal open={showAdd} onOpenChange={setShowAdd} onSaved={loadAll} />}
+      
       {showCreatePlaylist && (
         <CreatePlaylistModal open={showCreatePlaylist} onOpenChange={setShowCreatePlaylist} onSaved={loadAll} category={createCat} />
       )}

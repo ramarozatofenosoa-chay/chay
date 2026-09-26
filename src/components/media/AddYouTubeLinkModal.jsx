@@ -33,6 +33,8 @@ export default function AddYouTubeLinkModal({ open, onOpenChange, section = "cul
     }
   }, [open]);
 
+  const sectionLabels = { culte: "Culte", louange: "Louange", celebration: "Célébration" };
+
   const submit = async () => {
     const id = extractYtId(link.trim());
     if (!title.trim() || !id) {
@@ -47,7 +49,7 @@ export default function AddYouTubeLinkModal({ open, onOpenChange, section = "cul
         cover_url: coverUrl || null,
         verse_note: verseNote.trim() || null,
         section,
-        category: section === "culte" ? "Culte" : "Louange",
+        category: sectionLabels[section] || "Louange",
       });
       toast({ title: "Vidéo ajoutée" });
       onOpenChange(false);
@@ -64,7 +66,7 @@ export default function AddYouTubeLinkModal({ open, onOpenChange, section = "cul
       <DialogContent className="max-w-md max-h-[88vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Ajouter une vidéo YouTube</DialogTitle>
-          <DialogDescription>{section === "culte" ? "Culte" : "Louange"}</DialogDescription>
+          <DialogDescription>{sectionLabels[section] || "Louange"}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">

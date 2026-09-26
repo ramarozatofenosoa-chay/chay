@@ -6,12 +6,13 @@ import AddYouTubeLinkModal from "@/components/media/AddYouTubeLinkModal";
 export default function YouTubeCategoryView({ section, youtube = [], isAdmin, onSaved }) {
   const [addOpen, setAddOpen] = useState(false);
   const items = youtube.filter((y) => (y.section || "culte") === section);
+  const sectionLabels = { culte: "Culte", louange: "Louange", celebration: "Célébration" };
 
   return (
     <div>
       <div className="flex items-center justify-between mb-5">
         <p className="text-sm text-foreground/55">
-          Vidéos YouTube — {section === "culte" ? "Cultes" : "Louange"}.
+          Vidéos YouTube — {sectionLabels[section] || section}.
         </p>
         {isAdmin && (
           <button
