@@ -17,7 +17,6 @@ import {
   X,
   Plus,
   Trash2,
-  FileUp,
   CheckCircle,
   Loader2,
   ArrowDown,
@@ -38,10 +37,10 @@ export default function AboutSection() {
   const [editTitle, setEditTitle] = useState("");
   const [editText, setEditText] = useState("");
 
-  // APK upload state
+  // APK state
   const [appVersion, setAppVersion] = useState("");
   const [latestVersion, setLatestVersion] = useState("");
-  const [apkFile, setApkFile] = useState(null);
+  const [apkUrl, setApkUrl] = useState("");
   const [uploading, setUploading] = useState(false);
 
   const loadNotices = async () => {
@@ -119,24 +118,23 @@ export default function AboutSection() {
   };
 
   const uploadApk = async () => {
-    if (!apkFile) {
-      toast({ title: "Aucun fichier sélectionné", variant: "destructive" });
+    if (!apkUrl.trim()) {
+      toast({ title: "URL requise", variant: "destructive" });
       return;
     }
     setUploading(true);
     try {
-      const res = await base44.integrations.Core.UploadPublicFile({ file: apkFile });
       await base44.entities.AppContent.create({
         about_text: "",
         splash_text_mg: "",
         splash_text_fr: "",
         app_version: appVersion,
-        app_apk_url: res.file_url,
+        app_apk_url: apkUrl.trim(),
       });
-      setApkFile(null);
+      setApkUrl("");
       setAppVersion("");
       loadAppVersion();
-      toast({ title: "Version et APK enregistrés" });
+      toast({ title: "Version enregistrée" });
     } catch (e) {
       toast({ title: "Échec", description: e?.message });
     }
@@ -174,18 +172,10 @@ export default function AboutSection() {
                     className="text-sm"
                   />
                   <div className="flex justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setEditingId(null)}
-                    >
+                    <Button variant="outline" size="sm" onClick={() => setEditingId(null)}>
                       <X className="h-3 w-3 mr-1" /> Annuler
                     </Button>
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={saveEdit}
-                    >
+                    <Button variant="default" size="sm" onClick={saveEdit}>
                       <Save className="h-3 w-3 mr-1" /> Sauvegarder
                     </Button>
                   </div>
@@ -265,25 +255,28 @@ export default function AboutSection() {
             </div>
           </div>
           <div>
-            <label className="text-xs text-foreground/50 mb-1 block">Fichier APK</label>
+            <label className="text-xs text-foreground/50 mb-1 block">
+              URL du fichier APK (dernière version)
+            </label>
             <input
-              type="file"
-              accept=".apk"
-              onChange={(e) => setApkFile(e.target.files?.[0] || null)}
-              className="w-full text-sm"
+              type="url"
+              value={apkUrl}
+              onChange={(e) => setApkUrl(e.target.value)}
+              placeholder="https://exemple.com/app-v2.1.0.apk"
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
           <Button
             onClick={uploadApk}
-            disabled={uploading || !apkFile}
+            disabled={uploading || !apkUrl.trim()}
             className="w-full"
           >
             {uploading ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : (
-              <FileUp className="h-4 w-4 mr-2" />
+              <Save className="h-4 w-4 mr-2" />
             )}
-            {uploading ? "Upload…" : "Uploader l'APK"}
+            {uploading ? "Enregistrement…" : "Enregistrer la version"}
           </Button>
 
           {/* Vérification de version pour l'utilisateur */}
