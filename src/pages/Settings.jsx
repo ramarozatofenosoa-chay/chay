@@ -10,7 +10,6 @@ import SpiritualSection from "@/components/settings/SpiritualSection";
 import PrivacySection from "@/components/settings/PrivacySection";
 import AccessibilitySection from "@/components/settings/AccessibilitySection";
 import HelpSection from "@/components/settings/HelpSection";
-import AboutSection from "@/components/settings/AboutSection";
 import DangerZone from "@/components/settings/DangerZone";
 import {
   User,
@@ -21,7 +20,6 @@ import {
   Lock,
   Accessibility,
   LifeBuoy,
-  Info,
   Loader2,
 } from "lucide-react";
 
@@ -72,14 +70,14 @@ export default function Settings() {
           <NotificationsSection />
         </SettingsSection>
 
-     <SettingsSection
-  value="display"
-  icon={Palette}
-  title="Préférences d'affichage"
-  description="Thème et langue"
->
-  <DisplaySection />
-</SettingsSection>
+        <SettingsSection
+          value="display"
+          icon={Palette}
+          title="Préférences d'affichage"
+          description="Thème et langue"
+        >
+          <DisplaySection />
+        </SettingsSection>
 
         <SettingsSection
           value="spiritual"
@@ -115,15 +113,6 @@ export default function Settings() {
           description="FAQ, contact et signalements"
         >
           <HelpSection />
-        </SettingsSection>
-
-        <SettingsSection
-          value="about"
-          icon={Info}
-          title="À propos de l'Église Chay"
-          description="Vision, mission et coordonnées"
-        >
-          <AboutSection />
         </SettingsSection>
       </Accordion>
 
