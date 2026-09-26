@@ -59,7 +59,7 @@ export default function FieldInput({ field, value, onChange }) {
           onChange={(e) => onChange(e.target.value)}
           className={cls}
         >
-          <option value="">—</option>
+          {!field.required && <option value="">—</option>}
           {field.options?.map((o) => (
             <option key={o.value} value={o.value}>
               {o.label}
@@ -70,12 +70,6 @@ export default function FieldInput({ field, value, onChange }) {
     case "file":
       return (
         <div className="space-y-2">
-          <input
-            value={value || ""}
-            onChange={(e) => onChange(e.target.value)}
-            className={cls}
-            placeholder="URL du fichier"
-          />
           <label className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-bold cursor-pointer hover:bg-muted">
             {uploading ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />

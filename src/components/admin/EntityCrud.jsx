@@ -86,9 +86,7 @@ export default function EntityCrud({
       // Si "Créer une playlist" est sélectionné, ouvrir le modal
       // Le formulaire reste ouvert — l'admin crée la playlist, puis la sélectionne
       if (playlistId === "__new__") {
-        toast({ title: "Créez d'abord une playlist" });
         setShowCreatePlaylist(true);
-        setSaving(false);
         return;
       }
 
@@ -132,11 +130,8 @@ export default function EntityCrud({
   };
 
   const handlePlaylistCreated = (newPlaylist) => {
-    setNewPlaylistId(newPlaylist.id);
-    // Re-ouvrir le formulaire avec la nouvelle playlist pré-sélectionnée
     setShowCreatePlaylist(false);
-    setOpen(true);
-    // Mettre à jour les playlists
+    // Recharger les playlists pour que la nouvelle apparaisse dans le dropdown
     loadPlaylists();
   };
 
@@ -250,13 +245,7 @@ export default function EntityCrud({
       {/* Modal pour créer une nouvelle playlist */}
       <CreatePlaylistModal
         open={showCreatePlaylist}
-        onOpenChange={(v) => {
-          setShowCreatePlaylist(v);
-          if (!v) {
-            // Si on ferme sans créer, remettre le formulaire ouvert
-            setOpen(true);
-          }
-        }}
+        onOpenChange={(v) => setShowCreatePlaylist(v)}
         onSaved={(newPlaylist) => {
           handlePlaylistCreated(newPlaylist);
         }}
