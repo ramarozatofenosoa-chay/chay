@@ -40,6 +40,7 @@ export default function AboutSection() {
   // APK state
   const [appVersion, setAppVersion] = useState("");
   const [latestVersion, setLatestVersion] = useState("");
+  const [latestApkUrl, setLatestApkUrl] = useState("");
   const [apkUrl, setApkUrl] = useState("");
   const [uploading, setUploading] = useState(false);
 
@@ -61,6 +62,9 @@ export default function AboutSection() {
       const rec = Array.isArray(list) && list[0] ? list[0] : null;
       if (rec?.app_version) {
         setLatestVersion(rec.app_version);
+      }
+      if (rec?.app_apk_url) {
+        setLatestApkUrl(rec.app_apk_url);
       }
     } catch {}
   };
@@ -289,7 +293,17 @@ export default function AboutSection() {
           {latestVersion && !hasLatestVersion && (
             <div className="flex items-center gap-2 text-sm text-foreground/60 mt-2">
               <ArrowDown className="h-4 w-4" />
-              Une nouvelle version est disponible (v{latestVersion})
+              <span>Une nouvelle version disponible (v{latestVersion})</span>
+              {latestApkUrl && (
+                <a
+                  href={latestApkUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline hover:no-underline"
+                >
+                  Télécharger
+                </a>
+              )}
             </div>
           )}
         </div>
