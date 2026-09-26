@@ -6,7 +6,7 @@ import YouTubeViewer from "@/components/media/YouTubeViewer";
 
 export default function YouTubeCategoryView({ section, youtube = [], isAdmin, onSaved }) {
   const [addOpen, setAddOpen] = useState(false);
-  const [playingIndex, setPlayingIndex] = useState<number | null>(null);
+  const [playingIndex, setPlayingIndex] = useState(null);
   const items = youtube.filter((y) => (y.section || "culte") === section);
   const sectionLabels = { culte: "Culte", louange: "Louange", celebration: "Célébration" };
 
