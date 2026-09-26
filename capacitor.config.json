@@ -1,0 +1,16 @@
+{
+  "appId": "io.chay.app",
+  "appName": "ÉGLISE CHAY",
+  "bundledWebRuntime": false,
+  "server": {
+    "url": "https://chay.base44.app",
+    "cleartextTraffic": false
+  },
+  "preferences": {
+    "ShowSplash": false,
+    "ShowSplashScreenSpinner": false,
+    "BackgroundColor": "#FDFBF7",
+    "HideNavigationBar": true,
+    "StatusBarStyle": "light"
+  }
+}
