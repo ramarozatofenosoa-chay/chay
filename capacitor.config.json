@@ -7,16 +7,18 @@
     "cleartextTraffic": false
   },
   "preferences": {
-    "ShowSplash": false,
+    "ShowSplash": true,
     "ShowSplashScreenSpinner": false,
-    "BackgroundColor": "#FDFBF7",
+    "BackgroundColor": "#4A6CFE",
     "HideNavigationBar": true,
-    "StatusBarStyle": "light"
+    "StatusBarStyle": "light",
+    "SplashMaintainAspectRatio": true,
+    "SplashShowDelay": 0
   },
   "splash": {
-    "showSplash": false,
+    "showSplash": true,
     "autoHide": false,
-    "fadeDuration": 0,
+    "fadeDuration": 300,
     "splashFullscreen": true
   }
 }

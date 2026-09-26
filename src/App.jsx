@@ -34,6 +34,7 @@ import AppLoader from '@/components/AppLoader';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { AudioPlayerProvider } from '@/lib/AudioPlayerContext';
 import { RadioPlayerProvider } from '@/lib/RadioContext';
+import { SplashScreen as CapacitorSplashScreen } from '@capacitor/splash-screen';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, checkAppState } = useAuth();
@@ -94,6 +95,8 @@ function App() {
     () => typeof sessionStorage === "undefined" || sessionStorage.getItem(SPLASH_SESSION_KEY) !== "1"
   );
   useEffect(() => {
+    // Cache le splash natif Capacitor dès que React monte
+    CapacitorSplashScreen.hide();
     if (!showSplash) return undefined;
     // Marqué immédiatement : un actualisation pendant l'animation ne la rejoue pas.
     sessionStorage.setItem(SPLASH_SESSION_KEY, "1");
