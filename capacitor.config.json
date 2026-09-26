@@ -12,5 +12,11 @@
     "BackgroundColor": "#FDFBF7",
     "HideNavigationBar": true,
     "StatusBarStyle": "light"
+  },
+  "splash": {
+    "showSplash": false,
+    "autoHide": false,
+    "fadeDuration": 0,
+    "splashFullscreen": true
   }
 }
