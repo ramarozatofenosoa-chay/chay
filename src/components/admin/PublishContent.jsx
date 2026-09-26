@@ -334,7 +334,7 @@ export default function PublishContent() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Résultat du push de test</DialogTitle>
-            <DialogDescription>Détail de l'envoi push natif.</DialogDescription>
+            <DialogDescription>Détail de l'envoi push : navigateur et Android.</DialogDescription>
           </DialogHeader>
           {pushResult?.error ? (
             <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/10 text-destructive text-sm">
@@ -344,12 +344,27 @@ export default function PublishContent() {
           ) : (
             <div className="space-y-2 text-sm">
               <div className="flex items-center gap-2">
+                {pushResult?.webPush?.skipped || !(pushResult?.webPush?.subscriptions > 0) ? (
+                  <X className="h-4 w-4 text-destructive" />
+                ) : (
+                  <Check className="h-4 w-4 text-emerald-500" />
+                )}
+                <span className="font-bold">
+                  Navigateur — abonnements : {pushResult?.webPush?.subscriptions ?? 0}
+                  {" "}· Envoyés : {pushResult?.webPush?.sent ?? 0}
+                  {" "}· Échecs : {pushResult?.webPush?.failed ?? 0}
+                  {pushResult?.webPush?.skipped
+                    ? ` · non exécuté (${pushResult.webPush.skipped})`
+                    : ""}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
                 {pushResult?.sent > 0 ? (
                   <Check className="h-4 w-4 text-emerald-500" />
                 ) : (
                   <X className="h-4 w-4 text-destructive" />
                 )}
-                <span className="font-bold">Tokens trouvés : {pushResult?.tokensFound ?? 0}</span>
+                <span className="font-bold">Tokens Android trouvés : {pushResult?.tokensFound ?? 0}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Check className="h-4 w-4 text-emerald-500" />
@@ -361,8 +376,16 @@ export default function PublishContent() {
               </div>
               {pushResult?.tokensFound === 0 && (
                 <p className="text-xs text-foreground/55">
-                  Aucun token trouvé : installez l'app mobile Android, connectez-vous
-                  et acceptez les notifications, puis relancez le test.
+                  Aucun token Android : comportement attendu avec l'app web (et non
+                  l'app mobile). Pour les popups sur navigateur, activez
+                  « Notifications du navigateur » dans Réglages → Notifications.
+                </p>
+              )}
+              {pushResult?.webPush?.subscriptions === 0 && (
+                <p className="text-xs text-foreground/55">
+                  Aucun abonnement navigateur : sur l'appareil destinataire,
+                  ouvrez Réglages → Notifications → « Notifications du
+                  navigateur » → Activer, puis relancez ce test.
                 </p>
               )}
             </div>
