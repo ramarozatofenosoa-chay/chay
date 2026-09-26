@@ -6,8 +6,8 @@ async function main() {
       appId: 'chay',
       token: '',
       functionsVersion: '1',
-      serverUrl: '',
-      appBaseUrl: ''
+      serverUrl: 'https://chay.base44.app',
+      appBaseUrl: 'https://chay.base44.app'
     });
     
     const playlists = await base44.entities.Playlist.list("-created_date", 50);
