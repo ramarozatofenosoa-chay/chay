@@ -9,7 +9,7 @@ export default function AnimatedOutlet() {
   return (
     <AnimatePresence mode="wait" initial={false} custom={navType}>
       <motion.div
-        key={location.pathname}
+        key={location.pathname + location.search}
         custom={navType}
         initial={(d) => ({ opacity: 0, x: d === "POP" ? "-100%" : "100%" })}
         animate={{ opacity: 1, x: 0 }}

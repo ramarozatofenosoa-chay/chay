@@ -134,6 +134,7 @@ export default function Messages() {
       )}
       {activeId ? (
         <ConversationView
+          key={activeId}
           conversation={activeConv}
           messages={messagesByConv[activeId] || []}
           user={user}

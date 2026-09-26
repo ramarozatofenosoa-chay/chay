@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { base44 } from "@/api/base44Client";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -72,10 +73,29 @@ export default function ConversationView({
     [user?.first_name, user?.last_name].filter(Boolean).join(" ") ||
     "Membre";
 
+  // Messenger : à l'ouverture, tout apparaît d'un seul coup — nom en haut,
+  // derniers messages et barre d'envoi en bas (saut instantané, sans smooth).
+  const anchoredConv = useRef(null);
   useEffect(() => {
-    if (scrollRef.current)
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [messages.length]);
+    const el = scrollRef.current;
+    if (!el || !conversation?.id) return;
+    if (anchoredConv.current !== conversation.id) {
+      anchoredConv.current = conversation.id;
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [conversation?.id, messages.length]);
+
+  // Nouveaux messages : on redescend seulement si on était déjà en bas ou si
+  // le message vient de nous — sinon l'utilisateur relit l'historique (au
+  // dessus) sans être tiré vers le bas.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const last = messages[messages.length - 1];
+    const mine = !!last && !!user && last.sender_id === user.id;
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 160;
+    if (mine || nearBottom) el.scrollTop = el.scrollHeight;
+  }, [messages.length, user?.id]);
 
   // Mark incoming unread messages as read
   useEffect(() => {
@@ -276,10 +296,17 @@ export default function ConversationView({
       .map((uid) => profiles.find((p) => p.created_by_id === uid))
       .filter(Boolean);
 
-  return (
-<div className="flex flex-col h-[100dvh] w-full bg-background overflow-hidden relative">
+  // Plein écran façon Messenger : la conversation occupe tout l'écran (nom en
+  // haut, derniers messages et barre d'envoi toujours visibles), rendue par
+  // portal vers document.body pour échapper aux transformations d'animation
+  // de la page (framer-motion) et au décalage du chrome de l'application.
+  return createPortal(
+<div className="fixed inset-0 z-[55] flex flex-col w-full bg-background overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-2.5 bg-background/85 backdrop-blur-xl border-b border-border px-3 py-2.5">
+      <div
+        className="flex items-center gap-2.5 bg-background/85 backdrop-blur-xl border-b border-border px-3 py-2.5"
+        style={{ paddingTop: "max(0.625rem, env(safe-area-inset-top))" }}
+      >
         <button
           onClick={onBack}
           className="h-9 w-9 grid place-items-center rounded-full hover:bg-muted shrink-0"
@@ -312,7 +339,7 @@ export default function ConversationView({
       {/* Messages */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto px-3 md:px-6 py-4 space-y-1 selectable"
+        className="flex-1 overflow-y-auto px-3 md:px-6 py-4 space-y-1 selectable mx-auto w-full max-w-3xl"
       >
         {messages.length === 0 ? (
           <div className="py-16 text-center text-foreground/40 text-sm">
@@ -468,15 +495,18 @@ export default function ConversationView({
         </div>
       )}
       {/* Composer */}
-      <div className="sticky bottom-0 z-10 bg-background/95 backdrop-blur-md border-t border-border px-3 py-2 safe-area-pb">
+      <div
+        className="relative z-10 bg-background/95 backdrop-blur-md border-t border-border px-3 py-2 safe-area-pb"
+        style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
+      >
         {showEmoji && (
           <div className="absolute bottom-full left-2 right-2 mb-2">
             <EmojiPicker onPick={(em) => setDraft((d) => d + em)} />
           </div>
         )}
-        
-        {/* Conteneur Flexible - w-full max-w-full garantit qu'il ne déborde jamais */}
-        <div className="flex items-center gap-2 w-full max-w-full mx-auto">
+
+        {/* Conteneur Flexible - w-full max-w-3xl garantit qu'il ne déborde jamais */}
+        <div className="flex items-center gap-2 w-full max-w-3xl mx-auto">
           
           {/* Bouton Emoji */}
           <button
@@ -563,6 +593,7 @@ export default function ConversationView({
           onClose={() => setViewer(null)}
         />
       )}
-    </div>
+    </div>,
+    document.body
   );
 }

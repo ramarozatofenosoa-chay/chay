@@ -66,33 +66,10 @@ export default function Layout() {
     }
   }, [location.pathname, location.search]);
 
-  // Handle hardware back button on Android and other devices
-  useEffect(() => {
-    const handleBack = () => {
-      navigate(-1);
-    };
-
-    const popStateListener = () => {
-      handleBack();
-    };
-
-    window.addEventListener("popstate", popStateListener);
-
-    // Also handle Android hardware back button
-    const handleKeyDown = (event) => {
-      if (event.key === "Back" || event.key === "Escape") {
-        event.preventDefault();
-        handleBack();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      window.removeEventListener("popstate", popStateListener);
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [navigate]);
+  // Note : React Router gère nativement la navigation "pop" (bouton retour
+  // du navigateur, geste Android). On ne déclenche PAS navigate(-1) ici
+  // pour éviter une double navigation qui ferait sauter directement sur
+  // la page d'accueil.
 
   const navTarget = (path, end = false) => {
     const isActive = end
