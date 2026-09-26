@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { NavLink, Link, useLocation, useNavigate, useNavigate } from "react-router-dom";
+import { NavLink, Link, useLocation, useNavigate } from "react-router-dom";
 import { Home, Users, BookOpen, PlayCircle, Gamepad2, Bell, User, ChevronLeft, Settings, MessageCircle } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import AnimatedOutlet from "@/components/AnimatedOutlet";
@@ -72,14 +72,14 @@ export default function Layout() {
       navigate(-1);
     };
 
-    const popStateListener = (event: PopStateEvent) => {
+    const popStateListener = () => {
       handleBack();
     };
 
     window.addEventListener("popstate", popStateListener);
 
     // Also handle Android hardware back button
-    const handleKeyDown = (event: KeyboardEvent) => {
+    const handleKeyDown = (event) => {
       if (event.key === "Back" || event.key === "Escape") {
         event.preventDefault();
         handleBack();
