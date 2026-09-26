@@ -392,30 +392,6 @@ export default function Admin() {
                 )}
               </section>
             )}
-              <section className="rounded-[2rem] border border-border bg-background/40 p-5 md:p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  {section && (() => {
-                    const Icon = section.icon;
-                    return <Icon className="h-5 w-5 text-primary" />;
-                  })()}
-                  <h2 className="font-display font-extrabold text-xl">
-                    {section?.label}
-                  </h2>
-                </div>
-                {section && (
-                  <EntityCrud
-                    key={section.key}
-                    entity={section.key}
-                    fields={section.fields}
-                    listColumns={section.listColumns}
-                    sort={section.sort}
-                    readOnly={section.readOnly}
-                    detailField={section.detailField}
-                    thumbField={section.thumbField}
-                  />
-                )}
-              </section>
-            )}
           </main>
         </div>
       </div>
