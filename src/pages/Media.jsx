@@ -11,7 +11,7 @@ import { useAudioPlayer } from "@/lib/AudioPlayerContext";
 import { useRadio } from "@/lib/RadioContext";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/lib/AuthContext";
-import { FileText, Loader2 } from "lucide-react";
+import { FileText, Loader2, Trash2 } from "lucide-react";
 
 export default function Media() {
   const { toast } = useToast();
@@ -39,6 +39,9 @@ export default function Media() {
   const [playlists, setPlaylists] = useState([]);
   const [playlistTracks, setPlaylistTracks] = useState([]);
 
+  const isAdmin = user?.role === "admin";
+  const isMembre = user?.is_membre === true;
+
   const loadAll = async () => {
     const [t, s, v, a, y, g, p, pl, pt] = await Promise.all([
       base44.entities.MusicTrack.list("-created_date", 30).catch(() => []),
@@ -51,12 +54,17 @@ export default function Media() {
       base44.entities.Playlist.list("-created_date", 50).catch(() => []),
       base44.entities.PlaylistTrack.list("-created_date", 200).catch(() => []),
     ]);
-    setTracks(Array.isArray(t) ? t : []);
-    setSermons(Array.isArray(s) ? s : []);
-    setVideos(Array.isArray(v) ? v : []);
-    setArticles(Array.isArray(a) ? a : []);
+    // Filtre de visibilité : les non-membres ne voient que le contenu "non-membre"
+    const filterVisible = (items) => {
+      if (isMembre) return items;
+      return items.filter((item) => !item.visibility || item.visibility === "non-membre");
+    };
+    setTracks(filterVisible(Array.isArray(t) ? t : []));
+    setSermons(filterVisible(Array.isArray(s) ? s : []));
+    setVideos(filterVisible(Array.isArray(v) ? v : []));
+    setArticles(filterVisible(Array.isArray(a) ? a : []));
     setYoutube(Array.isArray(y) ? y : []);
-    setGallery(Array.isArray(g) ? g : []);
+    setGallery(filterVisible(Array.isArray(g) ? g : []));
     setPlaylist(Array.isArray(p) ? p : []);
     setPlaylists(Array.isArray(pl) ? pl : []);
     setPlaylistTracks(Array.isArray(pt) ? pt : []);
@@ -71,8 +79,6 @@ export default function Media() {
       }
     })();
   }, []);
-
-  const isAdmin = user?.role === "admin";
 
   const addToPlaylist = async (item, category) => {
     try {
@@ -133,6 +139,26 @@ export default function Media() {
     setPlaylistTracks((p) => p.filter((i) => i.id !== id));
   };
 
+  const deletePlaylist = async (playlistId) => {
+    if (!confirm("Supprimer cette playlist entière ?")) return;
+    try {
+      // Supprime d'abord tous les tracks de la playlist
+      const plTracks = await base44.entities.PlaylistTrack.list("-created_date", 200);
+      const tracks = Array.isArray(plTracks) ? plTracks : [];
+      await Promise.all(
+        tracks.filter((t) => t.playlist_id === playlistId).map((t) =>
+          base44.entities.PlaylistTrack.delete(t.id).catch(() => {})
+        )
+      );
+      // Supprime la playlist elle-même
+      await base44.entities.Playlist.delete(playlistId);
+      toast({ title: "Playlist supprimée" });
+      await loadAll();
+    } catch (e) {
+      toast({ title: "Erreur", description: e.message, variant: "destructive" });
+    }
+  };
+
   const playPlaylistItem = (item) => {
     if (currentTrack?.id === item.track_id) {
       toggle();
@@ -159,8 +185,6 @@ export default function Media() {
     <PullToRefresh mode="window" onRefresh={loadAll}>
     <div className="mx-auto max-w-6xl px-4 md:px-8 py-6 md:py-12">
       <header className="mb-6 flex items-end justify-between flex-wrap gap-4">
-        {/* Titre de page masqué dès qu'une catégorie est ouverte : on ne doit
-            plus lire « Multimédia » quand on est sur la Radio (ou ailleurs). */}
         {!activeCat && (
           <div>
             <h1 className="display-fluid">
@@ -183,8 +207,6 @@ export default function Media() {
         )}
       </header>
 
-      {/* La radio n'a besoin d'aucun contenu : on ne la fait pas attendre les
-          9 chargements de la page Multimédia, elle s'ouvre donc immédiatement. */}
       {loading && activeCat !== "radio" ? (
         <div className="flex items-center justify-center py-24">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -211,6 +233,7 @@ export default function Media() {
           onCreatePlaylist={(cat) => { setCreateCat(cat || "music"); setShowCreatePlaylist(true); }}
           onSaved={loadAll}
           onRemovePlaylistTrack={removePlaylistTrack}
+          onDeletePlaylist={deletePlaylist}
           isAdmin={isAdmin}
         />
       ) : (

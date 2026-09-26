@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { ImagePlus, Send, Loader2, X } from "lucide-react";
+import { ImagePlus, Send, Loader2, X, Users } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import { useToast } from "@/components/ui/use-toast";
 import PostCard from "@/components/community/PostCard";
@@ -15,13 +15,41 @@ export default function Community() {
   const [imagePreview, setImagePreview] = useState(null);
   const [publishing, setPublishing] = useState(false);
   const [user, setUser] = useState(null);
+  const [activeTab, setActiveTab] = useState("actualites"); // "actualites" | "membres"
+  const [members, setMembers] = useState([]);
+  const [membersLoading, setMembersLoading] = useState(false);
 
   const loadPosts = async () => {
     const p = await base44.entities.CommunityPost
       .list("-created_date", 50)
       .catch(() => []);
     setPosts(Array.isArray(p) ? p : []);
-    setLoading(false);
+  };
+
+  const loadMembers = async () => {
+    setMembersLoading(true);
+    try {
+      const list = await base44.entities.User.list("-created_date", 100).catch(() => []);
+      setMembers(Array.isArray(list) ? list : []);
+    } catch {}
+    setMembersLoading(false);
+  };
+
+  const toggleMembre = async (targetUser, currentlyMembre) => {
+    if (!user || user.role !== "admin") return;
+    try {
+      await base44.entities.User.update(targetUser.id, {
+        is_membre: !currentlyMembre,
+      });
+      setMembers((prev) =>
+        prev.map((m) =>
+          m.id === targetUser.id ? { ...m, is_membre: !currentlyMembre } : m
+        )
+      );
+      toast({ title: currentlyMembre ? "Retiré du membre" : "Ajouté comme membre" });
+    } catch (e) {
+      toast({ title: "Erreur", description: e.message, variant: "destructive" });
+    }
   };
 
   useEffect(() => {
@@ -31,6 +59,12 @@ export default function Community() {
       await loadPosts();
     })();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === "membres") {
+      loadMembers();
+    }
+  }, [activeTab]);
 
   const handleImagePick = (e) => {
     const file = e.target.files?.[0];
@@ -84,91 +118,168 @@ export default function Community() {
         </p>
       </header>
 
-      <PullToRefresh mode="window" onRefresh={loadPosts}>
-      <>
-      {/* Composer */}
-      <div className="rounded-[1.5rem] border border-border bg-card p-5 mb-6">
-        <textarea
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder="Partagez quelque chose avec l'église…"
-          rows={3}
-          className="w-full bg-transparent outline-none resize-none text-foreground/85 placeholder:text-foreground/40 font-medium"
-        />
-        {imagePreview && (
-          <div className="relative mt-3 rounded-2xl overflow-hidden border border-border">
-            <Image
-              src={imagePreview}
-              alt=""
-              fittingType="fill"
-              className="w-full max-h-64 object-cover"
-            />
-            <button
-              onClick={() => {
-                setImageFile(null);
-                setImagePreview(null);
-              }}
-              className="absolute top-2 right-2 h-8 w-8 rounded-full bg-black/50 text-white grid place-items-center"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        )}
-        <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
-          <label className="inline-flex items-center gap-2 text-sm font-semibold text-foreground/60 hover:text-primary transition cursor-pointer">
-            <ImagePlus className="h-4 w-4" /> Photo
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImagePick}
-              className="hidden"
-            />
-          </label>
-          <button
-            onClick={publish}
-            disabled={(!draft.trim() && !imageFile) || publishing}
-            className="inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-5 py-2.5 text-sm font-bold hover:scale-105 transition disabled:opacity-50"
-          >
-            {publishing ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}{" "}
-            Publier
-          </button>
-        </div>
+      {/* Onglets */}
+      <div className="inline-flex rounded-full border border-border bg-card p-1 gap-1 mb-6">
+        <button
+          onClick={() => setActiveTab("actualites")}
+          className={`inline-flex items-center px-5 py-2 rounded-full text-sm font-bold transition ${
+            activeTab === "actualites"
+              ? "bg-primary text-primary-foreground"
+              : "text-foreground/60"
+          }`}
+        >
+          <Send className="h-4 w-4 mr-1.5" /> Actualités
+        </button>
+        <button
+          onClick={() => setActiveTab("membres")}
+          className={`inline-flex items-center px-5 py-2 rounded-full text-sm font-bold transition ${
+            activeTab === "membres"
+              ? "bg-primary text-primary-foreground"
+              : "text-foreground/60"
+          }`}
+        >
+          <Users className="h-4 w-4 mr-1.5" /> Membres ({members.length})
+        </button>
       </div>
 
-      {/* Feed */}
-      <div className="space-y-5">
-        {loading ? (
+      {activeTab === "actualites" && (
+        <>
+          {/* Composer */}
+          <div className="rounded-[1.5rem] border border-border bg-card p-5 mb-6">
+            <textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="Partagez quelque chose avec l'église…"
+              rows={3}
+              className="w-full bg-transparent outline-none resize-none text-foreground/85 placeholder:text-foreground/40 font-medium"
+            />
+            {imagePreview && (
+              <div className="relative mt-3 rounded-2xl overflow-hidden border border-border">
+                <Image
+                  src={imagePreview}
+                  alt=""
+                  fittingType="fill"
+                  className="w-full max-h-64 object-cover"
+                />
+                <button
+                  onClick={() => {
+                    setImageFile(null);
+                    setImagePreview(null);
+                  }}
+                  className="absolute top-2 right-2 h-8 w-8 rounded-full bg-black/50 text-white grid place-items-center"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+            <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
+              <label className="inline-flex items-center gap-2 text-sm font-semibold text-foreground/60 hover:text-primary transition cursor-pointer">
+                <ImagePlus className="h-4 w-4" /> Photo
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImagePick}
+                  className="hidden"
+                />
+              </label>
+              <button
+                onClick={publish}
+                disabled={(!draft.trim() && !imageFile) || publishing}
+                className="inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-5 py-2.5 text-sm font-bold hover:scale-105 transition disabled:opacity-50"
+              >
+                {publishing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}{" "}
+                Publier
+              </button>
+            </div>
+          </div>
+
+          {/* Feed */}
           <div className="space-y-5">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="rounded-[1.5rem] border border-border bg-card p-5 md:p-6 space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="h-11 w-11 rounded-full bg-muted animate-pulse" />
-                  <div className="space-y-2">
-                    <div className="h-3 w-24 bg-muted rounded animate-pulse" />
-                    <div className="h-2 w-16 bg-muted rounded animate-pulse" />
+            {loading ? (
+              <div className="space-y-5">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="rounded-[1.5rem] border border-border bg-card p-5 md:p-6 space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-11 w-11 rounded-full bg-muted animate-pulse" />
+                      <div className="space-y-2">
+                        <div className="h-3 w-24 bg-muted rounded animate-pulse" />
+                        <div className="h-2 w-16 bg-muted rounded animate-pulse" />
+                      </div>
+                    </div>
+                    <div className="h-3 w-full bg-muted rounded animate-pulse" />
+                    <div className="h-3 w-2/3 bg-muted rounded animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            ) : posts.length ? (
+              posts.map((p) => (
+                <PostCard key={p.id} post={p} currentUser={user} />
+              ))
+            ) : (
+              <p className="text-center text-foreground/50 py-12">
+                Aucune publication pour le moment. Soyez le premier à partager !
+              </p>
+            )}
+          </div>
+        </>
+      )}
+
+      {activeTab === "membres" && (
+        <div className="space-y-3">
+          {membersLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : members.length === 0 ? (
+            <p className="text-center text-foreground/50 py-12">Aucun membre trouvé.</p>
+          ) : (
+            members.map((m) => (
+              <div
+                key={m.id}
+                className="flex items-center gap-3 rounded-xl border border-border bg-card p-3"
+              >
+                <div className="h-10 w-10 rounded-full bg-muted overflow-hidden shrink-0">
+                  {m.profile_photo_url ? (
+                    <img
+                      src={m.profile_photo_url}
+                      alt={m.first_name || "Utilisateur"}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full grid place-items-center text-foreground/40 text-sm font-bold">
+                      {(m.first_name || "?")[0]}
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-sm truncate">
+                    {[m.first_name, m.last_name].filter(Boolean).join(" ") || m.email || "Utilisateur"}
+                  </div>
+                  <div className="text-xs text-foreground/55">
+                    {m.role === "admin" ? "Administrateur" : "Utilisateur"}
                   </div>
                 </div>
-                <div className="h-3 w-full bg-muted rounded animate-pulse" />
-                <div className="h-3 w-2/3 bg-muted rounded animate-pulse" />
+                {user?.role === "admin" && (
+                  <button
+                    onClick={() => toggleMembre(m, m.is_membre)}
+                    className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition ${
+                      m.is_membre
+                        ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                        : "bg-muted text-foreground/60 hover:bg-border"
+                    }`}
+                  >
+                    {m.is_membre ? "✓ Membre" : "Non-membre"}
+                  </button>
+                )}
               </div>
-            ))}
-          </div>
-        ) : posts.length ? (
-          posts.map((p) => (
-            <PostCard key={p.id} post={p} currentUser={user} />
-          ))
-        ) : (
-          <p className="text-center text-foreground/50 py-12">
-            Aucune publication pour le moment. Soyez le premier à partager !
-          </p>
-        )}
-      </div>
-      </>
-      </PullToRefresh>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 }

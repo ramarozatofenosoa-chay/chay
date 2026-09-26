@@ -13,6 +13,9 @@ export default function FavoritesView({
   isPlaying,
   playPlaylistItem,
   removeFromPlaylist,
+  playlists = [],
+  onDeletePlaylist,
+  isAdmin,
 }) {
   const [tab, setTab] = useState("music");
   const items = playlist.filter((p) => (p.category || "music") === tab);
@@ -37,6 +40,34 @@ export default function FavoritesView({
           );
         })}
       </div>
+
+      {/* Liste des playlists (admin) */}
+      {isAdmin && playlists.length > 0 && (
+        <div className="space-y-2 mb-6">
+          <p className="text-xs font-bold uppercase tracking-wide text-foreground/50">
+            Playlists
+          </p>
+          {playlists.map((pl) => (
+            <div key={pl.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
+              <div className="h-10 w-10 rounded-xl brand-gradient grid place-items-center text-white shrink-0">
+                <Music className="h-5 w-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-sm truncate">{pl.name}</div>
+              </div>
+              {onDeletePlaylist && (
+                <button
+                  onClick={() => onDeletePlaylist(pl.id)}
+                  className="h-9 w-9 grid place-items-center rounded-full text-foreground/50 hover:text-destructive hover:bg-muted shrink-0"
+                  aria-label="Supprimer la playlist"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {items.length ? (
         <div className="space-y-3">

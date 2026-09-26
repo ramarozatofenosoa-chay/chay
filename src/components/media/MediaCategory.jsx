@@ -58,7 +58,7 @@ export default function MediaCategory({
   currentTrack, isPlaying, play, playQueue, toggle,
   addToPlaylist, removeFromPlaylist, playPlaylistItem, isPinned,
   playlists = [], playlistTracks = [],
-  onAddToAdminPlaylist, onCreatePlaylist, onRemovePlaylistTrack, onSaved, isAdmin,
+  onAddToAdminPlaylist, onCreatePlaylist, onRemovePlaylistTrack, onDeletePlaylist, onSaved, isAdmin,
 }) {
   const { articles, youtube, gallery, playlist } = data;
   const [ytSection, setYtSection] = useState(null);
@@ -244,6 +244,9 @@ export default function MediaCategory({
           isPlaying={isPlaying}
           playPlaylistItem={playPlaylistItem}
           removeFromPlaylist={removeFromPlaylist}
+          playlists={playlists}
+          onDeletePlaylist={onDeletePlaylist}
+          isAdmin={isAdmin}
         />
       )}
     </div>
