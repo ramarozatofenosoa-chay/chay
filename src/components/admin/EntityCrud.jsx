@@ -96,6 +96,8 @@ export default function EntityCrud({
         createdItem = await base44.entities[entity].update(editing.id, data);
         toast({ title: "Mis à jour" });
       } else {
+        // Marquer comme créé par admin
+        data.created_by_admin = true;
         createdItem = await base44.entities[entity].create(data);
         toast({ title: "Créé" });
       }
