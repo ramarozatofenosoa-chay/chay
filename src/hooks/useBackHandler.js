@@ -25,7 +25,7 @@ import { useEffect, useRef } from "react";
 // ─────────────────────────────────────────────────────────────────────────
 
 const MARKER = { chayOverlay: true };
-const closers = []; // pile des callbacks de fermeture (sommet = overlay le plus profond)
+const closers = [];
 const POP_KEY = "__chay_popstate_installed__";
 const POP_LISTENER_KEY = "__chay_popstate_listener__";
 
@@ -77,10 +77,18 @@ export function useBackHandler(open, onClose) {
     onCloseRef.current = onClose;
   });
 
+  // Ref pour savoir si le listener du module courant est installé.
+  // Après HMR, la référence de onPopState change mais useEffect [open]
+  // ne se relance pas si open est déjà vrai → on utilise ce ref pour
+  // forcer la réinstallation du bon listener.
+  const installedRef = useRef(false);
+  if (!installedRef.current || window[POP_LISTENER_KEY] !== onPopState) {
+    ensurePopListener();
+    installedRef.current = true;
+  }
+
   useEffect(() => {
     if (!open) return;
-    ensurePopListener();
-
     const close = () => {
       try { onCloseRef.current && onCloseRef.current(); } catch {}
     };
