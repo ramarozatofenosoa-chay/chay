@@ -282,29 +282,29 @@ export default function AboutSection() {
             )}
             {uploading ? "Enregistrement…" : "Enregistrer la version"}
           </Button>
+        </div>
+      )}
 
-          {/* Vérification de version pour l'utilisateur */}
-          {hasLatestVersion && (
-            <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 mt-2">
-              <CheckCircle className="h-4 w-4" />
-              Vous avez la dernière version de l'application
-            </div>
-          )}
-          {latestVersion && !hasLatestVersion && (
-            <div className="flex items-center gap-2 text-sm text-foreground/60 mt-2">
-              <ArrowDown className="h-4 w-4" />
-              <span>Une nouvelle version disponible (v{latestVersion})</span>
-              {latestApkUrl && (
-                <a
-                  href={latestApkUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary underline hover:no-underline"
-                >
-                  Télécharger
-                </a>
-              )}
-            </div>
+      {/* Vérification de version pour TOUS les utilisateurs */}
+      {hasLatestVersion && (
+        <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 mt-2">
+          <CheckCircle className="h-4 w-4" />
+          Vous avez la dernière version de l'application
+        </div>
+      )}
+      {latestVersion && !hasLatestVersion && (
+        <div className="flex items-center gap-2 text-sm text-foreground/60 mt-2">
+          <ArrowDown className="h-4 w-4" />
+          <span>Une nouvelle version disponible (v{latestVersion})</span>
+          {latestApkUrl && (
+            <a
+              href={latestApkUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary underline hover:no-underline"
+            >
+              Télécharger
+            </a>
           )}
         </div>
       )}
