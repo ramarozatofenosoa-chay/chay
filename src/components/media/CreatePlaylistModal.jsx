@@ -73,7 +73,7 @@ export default function CreatePlaylistModal({
     if (!name.trim() || !iconChosen) return;
     setSaving(true);
     try {
-      await base44.entities.Playlist.create({
+      const newPlaylist = await base44.entities.Playlist.create({
         name: name.trim(),
         description: description.trim() || null,
         cover_url: coverUrl || null,
@@ -81,7 +81,7 @@ export default function CreatePlaylistModal({
       });
       toast({ title: "Playlist créée" });
       onOpenChange(false);
-      onSaved?.();
+      onSaved?.(newPlaylist);
     } catch (e) {
       toast({ title: "Erreur", description: e.message, variant: "destructive" });
     }

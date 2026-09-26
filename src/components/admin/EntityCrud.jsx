@@ -10,6 +10,7 @@ import {
 import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import EntityForm from "@/components/admin/EntityForm";
+import CreatePlaylistModal from "@/components/media/CreatePlaylistModal";
 
 export default function EntityCrud({
   entity,
@@ -20,6 +21,7 @@ export default function EntityCrud({
   detailField,
   emptyLabel,
   thumbField,
+  showPlaylist = false,
 }) {
   const { toast } = useToast();
   const [items, setItems] = useState([]);
@@ -27,6 +29,8 @@ export default function EntityCrud({
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [playlists, setPlaylists] = useState([]);
+  const [showCreatePlaylist, setShowCreatePlaylist] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -36,27 +40,104 @@ export default function EntityCrud({
     setItems(Array.isArray(res) ? res : []);
     setLoading(false);
   };
+
+  const loadPlaylists = async () => {
+    try {
+      const list = await base44.entities.Playlist.list("-created_date", 50);
+      setPlaylists(Array.isArray(list) ? list : []);
+    } catch {}
+  };
+
   useEffect(() => {
     load();
   }, []);
 
+  useEffect(() => {
+    if (showPlaylist && open) {
+      loadPlaylists();
+    }
+  }, [open, showPlaylist]);
+
+  // Build fields with playlist selector if needed
+  const allFields = showPlaylist
+    ? [
+        {
+          name: "playlist_id",
+          label: "Playlist",
+          type: "select",
+          required: true,
+          options: [
+            { value: "__new__", label: "➕ Créer une nouvelle playlist" },
+            ...playlists.map((p) => ({
+              value: p.id,
+              label: p.name,
+            })),
+          ],
+        },
+        ...fields,
+      ]
+    : fields;
+
   const submit = async (data) => {
     setSaving(true);
     try {
+      let playlistId = data.playlist_id;
+
+      // Si "Créer une playlist" est sélectionné, ouvrir le modal
+      // Le formulaire reste ouvert — l'admin crée la playlist, puis la sélectionne
+      if (playlistId === "__new__") {
+        toast({ title: "Créez d'abord une playlist" });
+        setShowCreatePlaylist(true);
+        setSaving(false);
+        return;
+      }
+
+      // Créer le contenu
+      let createdItem;
       if (editing) {
-        await base44.entities[entity].update(editing.id, data);
+        createdItem = await base44.entities[entity].update(editing.id, data);
         toast({ title: "Mis à jour" });
       } else {
-        await base44.entities[entity].create(data);
+        createdItem = await base44.entities[entity].create(data);
         toast({ title: "Créé" });
       }
+
+      // Ajouter à la playlist si sélectionnée
+      if (playlistId && createdItem.id) {
+        try {
+          await base44.entities.PlaylistTrack.create({
+            playlist_id: playlistId,
+            track_id: createdItem.id,
+            title: createdItem.title,
+            artist: createdItem.artist || null,
+            audio_url: createdItem.audio_url || null,
+            video_url: createdItem.video_url || null,
+            cover_url: createdItem.cover_url || null,
+            kind: entity === "MusicTrack" ? "audio" : entity === "Video" ? "video" : "audio",
+            order: Date.now(),
+          });
+        } catch (e) {
+          toast({ title: "Attention", description: "Contenu créé mais n'a pas pu être ajouté à la playlist", variant: "default" });
+        }
+      }
+
       setOpen(false);
       await load();
+      await loadPlaylists();
     } catch (err) {
       toast({ title: "Erreur", description: err.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }
+  };
+
+  const handlePlaylistCreated = (newPlaylist) => {
+    setNewPlaylistId(newPlaylist.id);
+    // Re-ouvrir le formulaire avec la nouvelle playlist pré-sélectionnée
+    setShowCreatePlaylist(false);
+    setOpen(true);
+    // Mettre à jour les playlists
+    loadPlaylists();
   };
 
   const remove = async (item) => {
@@ -102,12 +183,8 @@ export default function EntityCrud({
               key={item.id}
               className="flex items-start gap-3 rounded-xl border border-border bg-card p-3"
             >
-              {/* Vignette carrée recadrée automatiquement (object-fit: cover).
-                  On évite `rounded-xl` : ici il vaut 32px, ce qui arrondirait
-                  un carré de 48px en cercle. */}
               {thumbField && item[thumbField] && (
                 <div className="h-12 w-12 shrink-0 overflow-hidden rounded-[12px] bg-muted ring-1 ring-border">
-                  {/* fittingType="fill" = recadrage carré automatique */}
                   <Image
                     src={item[thumbField]}
                     fittingType="fill"
@@ -161,7 +238,7 @@ export default function EntityCrud({
             <DialogTitle>{editing ? "Modifier" : "Ajouter"}</DialogTitle>
           </DialogHeader>
           <EntityForm
-            fields={fields}
+            fields={allFields}
             initial={editing}
             onSubmit={submit}
             onCancel={() => setOpen(false)}
@@ -169,6 +246,22 @@ export default function EntityCrud({
           />
         </DialogContent>
       </Dialog>
+
+      {/* Modal pour créer une nouvelle playlist */}
+      <CreatePlaylistModal
+        open={showCreatePlaylist}
+        onOpenChange={(v) => {
+          setShowCreatePlaylist(v);
+          if (!v) {
+            // Si on ferme sans créer, remettre le formulaire ouvert
+            setOpen(true);
+          }
+        }}
+        onSaved={(newPlaylist) => {
+          handlePlaylistCreated(newPlaylist);
+        }}
+        category={entity === "MusicTrack" ? "music" : entity === "Sermon" ? "sermons" : "films"}
+      />
     </div>
   );
 }

@@ -75,6 +75,7 @@ const SECTIONS = [
       { name: "duration_minutes", label: "Durée (min)", type: "number" },
       { name: "visibility", label: "Visibilité", type: "select", options: [{ value: "membre", label: "Membre" }, { value: "non-membre", label: "Non-membre" }], required: true },
     ],
+    showPlaylist: true,
   },
   {
     key: "Announcement",
@@ -116,6 +117,7 @@ const SECTIONS = [
       { name: "duration_seconds", label: "Durée (s)", type: "number" },
       { name: "visibility", label: "Visibilité", type: "select", options: [{ value: "membre", label: "Membre" }, { value: "non-membre", label: "Non-membre" }], required: true },
     ],
+    showPlaylist: true,
   },
   {
     key: "Video",
@@ -133,6 +135,7 @@ const SECTIONS = [
       { name: "duration_seconds", label: "Durée (s)", type: "number" },
       { name: "visibility", label: "Visibilité", type: "select", options: [{ value: "membre", label: "Membre" }, { value: "non-membre", label: "Non-membre" }], required: true },
     ],
+    showPlaylist: true,
   },
   {
     key: "Article",
