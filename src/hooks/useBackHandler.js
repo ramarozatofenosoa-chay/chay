@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useLayoutEffect } from "react";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Gestion du bouton retour via l'History API du navigateur.
@@ -82,10 +82,12 @@ export function useBackHandler(open, onClose) {
   // ne se relance pas si open est déjà vrai → on utilise ce ref pour
   // forcer la réinstallation du bon listener.
   const installedRef = useRef(false);
-  if (!installedRef.current || window[POP_LISTENER_KEY] !== onPopState) {
-    ensurePopListener();
-    installedRef.current = true;
-  }
+  useLayoutEffect(() => {
+    if (!installedRef.current || window[POP_LISTENER_KEY] !== onPopState) {
+      ensurePopListener();
+      installedRef.current = true;
+    }
+  });
 
   useEffect(() => {
     if (!open) return;
