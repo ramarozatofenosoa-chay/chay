@@ -32,7 +32,7 @@ export default function Bible() {
 
   const openView = (v) => {
     if (view === v) return;
-    setSearchParams({ view: v });
+    navigate(`/bible?view=${v}`, { replace: false });
   };
 
   // Navigation depuis un résultat de recherche vers le lecteur.
