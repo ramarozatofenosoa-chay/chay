@@ -28,11 +28,20 @@
     },
     "duration_seconds": {
       "type": "number"
+    },
+    "visibility": {
+      "type": "string",
+      "enum": [
+        "membre",
+        "non-membre"
+      ],
+      "description": "Qui peut voir ce contenu"
     }
   },
   "required": [
     "title",
-    "video_url"
+    "video_url",
+    "visibility"
   ],
   "rls": {
     "create": {

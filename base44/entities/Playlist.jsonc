@@ -20,6 +20,10 @@
         "other"
       ],
       "default": "music"
+    },
+    "created_by_id": {
+      "type": "string",
+      "description": "ID de l'utilisateur qui a cr\u00e9\u00e9 la playlist"
     }
   },
   "required": [
@@ -38,9 +42,16 @@
       }
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
     }
   }
 }

@@ -19,11 +19,20 @@
     },
     "author": {
       "type": "string"
+    },
+    "visibility": {
+      "type": "string",
+      "enum": [
+        "membre",
+        "non-membre"
+      ],
+      "description": "Qui peut voir ce contenu"
     }
   },
   "required": [
     "title",
-    "body"
+    "body",
+    "visibility"
   ],
   "rls": {
     "create": {

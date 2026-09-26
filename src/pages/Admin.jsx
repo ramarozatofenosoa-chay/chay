@@ -73,6 +73,7 @@ const SECTIONS = [
       { name: "audio_url", label: "Audio", type: "file", accept: "audio/*" },
       { name: "bible_references", label: "Références bibliques", type: "text" },
       { name: "duration_minutes", label: "Durée (min)", type: "number" },
+      { name: "visibility", label: "Visibilité", type: "select", options: [{ value: "membre", label: "Membre" }, { value: "non-membre", label: "Non-membre" }], required: true },
     ],
   },
   {
@@ -113,6 +114,7 @@ const SECTIONS = [
       { name: "cover_url", label: "Couverture", type: "file", accept: "image/*" },
       { name: "audio_url", label: "Audio", type: "file", accept: "audio/*" },
       { name: "duration_seconds", label: "Durée (s)", type: "number" },
+      { name: "visibility", label: "Visibilité", type: "select", options: [{ value: "membre", label: "Membre" }, { value: "non-membre", label: "Non-membre" }], required: true },
     ],
   },
   {
@@ -129,6 +131,7 @@ const SECTIONS = [
       { name: "language", label: "Langue", type: "select", options: LANGS },
       { name: "cover_url", label: "Couverture", type: "file", accept: "image/*" },
       { name: "duration_seconds", label: "Durée (s)", type: "number" },
+      { name: "visibility", label: "Visibilité", type: "select", options: [{ value: "membre", label: "Membre" }, { value: "non-membre", label: "Non-membre" }], required: true },
     ],
   },
   {
@@ -144,6 +147,7 @@ const SECTIONS = [
       { name: "cover_url", label: "Couverture", type: "file", accept: "image/*" },
       { name: "category", label: "Catégorie", type: "text" },
       { name: "author", label: "Auteur", type: "text" },
+      { name: "visibility", label: "Visibilité", type: "select", options: [{ value: "membre", label: "Membre" }, { value: "non-membre", label: "Non-membre" }], required: true },
     ],
   },
   {
@@ -176,6 +180,7 @@ const SECTIONS = [
         type: "select",
         options: GALLERY_SECTIONS.map((s) => ({ value: s.id, label: s.label })),
       },
+      { name: "visibility", label: "Visibilité", type: "select", options: [{ value: "membre", label: "Membre" }, { value: "non-membre", label: "Non-membre" }], required: true },
     ],
   },
   {
