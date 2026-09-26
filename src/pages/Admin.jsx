@@ -396,6 +396,7 @@ export default function Admin() {
                     readOnly={section.readOnly}
                     detailField={section.detailField}
                     thumbField={section.thumbField}
+                    showPlaylist={section.showPlaylist}
                   />
                 )}
               </section>
