@@ -288,24 +288,27 @@ export default function AboutSection() {
       {/* Vérification de version pour TOUS les utilisateurs */}
       {hasLatestVersion && (
         <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 mt-2">
-          <CheckCircle className="h-4 w-4" />
+          <CheckCircle className="h-4 w-4 shrink-0" />
           Vous avez la dernière version de l'application
         </div>
       )}
       {latestVersion && !hasLatestVersion && (
-        <div className="flex items-center gap-2 text-sm text-foreground/60 mt-2">
-          <ArrowDown className="h-4 w-4" />
-          <span>Une nouvelle version disponible (v{latestVersion})</span>
-          {latestApkUrl && (
+        <div className="flex flex-wrap items-center gap-2 text-sm text-foreground/60 mt-2">
+          <ArrowDown className="h-4 w-4 shrink-0" />
+          <span className="whitespace-nowrap">Une nouvelle version disponible.</span>
+          <br />
+          <span>
+            Téléchargez{" "}
             <a
               href={latestApkUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-primary underline hover:no-underline"
+              className="text-primary underline hover:no-underline font-medium"
             >
-              Télécharger
+              ici
             </a>
-          )}
+            .
+          </span>
         </div>
       )}
     </div>
