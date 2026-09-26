@@ -1,27 +1,71 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Maximize2, Minimize2, StickyNote, Printer } from "lucide-react";
+import { X, Maximize2 } from "lucide-react";
 import { useBackHandler } from "@/hooks/useBackHandler";
 
-export default function YouTubeViewer({ video, open, onClose }) {
-  const [expanded, setExpanded] = useState(false);
+// Charge l'API YouTube IFrame si pas encore chargée
+function loadYTScript() {
+  if (window.YT) return;
+  const tag = document.createElement("script");
+  tag.src = "https://www.youtube.com/iframe_api";
+  const firstScriptTag = document.getElementsByTagName("script")[0];
+  firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+}
+
+export default function YouTubeViewer({
+  video,
+  videos = [],
+  currentIndex = 0,
+  open,
+  onClose,
+  onEnded,
+}) {
+  const [controls, setControls] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const containerRef = useRef(null);
+  const iframeRef = useRef(null);
+  const hideTimerRef = useRef(null);
 
-  // Le bouton retour du téléphone ferme la vidéo au lieu de naviguer.
   useBackHandler(Boolean(open && video), onClose);
 
-  React.useEffect(() => {
-    if (!open) setExpanded(false);
+  // Charge l'API YouTube quand le viewer s'ouvre
+  useEffect(() => {
+    if (!open) return;
+    loadYTScript();
+  }, [open]);
+
+  // Cache les contrôles après inactivité
+  useEffect(() => {
+    if (!open) return;
+    const reset = () => {
+      setControls(true);
+      clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = setTimeout(() => setControls(false), 3000);
+    };
+    reset();
+    window.addEventListener("mousemove", reset);
+    window.addEventListener("touchstart", reset);
+    return () => {
+      window.removeEventListener("mousemove", reset);
+      window.removeEventListener("touchstart", reset);
+      clearTimeout(hideTimerRef.current);
+    };
   }, [open]);
 
   // Effacer le plein écran quand on ferme
-  React.useEffect(() => {
+  useEffect(() => {
     if (!open && fullscreen) {
       (document.fullscreenElement || document.webkitFullscreenElement)?.exitFullscreen?.();
       setFullscreen(false);
     }
   }, [open, fullscreen]);
+
+  // Quand la vidéo change, reset le contrôle
+  useEffect(() => {
+    setControls(true);
+    clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = setTimeout(() => setControls(false), 3000);
+  }, [video?.id]);
 
   const toggleFullscreen = async () => {
     try {
@@ -35,15 +79,29 @@ export default function YouTubeViewer({ video, open, onClose }) {
     } catch {}
   };
 
-  const handleExpand = () => {
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-      setFullscreen(false);
-      setExpanded(false);
-    } else {
-      setExpanded((v) => !v);
+  // Appeler le callback quand la vidéo se termine
+  const handleIframeLoad = useCallback(() => {
+    if (!iframeRef.current || !window.YT) return;
+    try {
+      new window.YT.Player(iframeRef.current, {
+        events: {
+          onStateChange: (event) => {
+            if (event.data === window.YT.PlayerState.ENDED) {
+              onEnded?.();
+            }
+          },
+        },
+      });
+    } catch {}
+  }, [onEnded]);
+
+  const goToNext = useCallback(() => {
+    if (videos.length > 0 && currentIndex < videos.length - 1) {
+      onEnded?.();
     }
-  };
+  }, [videos, currentIndex, onEnded]);
+
+  const isLast = currentIndex >= videos.length - 1;
 
   return (
     <AnimatePresence>
@@ -63,61 +121,60 @@ export default function YouTubeViewer({ video, open, onClose }) {
             transition={{ type: "spring", stiffness: 260, damping: 26 }}
             onClick={(e) => e.stopPropagation()}
             ref={containerRef}
-            className={`relative ${expanded ? "fixed inset-0 grid place-items-center bg-black" : "w-[92vw] max-w-3xl"}`}
+            className={`relative ${fullscreen ? "fixed inset-0 grid place-items-center bg-black" : "w-[92vw] max-w-3xl"}`}
           >
-            <div className={expanded ? "w-full h-full grid place-items-center" : ""}>
-              <div className={`relative bg-black overflow-hidden ${expanded ? "w-full h-full" : "rounded-2xl"}`}>
-                <div className={expanded ? "w-full h-full" : "aspect-video"}>
+            <div className={fullscreen ? "w-full h-full grid place-items-center" : ""}>
+              <div className={`relative bg-black overflow-hidden ${fullscreen ? "w-full h-full" : "rounded-2xl"}`}>
+                <div className={fullscreen ? "w-full h-full" : "aspect-video"}>
                   <iframe
-                    src={`https://www.youtube-nocookie.com/embed/${video.youtube_id}?autoplay=1&rel=0`}
+                    ref={iframeRef}
+                    src={`https://www.youtube-nocookie.com/embed/${video.youtube_id}?autoplay=1&rel=0&enablejsapi=1`}
                     title={video.title}
                     className="w-full h-full"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
+                    onLoad={handleIframeLoad}
                   />
                 </div>
-
-                {/* Toolbar */}
-                <div className="absolute top-2 right-2 flex items-center gap-2">
-                  <button
-                    onClick={handleExpand}
-                    className="h-9 w-9 grid place-items-center rounded-full bg-black/60 text-white hover:bg-black/80"
-                    title={expanded ? "Réduire" : "Zoom"}
-                  >
-                    {expanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-                  </button>
-                  <button
-                    onClick={toggleFullscreen}
-                    className="h-9 w-9 grid place-items-center rounded-full bg-black/60 text-white hover:bg-black/80"
-                    title={fullscreen ? "Quitter plein écran" : "Plein écran"}
-                  >
-                    {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-                  </button>
-                  <button
-                    onClick={onClose}
-                    className="h-9 w-9 grid place-items-center rounded-full bg-black/60 text-white hover:bg-black/80"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-
-                {video.verse_note && !expanded && (
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-4">
-                    <div className="flex items-start gap-2 text-white">
-                      <StickyNote className="h-4 w-4 mt-0.5 shrink-0" />
-                      <p className="text-sm whitespace-pre-line line-clamp-4 flex-1">{video.verse_note}</p>
-                      <button
-                        onClick={() => printNote(video.title, video.verse_note)}
-                        className="shrink-0 inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-xs font-bold hover:bg-white/25"
-                      >
-                        <Printer className="h-3.5 w-3.5" /> Imprimer
-                      </button>
-                    </div>
-                  </div>
-                )}
               </div>
 
-              {!expanded && (
+              {/* Contrôles bas — cachés par défaut, affichés au survol/touch */}
+              <div
+                className={`absolute bottom-0 left-0 right-0 transition-opacity duration-300 ${controls ? "opacity-100" : "opacity-0"}`}
+                style={{ pointerEvents: controls ? "auto" : "none" }}
+              >
+                <div className="bg-black/80 backdrop-blur-sm px-4 py-3 flex items-center justify-between">
+                  <span className="text-white text-sm font-bold truncate max-w-[60%]">
+                    {video.title}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {!isLast && (
+                      <button
+                        onClick={goToNext}
+                        className="h-8 w-8 grid place-items-center rounded-full bg-white/20 text-white hover:bg-white/30 text-xs font-bold"
+                        title="Vidéo suivante"
+                      >
+                        ▶
+                      </button>
+                    )}
+                    <button
+                      onClick={toggleFullscreen}
+                      className="h-8 w-8 grid place-items-center rounded-full bg-white/20 text-white hover:bg-white/30"
+                      title={fullscreen ? "Quitter plein écran" : "Plein écran"}
+                    >
+                      <Maximize2 className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={onClose}
+                      className="h-8 w-8 grid place-items-center rounded-full bg-white/20 text-white hover:bg-white/30"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {!fullscreen && !controls && (
                 <div className="bg-card px-4 py-3 rounded-b-2xl -mt-1">
                   <h3 className="font-bold line-clamp-1">{video.title}</h3>
                 </div>
@@ -128,17 +185,4 @@ export default function YouTubeViewer({ video, open, onClose }) {
       )}
     </AnimatePresence>
   );
-}
-
-function printNote(title, note) {
-  const w = window.open("", "_blank", "width=600,height=700");
-  if (!w) return;
-  w.document.write(
-    "<html><head><title></title><style>body{font-family:Georgia,serif;padding:40px;color:#1a1a1a;line-height:1.7}h1{font-size:20px;margin-bottom:8px}.ref{color:#888;font-size:12px;margin-bottom:24px}pre{white-space:pre-wrap;font-family:inherit;font-size:15px}</style></head><body><h1 id='t'></h1><div class='ref'>CHAY — Note de versets</div><pre id='n'></pre></body></html>"
-  );
-  w.document.getElementById("t").textContent = title;
-  w.document.getElementById("n").textContent = note;
-  w.document.close();
-  w.focus();
-  w.print();
 }
