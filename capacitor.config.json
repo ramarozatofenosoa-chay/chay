@@ -13,9 +13,19 @@
     "HideNavigationBar": true,
     "StatusBarStyle": "light"
   },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0,
+      "showSpinner": false,
+      "backgroundColor": "#FDFBF7",
+      "androidScaleType": "CENTER_CROP",
+      "splashFullScreen": true,
+      "splashImmersive": false
+    }
+  },
   "splash": {
     "showSplash": false,
-    "autoHide": false,
+    "autoHide": true,
     "fadeDuration": 0,
     "splashFullscreen": true
   }
