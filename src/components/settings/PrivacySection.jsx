@@ -5,7 +5,7 @@ import { usePreferences } from "@/lib/PreferencesContext";
 import PrefSwitch from "@/components/settings/PrefSwitch";
 import { useToast } from "@/components/ui/use-toast";
 import { Link } from "react-router-dom";
-import { FileText, ExternalLink } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 
 export default function PrivacySection() {
   const { user } = useAuth();
@@ -28,12 +28,6 @@ export default function PrivacySection() {
 
   return (
     <div className="space-y-1">
-      <PrefSwitch
-        label="Profil privé"
-        description="Masquer votre profil aux autres membres."
-        checked={prefs.profile_private}
-        onChange={(v) => setPref("profile_private", v)}
-      />
       <PrefSwitch
         label="Afficher mon statut en ligne"
         description="Si désactivé, vous êtes invisible et ne voyez pas le statut des autres (réciprocité)."
@@ -78,29 +72,6 @@ export default function PrivacySection() {
           update({ accepte_commentaires_respect: v });
         }}
       />
-
-      <div className="border-t border-border my-2" />
-      <p className="text-xs font-bold uppercase tracking-wide text-foreground/50 py-1">
-        Documents légaux
-      </p>
-      <Link
-        to="/contact"
-        className="flex items-center gap-2 py-2 text-sm font-semibold hover:text-primary"
-      >
-        <FileText className="h-4 w-4" /> Politique de confidentialité
-      </Link>
-      <Link
-        to="/contact"
-        className="flex items-center gap-2 py-2 text-sm font-semibold hover:text-primary"
-      >
-        <FileText className="h-4 w-4" /> Conditions d'utilisation
-      </Link>
-      <Link
-        to="/contact"
-        className="flex items-center gap-2 py-2 text-sm font-semibold hover:text-primary"
-      >
-        <FileText className="h-4 w-4" /> Politique de cookies
-      </Link>
 
       <div className="border-t border-border my-2" />
       <div className="py-2">

@@ -54,7 +54,8 @@ export default function AccountSection() {
     }
     setSaving(true);
     try {
-      await base44.auth.updateMe(form);
+      const fullName = `${form.first_name} ${form.last_name}`.trim();
+      await base44.auth.updateMe({ ...form, full_name: fullName });
       toast({ title: "Profil enregistré" });
     } catch (e) {
       toast({ title: "Erreur", description: e.message, variant: "destructive" });

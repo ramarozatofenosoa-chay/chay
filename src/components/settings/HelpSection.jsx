@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { APP_VERSION, APP_NAME } from "@/lib/appVersion";
 import {
   Mail,
   Flag,
@@ -74,10 +73,6 @@ export default function HelpSection() {
             </Link>
           );
         })}
-      </div>
-
-      <div className="rounded-xl bg-muted/40 p-3 text-xs text-foreground/60">
-        {APP_NAME} · version <span className="font-bold">{APP_VERSION}</span>
       </div>
     </div>
   );

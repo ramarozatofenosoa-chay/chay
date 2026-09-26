@@ -2,34 +2,24 @@ import React from "react";
 import { usePreferences } from "@/lib/PreferencesContext";
 import PrefSwitch from "@/components/settings/PrefSwitch";
 
-const SIZES = [
-  ["sm", "Petite"],
-  ["md", "Normale"],
-  ["lg", "Grande"],
-  ["xl", "XL"],
-];
-
 export default function AccessibilitySection() {
   const { prefs, setPref } = usePreferences();
 
   return (
     <div className="space-y-1">
       <p className="text-xs font-semibold mb-1">Taille du texte</p>
-      <div className="grid grid-cols-4 gap-2">
-        {SIZES.map(([v, l]) => (
-          <button
-            key={v}
-            type="button"
-            onClick={() => setPref("text_size", v)}
-            className={`h-10 rounded-xl border text-xs font-semibold ${
-              prefs.text_size === v
-                ? "brand-gradient text-white border-transparent"
-                : "border-border bg-card"
-            }`}
-          >
-            {l}
-          </button>
-        ))}
+      <div className="grid grid-cols-1 gap-2">
+        <button
+          type="button"
+          onClick={() => setPref("text_size", "sm")}
+          className={`h-10 rounded-xl border text-sm font-semibold ${
+            prefs.text_size === "sm"
+              ? "brand-gradient text-white border-transparent"
+              : "border-border bg-card"
+          }`}
+        >
+          Petite
+        </button>
       </div>
 
       <div className="border-t border-border my-2" />

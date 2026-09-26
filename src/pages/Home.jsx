@@ -17,6 +17,7 @@ export default function Home() {
   const loadHome = () => setRefreshKey((k) => k + 1);
 
   const firstName =
+    (user?.first_name ? user.first_name : "") ||
     (user?.full_name ? user.full_name.split(" ")[0] : "") ||
     (user?.email ? user.email.split("@")[0] : "");
 

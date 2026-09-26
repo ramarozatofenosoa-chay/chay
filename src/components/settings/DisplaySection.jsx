@@ -43,12 +43,12 @@ export default function DisplaySection() {
 
       <div>
         <p className="text-xs font-semibold mb-1.5">Langue</p>
-        <Segmented
-          options={["fr", "en", "mg"]}
-          value={prefs.language}
-          onChange={(v) => setPref("language", v)}
-          labels={["Français", "English", "Malagasy"]}
-        />
+        <div className="flex items-center gap-2 text-sm text-foreground/60">
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
+            FR
+          </span>
+          Français
+        </div>
         <p className="text-xs text-foreground/50 mt-1">
           La traduction complète de l'application est en cours. Le français est
           actuellement activé.

@@ -1,64 +1,111 @@
-import React from "react";
-import { APP_VERSION } from "@/lib/appVersion";
-import { Facebook, Youtube, Globe } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
+import { useToast } from "@/components/ui/use-toast";
+import { Loader2, Pencil, Save } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function AboutSection() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [text, setText] = useState("");
+  const [record, setRecord] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const list = await base44.entities.AppContent.list("-created_date", 1);
+      const rec = Array.isArray(list) && list[0] ? list[0] : null;
+      setRecord(rec);
+      setText(rec?.about_text || "");
+    } catch {
+      setRecord(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      if (record?.id) {
+        const updated = await base44.entities.AppContent.update(record.id, {
+          about_text: text,
+        });
+        setRecord(updated);
+      } else {
+        const created = await base44.entities.AppContent.create({
+          about_text: text,
+          splash_text_mg: "",
+          splash_text_fr: "",
+        });
+        setRecord(created);
+      }
+      setEditing(false);
+      toast({ title: "À Propos mis à jour" });
+    } catch (e) {
+      toast({ title: "Échec", description: e?.message });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const isAdmin = user?.role === "admin";
+
   return (
-    <div className="space-y-3 text-sm">
-      <p className="text-foreground/70">
-        L'Église Chay annonce le Royaume de Dieu et accompagne chaque personne
-        dans sa foi à travers la Parole, la louange et la communauté.
-      </p>
-
-      <div>
-        <p className="font-bold">Vision</p>
-        <p className="text-foreground/60">
-          Voir des vies transformées par l'Évangile.
-        </p>
+    <>
+      <div className="space-y-3 text-sm">
+        {loading ? (
+          <div className="flex justify-center py-4">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : editing ? (
+          <div className="space-y-3">
+            <Textarea
+              rows={8}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Texte de présentation de l'Église Chay…"
+            />
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => { setEditing(false); setText(record?.about_text || ""); }}
+              >
+                Annuler
+              </Button>
+              <Button onClick={save} disabled={saving}>
+                {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                Enregistrer
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <p className="selectable text-sm text-foreground/80 whitespace-pre-line leading-relaxed">
+              {text ||
+                "Bienvenue sur l'Application de l'Église Chay, une communauté chrétienne qui proclame le Royaume de Dieu."}
+            </p>
+            {isAdmin && (
+              <div className="flex justify-end">
+                <Button variant="outline" onClick={() => setEditing(true)}>
+                  <Pencil className="h-4 w-4 mr-2" /> Modifier
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
-      <div>
-        <p className="font-bold">Mission</p>
-        <p className="text-foreground/60">
-          Tory ny Fanjakan'Andriamanitra — porter la Bonne Nouvelle partout.
-        </p>
-      </div>
-      <div>
-        <p className="font-bold">Valeurs</p>
-        <p className="text-foreground/60">
-          Foi, amour, intégrité, communauté et service.
-        </p>
-      </div>
-
-      <div className="flex flex-wrap gap-2 pt-1">
-        <a
-          href="https://www.facebook.com/www.chay.fr"
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 font-semibold hover:border-primary"
-        >
-          <Facebook className="h-4 w-4 text-primary" /> Facebook
-        </a>
-        <a
-          href="https://www.youtube.com/@EgliseChay.fr-tv"
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 font-semibold hover:border-primary"
-        >
-          <Youtube className="h-4 w-4 text-primary" /> YouTube
-        </a>
-        <a
-          href="https://www.chay.fr"
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 font-semibold hover:border-primary"
-        >
-          <Globe className="h-4 w-4 text-primary" /> Site officiel
-        </a>
-      </div>
-
-      <div className="rounded-xl bg-muted/40 p-3 text-xs text-foreground/60">
-        Version {APP_VERSION}
-      </div>
-    </div>
+    </>
   );
 }
