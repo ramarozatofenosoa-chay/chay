@@ -27,6 +27,7 @@ import { useEffect, useRef } from "react";
 const MARKER = { chayOverlay: true };
 const closers = []; // pile des callbacks de fermeture (sommet = overlay le plus profond)
 const POP_KEY = "__chay_popstate_installed__";
+const POP_LISTENER_KEY = "__chay_popstate_listener__";
 
 function onPopState(event) {
   if (closers.length === 0) {
@@ -46,8 +47,14 @@ function onPopState(event) {
 }
 
 function ensurePopListener() {
-  if (window[POP_KEY]) return;
+  // Nettoyer tout ancien listener HMR avant de réinstaller
+  if (window[POP_LISTENER_KEY]) {
+    window.removeEventListener("popstate", window[POP_LISTENER_KEY]);
+    window[POP_LISTENER_KEY] = null;
+  }
+  if (window[POP_KEY]) return; // déjà installé par un module actif
   window.addEventListener("popstate", onPopState);
+  window[POP_LISTENER_KEY] = onPopState;
   window[POP_KEY] = true;
 }
 
