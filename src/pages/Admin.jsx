@@ -29,8 +29,6 @@ import {
   Loader2,
   Send,
   Newspaper,
-  FileUp,
-  MessageSquare,
   ShieldCheck,
 } from "lucide-react";
 import { GALLERY_SECTIONS } from "@/lib/mediaConstants";
@@ -245,17 +243,6 @@ const SECTIONS = [
       { name: "resource_id", label: "ID ressource liée", type: "text" },
     ],
   },
-  {
-    key: "Notice",
-    label: "Annonces",
-    icon: MessageSquare,
-    sort: "-created_date",
-    listColumns: ["title"],
-    fields: [
-      { name: "title", label: "Titre", type: "text", required: true },
-      { name: "text", label: "Texte", type: "textarea", required: true },
-    ],
-  },
 ];
 
 const NAV = [
@@ -263,7 +250,6 @@ const NAV = [
   { key: "publish", label: "Publier", icon: Send },
   { key: "bible_sync", label: "Recherche Bible", icon: BookOpen },
   ...SECTIONS.map((s) => ({ key: s.key, label: s.label, icon: s.icon })),
-  { key: "app", label: "Application", icon: FileUp },
 ];
 
 export default function Admin() {
@@ -273,11 +259,6 @@ export default function Admin() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviting, setInviting] = useState(false);
-  const [apkFile, setApkFile] = useState(null);
-  const [apkUploading, setApkUploading] = useState(false);
-  const [noticeTitle, setNoticeTitle] = useState("");
-  const [noticeText, setNoticeText] = useState("");
-  const [appVersion, setAppVersion] = useState("");
 
   if (!user) {
     return (
@@ -312,27 +293,6 @@ export default function Admin() {
     } finally {
       setInviting(false);
     }
-  };
-
-  const uploadApk = async () => {
-    if (!apkFile) {
-      toast({ title: "Aucun fichier sélectionné", variant: "destructive" });
-      return;
-    }
-    setApkUploading(true);
-    try {
-      const res = await base44.integrations.Core.UploadPublicFile({ file: apkFile });
-      await base44.entities.Notice.create({ title: noticeTitle, text: noticeText });
-      await base44.auth.updateMe({ app_apk_url: res.file_url, app_version: appVersion });
-      toast({ title: "Annonce et APK enregistrés" });
-      setApkFile(null);
-      setNoticeTitle("");
-      setNoticeText("");
-      setAppVersion("");
-    } catch (e) {
-      toast({ title: "Erreur", description: e.message, variant: "destructive" });
-    }
-    setApkUploading(false);
   };
 
   return (
@@ -407,78 +367,31 @@ export default function Admin() {
               <PublishContent />
             ) : active === "bible_sync" ? (
               <BibleSyncPanel />
-            ) : active === "app" ? (
+            ) : (
               <section className="rounded-[2rem] border border-border bg-background/40 p-5 md:p-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <FileUp className="h-5 w-5 text-primary" />
+                  {section && (() => {
+                    const Icon = section.icon;
+                    return <Icon className="h-5 w-5 text-primary" />;
+                  })()}
                   <h2 className="font-display font-extrabold text-xl">
-                    Application
+                    {section?.label}
                   </h2>
                 </div>
-                <div className="space-y-4 max-w-md">
-                  <div>
-                    <label className="text-xs font-semibold mb-1.5 block">
-                      Titre de l'annonce / Bandeau
-                    </label>
-                    <input
-                      type="text"
-                      value={noticeTitle}
-                      onChange={(e) => setNoticeTitle(e.target.value)}
-                      placeholder="Ex: Campagne de Pâques 2025"
-                      className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold mb-1.5 block">
-                      Texte de l'annonce
-                    </label>
-                    <textarea
-                      value={noticeText}
-                      onChange={(e) => setNoticeText(e.target.value)}
-                      placeholder="Texte à afficher dans l'application…"
-                      rows={4}
-                      className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                    />
-                  </div>
-                  <div className="border-t border-border" />
-                  <div>
-                    <label className="text-xs font-semibold mb-1.5 block">
-                      Version de l'application
-                    </label>
-                    <input
-                      type="text"
-                      value={appVersion}
-                      onChange={(e) => setAppVersion(e.target.value)}
-                      placeholder="Ex: 2.1.0"
-                      className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold mb-1.5 block">
-                      Fichier APK (dernière version)
-                    </label>
-                    <input
-                      type="file"
-                      accept=".apk"
-                      onChange={(e) => setApkFile(e.target.files?.[0] || null)}
-                      className="w-full text-sm"
-                    />
-                  </div>
-                  <button
-                    onClick={uploadApk}
-                    disabled={apkUploading || !apkFile}
-                    className="inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-5 py-2.5 text-sm font-bold hover:scale-105 transition disabled:opacity-50"
-                  >
-                    {apkUploading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <FileUp className="h-4 w-4" />
-                    )}
-                    {apkUploading ? "Upload…" : "Uploader l'APK"}
-                  </button>
-                </div>
+                {section && (
+                  <EntityCrud
+                    key={section.key}
+                    entity={section.key}
+                    fields={section.fields}
+                    listColumns={section.listColumns}
+                    sort={section.sort}
+                    readOnly={section.readOnly}
+                    detailField={section.detailField}
+                    thumbField={section.thumbField}
+                  />
+                )}
               </section>
-            ) : (
+            )}
               <section className="rounded-[2rem] border border-border bg-background/40 p-5 md:p-6">
                 <div className="flex items-center gap-2 mb-4">
                   {section && (() => {

@@ -10,6 +10,14 @@
     },
     "about_text": {
       "type": "string"
+    },
+    "app_version": {
+      "type": "string",
+      "description": "Version la plus récente de l'application APK"
+    },
+    "app_apk_url": {
+      "type": "string",
+      "description": "URL du fichier APK de la dernière version"
     }
   },
   "required": [

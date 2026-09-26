@@ -47,12 +47,11 @@ function onPopState(event) {
 }
 
 function ensurePopListener() {
-  // Nettoyer tout ancien listener HMR avant de réinstaller
+  // Toujours retirer l'ancien listener (HMR peut avoir laissé une référence
+  // obsolète) et installer le listener courant du module.
   if (window[POP_LISTENER_KEY]) {
     window.removeEventListener("popstate", window[POP_LISTENER_KEY]);
-    window[POP_LISTENER_KEY] = null;
   }
-  if (window[POP_KEY]) return; // déjà installé par un module actif
   window.addEventListener("popstate", onPopState);
   window[POP_LISTENER_KEY] = onPopState;
   window[POP_KEY] = true;

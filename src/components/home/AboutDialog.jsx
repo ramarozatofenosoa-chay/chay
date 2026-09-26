@@ -1,35 +1,30 @@
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { useToast } from "@/components/ui/use-toast";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Loader2, Pencil, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Pencil, Save } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
 
 export default function AboutDialog({ open, onOpenChange }) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [text, setText] = useState("");
-  const [record, setRecord] = useState(null);
+  const [notices, setNotices] = useState([]);
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [editText, setEditText] = useState("");
   const [saving, setSaving] = useState(false);
+  const [record, setRecord] = useState(null);
+  const isAdmin = user?.role === "admin";
 
   const load = async () => {
     setLoading(true);
     try {
-      const list = await base44.entities.AppContent.list("-created_date", 1);
-      const rec = Array.isArray(list) && list[0] ? list[0] : null;
-      setRecord(rec);
-      setText(rec?.about_text || "");
+      const list = await base44.entities.AppNotice.list("-created_date", 50);
+      setNotices(Array.isArray(list) ? list : []);
     } catch {
-      setRecord(null);
+      setNotices([]);
     } finally {
       setLoading(false);
     }
@@ -37,24 +32,19 @@ export default function AboutDialog({ open, onOpenChange }) {
 
   useEffect(() => {
     if (open) load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const save = async () => {
     setSaving(true);
     try {
       if (record?.id) {
-        const updated = await base44.entities.AppContent.update(record.id, {
-          about_text: text,
-        });
-        setRecord(updated);
+        await base44.entities.AppContent.update(record.id, { about_text: editText });
       } else {
-        const created = await base44.entities.AppContent.create({
-          about_text: text,
+        await base44.entities.AppContent.create({
+          about_text: editText,
           splash_text_mg: "",
           splash_text_fr: "",
         });
-        setRecord(created);
       }
       setEditing(false);
       toast({ title: "À Propos mis à jour" });
@@ -65,63 +55,82 @@ export default function AboutDialog({ open, onOpenChange }) {
     }
   };
 
-  const isAdmin = user?.role === "admin";
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg rounded-[1.5rem] max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="font-display font-extrabold text-2xl">
-            À Propos
-          </DialogTitle>
-        </DialogHeader>
-        {loading ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          </div>
-        ) : editing ? (
-          <div className="space-y-3">
-            <Textarea
-              rows={8}
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Texte de présentation de l'Église Chay…"
-            />
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setEditing(false);
-                  setText(record?.about_text || "");
-                }}
-              >
-                Annuler
-              </Button>
-              <Button onClick={save} disabled={saving}>
-                {saving ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4 mr-2" />
-                )}
-                Enregistrer
-              </Button>
+        <div className="space-y-4">
+          <h2 className="font-display font-extrabold text-2xl">À Propos</h2>
+
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <p className="selectable text-sm text-foreground/80 whitespace-pre-line leading-relaxed">
-              {text ||
-                "Bienvenue sur l'Application de l'Église Chay, une communauté chrétienne qui proclame le Royaume de Dieu."}
+          ) : notices.length === 0 ? (
+            <p className="text-sm text-foreground/60">
+              Bienvenue sur l'Application de l'Église Chay.
             </p>
-            {isAdmin && (
-              <div className="flex justify-end">
-                <Button variant="outline" onClick={() => setEditing(true)}>
+          ) : (
+            <div className="space-y-3">
+              {notices.map((n) => (
+                <div key={n.id} className="space-y-1">
+                  {n.title && (
+                    <p className="font-bold text-sm text-foreground">{n.title}</p>
+                  )}
+                  <p className="text-sm text-foreground/80 whitespace-pre-line leading-relaxed">
+                    {n.text}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {isAdmin && (
+            <div className="border-t border-border pt-4 space-y-2">
+              {editing ? (
+                <>
+                  <Textarea
+                    rows={6}
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    placeholder="Texte de présentation…"
+                    className="text-sm"
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setEditing(false)}
+                    >
+                      Annuler
+                    </Button>
+                    <Button
+                      onClick={save}
+                      disabled={saving}
+                    >
+                      {saving ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4 mr-2" />
+                      )}
+                      Enregistrer
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setEditing(true);
+                    setEditText(
+                      notices.find((n) => n.id === notices[0]?.id)?.text || ""
+                    );
+                  }}
+                >
                   <Pencil className="h-4 w-4 mr-2" /> Modifier
                 </Button>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

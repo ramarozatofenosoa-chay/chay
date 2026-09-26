@@ -1,14 +1,14 @@
 {
-  "name": "Notice",
+  "name": "AppNotice",
   "type": "object",
   "properties": {
     "title": {
       "type": "string",
-      "description": "Titre de l'annonce"
+      "description": "Titre de l'annonce ou section de l'À propos"
     },
     "text": {
       "type": "string",
-      "description": "Contenu du texte de l'annonce"
+      "description": "Contenu du texte de l'annonce ou section"
     }
   },
   "required": ["title", "text"],
