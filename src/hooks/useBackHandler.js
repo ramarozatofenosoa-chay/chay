@@ -30,11 +30,10 @@ let popInstalled = false;
 
 function onPopState(event) {
   if (closers.length === 0) {
-    // Entrée MARKER orpheline : elle reste enterrée quand une navigation a eu
-    // lieu pendant qu'une superposition était ouverte. Sans ce saut, le retour
-    // atterrit dessus — même URL, rien ne bouge — et l'utilisateur croit que
-    // le bouton retour est cassé.
-    if (event && event.state && event.state.chayOverlay) window.history.back();
+    // Entrée MARKER orpheline : quand le navigateur revient sur
+    // cette entrée, le popstate a déjà été traité par React Router
+    // (on est déjà sur la bonne page). On ne fait plus appel à
+    // history.back() pour éviter la double navigation.
     return;
   }
   const close = closers.pop();
@@ -99,10 +98,9 @@ export function useBackHandler(open, onClose) {
       if (closers.length === 0) {
         const st = window.history.state;
         if (st && typeof st === "object" && st.chayOverlay) {
-          // back() déclenche un popstate ; closers est vide -> onPopState ne
-          // fait rien. On revient simplement sur l'entrée de page réelle
-          // (même URL, pas de navigation).
-          window.history.back();
+          // Remplacer l'entrée orpheline sans déclencher de navigation
+          // supplémentaire (history.back() causait un double retour).
+          window.history.replaceState(null, "");
         }
       }
     };
