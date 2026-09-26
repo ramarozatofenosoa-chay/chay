@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { NavLink, Link, useLocation, useNavigate } from "react-router-dom";
+import { NavLink, Link, useLocation, useNavigate, useNavigate } from "react-router-dom";
 import { Home, Users, BookOpen, PlayCircle, Gamepad2, Bell, User, ChevronLeft, Settings, MessageCircle } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import AnimatedOutlet from "@/components/AnimatedOutlet";
@@ -65,6 +65,34 @@ export default function Layout() {
       setLastParams((p) => ({ ...p, [location.pathname]: location.search }));
     }
   }, [location.pathname, location.search]);
+
+  // Handle hardware back button on Android and other devices
+  useEffect(() => {
+    const handleBack = () => {
+      navigate(-1);
+    };
+
+    const popStateListener = (event: PopStateEvent) => {
+      handleBack();
+    };
+
+    window.addEventListener("popstate", popStateListener);
+
+    // Also handle Android hardware back button
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Back" || event.key === "Escape") {
+        event.preventDefault();
+        handleBack();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("popstate", popStateListener);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [navigate]);
 
   const navTarget = (path, end = false) => {
     const isActive = end
