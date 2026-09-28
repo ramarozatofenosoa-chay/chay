@@ -266,6 +266,7 @@ export default function PlaylistCategoryView({
               )
             )}
           </div>
+          </>
         ) : (
           <p className="text-foreground/50 text-sm">
             Aucun titre dans cette playlist pour le moment.

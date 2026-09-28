@@ -9,6 +9,7 @@ import { useAudioPlayer } from "@/lib/AudioPlayerContext";
 import { useRadio } from "@/lib/RadioContext";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/lib/AuthContext";
+import { filterVisible } from "@/lib/mediaConstants";
 import { Loader2, Trash2 } from "lucide-react";
 
 export default function Media() {
@@ -50,7 +51,7 @@ export default function Media() {
     setVideos(Array.isArray(v) ? v : []);
     setArticles(Array.isArray(a) ? a : []);
     setYoutube(Array.isArray(y) ? y : []);
-    setGallery(filterVisible(Array.isArray(g) ? g : []));
+    setGallery(filterVisible(Array.isArray(g) ? g : [], user));
     setPlaylist(Array.isArray(p) ? p : []);
     setPlaylists(Array.isArray(pl) ? pl : []);
     setPlaylistTracks(Array.isArray(pt) ? pt : []);
@@ -110,6 +111,16 @@ export default function Media() {
 
   const isPinned = (id) => playlist.some((p) => p.track_id === id);
 
+  const deletePlaylist = async (id) => {
+    try {
+      await base44.entities.Playlist.delete(id);
+      toast({ title: "Playlist supprimée" });
+      await loadAll();
+    } catch (e) {
+      toast({ title: "Erreur", description: e.message, variant: "destructive" });
+    }
+  };
+
   const openCat = (id) => setSearchParams({ cat: id });
   const back = () => {
     if (window.history.length > 1) navigate(-1);
@@ -155,6 +166,7 @@ export default function Media() {
           playlists={playlists}
           playlistTracks={playlistTracks}
           onSaved={loadAll}
+          onDeletePlaylist={deletePlaylist}
         />
       ) : (
         <CategoryGrid onOpen={openCat} radioPlaying={radio.isPlaying} onToggleRadio={() => radio.toggle()} />

@@ -60,6 +60,7 @@ export default function MediaCategory({
   addToPlaylist, removeFromPlaylist, playPlaylistItem, isPinned,
   playlists = [], playlistTracks = [],
   onSaved,
+  onDeletePlaylist,
 }) {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
