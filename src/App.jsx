@@ -100,7 +100,7 @@ function App() {
     if (!showSplash) return undefined;
     // Marqué immédiatement : un actualisation pendant l'animation ne la rejoue pas.
     sessionStorage.setItem(SPLASH_SESSION_KEY, "1");
-    const t = setTimeout(() => setShowSplash(false), 5000);
+    const t = setTimeout(() => setShowSplash(false), 2000);
     return () => clearTimeout(t);
   }, [showSplash]);
 

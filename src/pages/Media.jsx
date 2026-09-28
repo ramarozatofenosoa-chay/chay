@@ -159,6 +159,7 @@ export default function Media() {
           playlists={playlists}
           playlistTracks={playlistTracks}
           onSaved={loadAll}
+          isAdmin={user?.role === "admin"}
         />
       ) : (
         <CategoryGrid onOpen={openCat} radioPlaying={radio.isPlaying} onToggleRadio={() => radio.toggle()} />

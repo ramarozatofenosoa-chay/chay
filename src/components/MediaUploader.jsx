@@ -27,10 +27,12 @@ export default function MediaUploader({ onClose, onSaved }) {
     if (!form.title.trim()) { toast({ title: "Le titre est requis.", variant: "destructive" }); return; }
     setLoading(true);
     try {
-      const media = await base44.integrations.Core.UploadFile({ file: mediaFile });
+      // UploadPublicFile : endpoint valide du SDK. UploadFile renvoie un objet
+      // sans file_url → audio_url vide → le fichier paraît « jamais importé ».
+      const media = await base44.integrations.Core.UploadPublicFile({ file: mediaFile });
       let coverUrl = "";
       if (coverFile) {
-        const cover = await base44.integrations.Core.UploadFile({ file: coverFile });
+        const cover = await base44.integrations.Core.UploadPublicFile({ file: coverFile });
         coverUrl = cover.file_url;
       }
 

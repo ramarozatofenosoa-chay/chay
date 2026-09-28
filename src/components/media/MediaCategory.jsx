@@ -59,6 +59,7 @@ export default function MediaCategory({
   addToPlaylist, removeFromPlaylist, playPlaylistItem, isPinned,
   playlists = [], playlistTracks = [],
   onSaved,
+  isAdmin,
 }) {
   const { articles, youtube, gallery, playlist } = data;
   const [ytSection, setYtSection] = useState(null);
@@ -120,6 +121,7 @@ export default function MediaCategory({
           playlists={playlists} playlistTracks={playlistTracks}
           currentTrack={currentTrack} isPlaying={isPlaying} playQueue={playQueue} toggle={toggle}
           onSaved={onSaved}
+          isAdmin={isAdmin}
           onToggleFavorite={addToPlaylist} isFavorite={isPinned}
         />
       )}
@@ -130,6 +132,7 @@ export default function MediaCategory({
           playlists={playlists} playlistTracks={playlistTracks}
           currentTrack={currentTrack} isPlaying={isPlaying} playQueue={playQueue} toggle={toggle}
           onSaved={onSaved}
+          isAdmin={isAdmin}
           onToggleFavorite={addToPlaylist} isFavorite={isPinned}
         />
       )}
@@ -140,6 +143,7 @@ export default function MediaCategory({
           playlists={playlists} playlistTracks={playlistTracks}
           currentTrack={currentTrack} isPlaying={isPlaying} playQueue={playQueue} toggle={toggle}
           onSaved={onSaved}
+          isAdmin={isAdmin}
           onToggleFavorite={addToPlaylist} isFavorite={isPinned}
         />
       )}

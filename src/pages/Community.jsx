@@ -79,7 +79,7 @@ export default function Community() {
     try {
       let image_url = null;
       if (imageFile) {
-        const res = await base44.integrations.Core.UploadFile({ file: imageFile });
+        const res = await base44.integrations.Core.UploadPublicFile({ file: imageFile });
         image_url = res.file_url;
       }
       const name =

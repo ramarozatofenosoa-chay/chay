@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import VideoPlayer from "@/components/player/VideoPlayer";
+import CreatePlaylistModal from "@/components/media/CreatePlaylistModal";
 import { base44 } from "@/api/base44Client";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -33,13 +34,14 @@ export default function PlaylistCategoryView({
 }) {
   const { toast } = useToast();
   const [open, setOpen] = useState(null);
+  // Création de playlist directement depuis la Médiathèque (admin).
+  const [showCreate, setShowCreate] = useState(false);
 
   const isVideo = kind === "video";
   const Icon = isVideo ? Film : category === "sermons" ? Headphones : Music;
 
   const cats = playlists.filter((p) => (p.category || "music") === category);
   const tracks = open ? playlistTracks.filter((t) => t.playlist_id === open.id) : [];
-
 
   const favItem = (t) => ({
     id: t.track_id,
@@ -148,8 +150,16 @@ export default function PlaylistCategoryView({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-5 gap-3">
         <p className="text-sm text-foreground/55">Les contenus sont organisés en playlists.</p>
+        {isAdmin && (
+          <button
+            onClick={() => setShowCreate(true)}
+            className="inline-flex items-center gap-1.5 rounded-full bg-primary text-primary-foreground px-3.5 py-2 text-xs font-bold hover:scale-105 transition shrink-0"
+          >
+            <Plus className="h-3.5 w-3.5" /> Créer une playlist
+          </button>
+        )}
       </div>
 
       {cats.length ? (
@@ -183,6 +193,15 @@ export default function PlaylistCategoryView({
           {isAdmin ? ". Créez-en une pour ajouter des titres." : "."}
         </p>
       )}
+
+      {/* Création de playlist depuis la Médiathèque : la photo choisie est
+          uploadée puis enregistrée dans cover_url → la tuile affiche l'image. */}
+      <CreatePlaylistModal
+        open={showCreate}
+        onOpenChange={setShowCreate}
+        category={category}
+        onSaved={() => onSaved?.()}
+      />
     </div>
   );
 }
