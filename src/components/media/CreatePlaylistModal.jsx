@@ -70,7 +70,7 @@ export default function CreatePlaylistModal({
   };
 
   const create = async () => {
-    if (!name.trim() || !iconChosen) return;
+    if (!name.trim()) return;
     setSaving(true);
     try {
       const newPlaylist = await base44.entities.Playlist.create({
@@ -175,7 +175,7 @@ export default function CreatePlaylistModal({
 
           <Button
             onClick={create}
-            disabled={saving || uploading || !name.trim() || !iconChosen}
+            disabled={saving || uploading || !name.trim()}
             className="w-full brand-gradient text-white border-0"
           >
             {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
