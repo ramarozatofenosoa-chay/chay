@@ -1,17 +1,19 @@
 {
   "appId": "io.chay.app",
-  "appName": "ÉGLISE CHAY",
+  "appName": "├ëGLISE CHAY",
   "bundledWebRuntime": false,
   "server": {
     "url": "https://chay.base44.app",
     "cleartextTraffic": false
   },
   "preferences": {
-    "ShowSplash": false,
+    "ShowSplash": true,
     "ShowSplashScreenSpinner": false,
-    "BackgroundColor": "#FDFBF7",
+    "BackgroundColor": "#4A6CFE",
     "HideNavigationBar": true,
-    "StatusBarStyle": "light"
+    "StatusBarStyle": "light",
+    "SplashMaintainAspectRatio": true,
+    "SplashShowDelay": 0
   },
   "plugins": {
     "SplashScreen": {
@@ -24,9 +26,9 @@
     }
   },
   "splash": {
-    "showSplash": false,
-    "autoHide": true,
-    "fadeDuration": 0,
+    "showSplash": true,
+    "autoHide": false,
+    "fadeDuration": 300,
     "splashFullscreen": true
   }
 }
