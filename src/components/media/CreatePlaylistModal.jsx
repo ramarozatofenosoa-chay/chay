@@ -73,12 +73,24 @@ export default function CreatePlaylistModal({
     if (!name.trim()) return;
     setSaving(true);
     try {
-      const newPlaylist = await base44.entities.Playlist.create({
+      // Vérification : l'URL doit être une image publique valide (jamais
+      // enregistrée sous une autre clé / tronquée).
+      const validCover =
+        typeof coverUrl === "string" && /^https?:\/\//i.test(coverUrl) ? coverUrl : null;
+      const payload = {
         name: name.trim(),
         description: description.trim() || null,
-        cover_url: coverUrl || null,
+        cover_url: validCover,
         category,
-      });
+      };
+      const newPlaylist = await base44.entities.Playlist.create(payload);
+      // Relecture immédiate : si le serveur a ignoré la couverture sans lever
+      // d'erreur, on retente une mise à jour explicite avant de rafraîchir.
+      if (validCover && !newPlaylist?.cover_url) {
+        await base44.entities.Playlist
+          .update(newPlaylist.id, { cover_url: validCover })
+          .catch(() => {});
+      }
       toast({ title: "Playlist créée" });
       onOpenChange(false);
       onSaved?.(newPlaylist);
