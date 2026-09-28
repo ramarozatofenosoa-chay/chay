@@ -10,6 +10,7 @@ import { base44 } from "@/api/base44Client";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Printer } from "lucide-react";
 import CroppableUploader from "@/components/media/CroppableUploader";
+import { notifyAdminUpload } from "@/lib/adminNotify";
 
 function extractYtId(value) {
   if (/^[a-zA-Z0-9_-]{11}$/.test(value)) return value;
@@ -43,7 +44,7 @@ export default function AddYouTubeLinkModal({ open, onOpenChange, section = "cul
     }
     setLoading(true);
     try {
-      await base44.entities.YouTubeVideo.create({
+      const created = await base44.entities.YouTubeVideo.create({
         title: title.trim(),
         youtube_id: id,
         cover_url: coverUrl || null,
@@ -52,6 +53,7 @@ export default function AddYouTubeLinkModal({ open, onOpenChange, section = "cul
         category: sectionLabels[section] || "Louange",
       });
       toast({ title: "Vidéo ajoutée" });
+      notifyAdminUpload({ kind: "youtube", title: title.trim(), section, contentId: created?.id });
       onOpenChange(false);
       onSaved?.();
     } catch (e) {

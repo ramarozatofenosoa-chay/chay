@@ -9,6 +9,7 @@ import { useAudioPlayer } from "@/lib/AudioPlayerContext";
 import { useRadio } from "@/lib/RadioContext";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/lib/AuthContext";
+import { filterVisible } from "@/lib/mediaConstants";
 import { Loader2, Trash2 } from "lucide-react";
 
 export default function Media() {
@@ -45,16 +46,12 @@ export default function Media() {
       base44.entities.Playlist.list("-created_date", 50).catch(() => []),
       base44.entities.PlaylistTrack.list("-created_date", 200).catch(() => []),
     ]);
-    // Filtre : le contenu créé par admin n'apparaît PAS dans la page Media
-    const filterVisible = (items) => {
-      return items.filter((item) => !item.created_by_admin && (!item.visibility || item.visibility === "non-membre"));
-    };
-    setTracks(filterVisible(Array.isArray(t) ? t : []));
-    setSermons(filterVisible(Array.isArray(s) ? s : []));
-    setVideos(filterVisible(Array.isArray(v) ? v : []));
-    setArticles(filterVisible(Array.isArray(a) ? a : []));
+    setTracks(Array.isArray(t) ? t : []);
+    setSermons(Array.isArray(s) ? s : []);
+    setVideos(Array.isArray(v) ? v : []);
+    setArticles(Array.isArray(a) ? a : []);
     setYoutube(Array.isArray(y) ? y : []);
-    setGallery(filterVisible(Array.isArray(g) ? g : []));
+    setGallery(filterVisible(Array.isArray(g) ? g : [], user));
     setPlaylist(Array.isArray(p) ? p : []);
     setPlaylists(Array.isArray(pl) ? pl : []);
     setPlaylistTracks(Array.isArray(pt) ? pt : []);
@@ -114,6 +111,16 @@ export default function Media() {
 
   const isPinned = (id) => playlist.some((p) => p.track_id === id);
 
+  const deletePlaylist = async (id) => {
+    try {
+      await base44.entities.Playlist.delete(id);
+      toast({ title: "Playlist supprimée" });
+      await loadAll();
+    } catch (e) {
+      toast({ title: "Erreur", description: e.message, variant: "destructive" });
+    }
+  };
+
   const openCat = (id) => setSearchParams({ cat: id });
   const back = () => {
     if (window.history.length > 1) navigate(-1);
@@ -159,7 +166,7 @@ export default function Media() {
           playlists={playlists}
           playlistTracks={playlistTracks}
           onSaved={loadAll}
-          isAdmin={user?.role === "admin"}
+          onDeletePlaylist={deletePlaylist}
         />
       ) : (
         <CategoryGrid onOpen={openCat} radioPlaying={radio.isPlaying} onToggleRadio={() => radio.toggle()} />

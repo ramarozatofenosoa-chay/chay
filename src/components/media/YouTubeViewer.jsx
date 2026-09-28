@@ -3,15 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Maximize2 } from "lucide-react";
 import { useBackHandler } from "@/hooks/useBackHandler";
 
-// Charge l'API YouTube IFrame si pas encore chargée
-function loadYTScript() {
-  if (window.YT) return;
-  const tag = document.createElement("script");
-  tag.src = "https://www.youtube.com/iframe_api";
-  const firstScriptTag = document.getElementsByTagName("script")[0];
-  firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
-}
-
 export default function YouTubeViewer({
   video,
   videos = [],
@@ -27,12 +18,6 @@ export default function YouTubeViewer({
   const hideTimerRef = useRef(null);
 
   useBackHandler(Boolean(open && video), onClose);
-
-  // Charge l'API YouTube quand le viewer s'ouvre
-  useEffect(() => {
-    if (!open) return;
-    loadYTScript();
-  }, [open]);
 
   // Cache les contrôles après inactivité
   useEffect(() => {
@@ -79,21 +64,7 @@ export default function YouTubeViewer({
     } catch {}
   };
 
-  // Appeler le callback quand la vidéo se termine
-  const handleIframeLoad = useCallback(() => {
-    if (!iframeRef.current || !window.YT) return;
-    try {
-      new window.YT.Player(iframeRef.current, {
-        events: {
-          onStateChange: (event) => {
-            if (event.data === window.YT.PlayerState.ENDED) {
-              onEnded?.();
-            }
-          },
-        },
-      });
-    } catch {}
-  }, [onEnded]);
+
 
   const goToNext = useCallback(() => {
     if (videos.length > 0 && currentIndex < videos.length - 1) {
@@ -127,13 +98,11 @@ export default function YouTubeViewer({
               <div className={`relative bg-black overflow-hidden ${fullscreen ? "w-full h-full" : "rounded-2xl"}`}>
                 <div className={fullscreen ? "w-full h-full" : "aspect-video"}>
                   <iframe
-                    ref={iframeRef}
-                    src={`https://www.youtube-nocookie.com/embed/${video.youtube_id}?autoplay=1&rel=0&enablejsapi=1`}
+                    src={`https://www.youtube-nocookie.com/embed/${video.youtube_id}?autoplay=1&rel=0`}
                     title={video.title}
                     className="w-full h-full"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
-                    onLoad={handleIframeLoad}
                   />
                 </div>
               </div>
