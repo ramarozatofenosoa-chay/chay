@@ -45,14 +45,10 @@ export default function Media() {
       base44.entities.Playlist.list("-created_date", 50).catch(() => []),
       base44.entities.PlaylistTrack.list("-created_date", 200).catch(() => []),
     ]);
-    // Filtre : le contenu créé par admin n'apparaît PAS dans la page Media
-    const filterVisible = (items) => {
-      return items.filter((item) => !item.created_by_admin && (!item.visibility || item.visibility === "non-membre"));
-    };
-    setTracks(filterVisible(Array.isArray(t) ? t : []));
-    setSermons(filterVisible(Array.isArray(s) ? s : []));
-    setVideos(filterVisible(Array.isArray(v) ? v : []));
-    setArticles(filterVisible(Array.isArray(a) ? a : []));
+    setTracks(Array.isArray(t) ? t : []);
+    setSermons(Array.isArray(s) ? s : []);
+    setVideos(Array.isArray(v) ? v : []);
+    setArticles(Array.isArray(a) ? a : []);
     setYoutube(Array.isArray(y) ? y : []);
     setGallery(filterVisible(Array.isArray(g) ? g : []));
     setPlaylist(Array.isArray(p) ? p : []);

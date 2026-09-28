@@ -8,6 +8,7 @@ import YouTubeCategoryView from "@/components/media/YouTubeCategoryView";
 import FavoritesView from "@/components/media/FavoritesView";
 import GalleryViewer from "@/components/media/GalleryViewer";
 import { useBackHandler } from "@/hooks/useBackHandler";
+import { useAuth } from "@/lib/AuthContext";
 import { YOUTUBE_SECTIONS, GALLERY_SECTIONS, normalizeSection } from "@/lib/mediaConstants";
 
 const TITLES = {
@@ -60,6 +61,8 @@ export default function MediaCategory({
   playlists = [], playlistTracks = [],
   onSaved,
 }) {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const { articles, youtube, gallery, playlist } = data;
   const [ytSection, setYtSection] = useState(null);
   const [gallerySection, setGallerySection] = useState(null);

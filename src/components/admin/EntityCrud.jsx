@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
+import { notifyAdminUpload } from "@/lib/adminNotify";
 import {
   Dialog,
   DialogContent,
@@ -309,6 +310,21 @@ export default function EntityCrud({
         createdItem = await base44.entities[entity].create(rest);
         toast({ title: "Créé" });
         await attachToPlaylist(createdItem, playlist_id);
+        // Notification automatique après upload admin
+        const playlistName = playlist_id
+          ? playlists.find((p) => p.id === playlist_id)?.name
+          : null;
+        const kindMap = { MusicTrack: "music", Sermon: "sermon", Video: "film" };
+        const kind = kindMap[entity];
+        if (kind) {
+          notifyAdminUpload({
+            kind,
+            title: createdItem.title,
+            artist: createdItem.artist,
+            playlist: playlistName,
+            contentId: createdItem.id,
+          });
+        }
       }
       setOpen(false);
       await load();
