@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Loader2, Music } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Music, Lock, Unlock, GripVertical } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import EntityForm from "@/components/admin/EntityForm";
 import CreatePlaylistModal from "@/components/media/CreatePlaylistModal";
@@ -19,6 +19,143 @@ const PLAYLIST_CATEGORY = {
   Video: "films",
 };
 
+/* ─── Hook drag & drop tactile + souris ─────────────────────────────────── */
+function useDragSort(items, onReorder) {
+  const dragIdx = useRef(null);
+  const listRef = useRef(null);
+
+  const getItemEls = () =>
+    listRef.current ? Array.from(listRef.current.children) : [];
+
+  const indexFromY = (clientY) => {
+    const els = getItemEls();
+    for (let i = 0; i < els.length; i++) {
+      const r = els[i].getBoundingClientRect();
+      if (clientY < r.top + r.height / 2) return i;
+    }
+    return els.length - 1;
+  };
+
+  /* ── souris ── */
+  const onMouseDown = useCallback(
+    (idx) => (e) => {
+      e.preventDefault();
+      dragIdx.current = idx;
+      const els = getItemEls();
+      els[idx]?.classList.add("opacity-50", "scale-[0.98]");
+
+      const onMove = (me) => {
+        const target = indexFromY(me.clientY);
+        els.forEach((el, i) => {
+          el.style.transform = "";
+          if (i === dragIdx.current) return;
+          if (
+            dragIdx.current < target
+              ? i > dragIdx.current && i <= target
+              : i < dragIdx.current && i >= target
+          ) {
+            el.style.transform =
+              dragIdx.current < target ? "translateY(-56px)" : "translateY(56px)";
+          }
+        });
+      };
+
+      const onUp = (me) => {
+        window.removeEventListener("mousemove", onMove);
+        window.removeEventListener("mouseup", onUp);
+        const from = dragIdx.current;
+        dragIdx.current = null;
+        els.forEach((el) => {
+          el.classList.remove("opacity-50", "scale-[0.98]");
+          el.style.transform = "";
+        });
+        const to = indexFromY(me.clientY);
+        if (from !== to) {
+          const next = [...items];
+          const [moved] = next.splice(from, 1);
+          next.splice(to, 0, moved);
+          onReorder(next);
+        }
+      };
+
+      window.addEventListener("mousemove", onMove);
+      window.addEventListener("mouseup", onUp);
+    },
+    [items, onReorder]
+  );
+
+  /* ── tactile ── */
+  const onTouchStart = useCallback(
+    (idx) => (e) => {
+      dragIdx.current = idx;
+      const els = getItemEls();
+      els[idx]?.classList.add("opacity-50", "scale-[0.98]");
+
+      const onMove = (te) => {
+        te.preventDefault();
+        const touch = te.touches[0];
+        const target = indexFromY(touch.clientY);
+        els.forEach((el, i) => {
+          el.style.transform = "";
+          if (i === dragIdx.current) return;
+          if (
+            dragIdx.current < target
+              ? i > dragIdx.current && i <= target
+              : i < dragIdx.current && i >= target
+          ) {
+            el.style.transform =
+              dragIdx.current < target ? "translateY(-56px)" : "translateY(56px)";
+          }
+        });
+      };
+
+      const onEnd = (te) => {
+        listRef.current?.removeEventListener("touchmove", onMove);
+        listRef.current?.removeEventListener("touchend", onEnd);
+        const from = dragIdx.current;
+        dragIdx.current = null;
+        els.forEach((el) => {
+          el.classList.remove("opacity-50", "scale-[0.98]");
+          el.style.transform = "";
+        });
+        const touch = te.changedTouches[0];
+        const to = indexFromY(touch.clientY);
+        if (from !== to) {
+          const next = [...items];
+          const [moved] = next.splice(from, 1);
+          next.splice(to, 0, moved);
+          onReorder(next);
+        }
+      };
+
+      listRef.current?.addEventListener("touchmove", onMove, { passive: false });
+      listRef.current?.addEventListener("touchend", onEnd);
+    },
+    [items, onReorder]
+  );
+
+  return { listRef, onMouseDown, onTouchStart };
+}
+
+/* ─── Cadenas ──────────────────────────────────────────────────────────── */
+function LockToggle({ locked, onToggle }) {
+  return (
+    <button
+      onClick={onToggle}
+      title={locked ? "Déverrouiller pour réorganiser" : "Verrouiller l'ordre"}
+      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold border transition
+        ${locked
+          ? "border-border bg-card text-muted-foreground hover:bg-muted"
+          : "border-primary bg-primary/10 text-primary hover:bg-primary/20"
+        }`}
+    >
+      {locked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
+      {locked ? "Verrouillé" : "Réorganiser"}
+    </button>
+  );
+}
+
+/* ─── Composant principal ───────────────────────────────────────────────── */
 export default function EntityCrud({
   entity,
   fields,
@@ -41,10 +178,12 @@ export default function EntityCrud({
   const [saving, setSaving] = useState(false);
   const [playlists, setPlaylists] = useState([]);
   const [showCreatePlaylist, setShowCreatePlaylist] = useState(false);
-  // Clé du formulaire : changer la clé remonte EntityForm avec les bonnes valeurs.
   const [formKey, setFormKey] = useState("new");
-  // Playlist créée pendant que le formulaire est ouvert : on la pré-sélectionne.
   const pendingSelectRef = useRef(null);
+
+  /* cadenas playlists / musiques */
+  const [playlistsLocked, setPlaylistsLocked] = useState(true);
+  const [tracksLocked, setTracksLocked] = useState(true);
 
   const load = async () => {
     setLoading(true);
@@ -59,25 +198,15 @@ export default function EntityCrud({
     try {
       const list = await base44.entities.Playlist.list("-created_date", 100);
       const arr = Array.isArray(list) ? list : [];
-      // Tri du plus récent au plus ancien.
-      arr.sort((a, b) => new Date(b.created_date || 0) - new Date(a.created_date || 0));
+      arr.sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || new Date(b.created_date || 0) - new Date(a.created_date || 0));
       const cat = PLAYLIST_CATEGORY[entity];
       setPlaylists(cat ? arr.filter((p) => (p.category || "music") === cat) : arr);
     } catch {}
   };
 
-  useEffect(() => {
-    load();
-  }, []);
+  useEffect(() => { load(); }, []);
+  useEffect(() => { if (showPlaylist) loadPlaylists(); }, [showPlaylist]);
 
-  useEffect(() => {
-    if (showPlaylist) {
-      loadPlaylists();
-    }
-  }, [showPlaylist]);
-
-  // Champ "Playlist" : obligatoire à la création, optionnel en modification
-  // (permet de retirer un contenu de sa playlist sans le supprimer).
   const allFields = showPlaylist
     ? [
         {
@@ -87,22 +216,42 @@ export default function EntityCrud({
           required: !editing,
           options: [
             ...(editing ? [{ value: "", label: "— Aucune (retirer de la playlist)" }] : []),
-            ...playlists.map((p) => ({
-              value: p.id,
-              label: p.name,
-            })),
+            ...playlists.map((p) => ({ value: p.id, label: p.name })),
           ],
         },
         ...fields,
       ]
     : fields;
 
+  /* ── Sauvegarde ordre playlists ── */
+  const handleReorderPlaylists = useCallback(async (next) => {
+    setPlaylists(next);
+    await Promise.all(
+      next.map((p, i) =>
+        base44.entities.Playlist.update(p.id, { order: i }).catch(() => {})
+      )
+    );
+  }, []);
+
+  /* ── Sauvegarde ordre musiques ── */
+  const handleReorderItems = useCallback(async (next) => {
+    setItems(next);
+    await Promise.all(
+      next.map((item, i) =>
+        base44.entities[entity].update(item.id, { order: i }).catch(() => {})
+      )
+    );
+  }, [entity]);
+
+  const playlistDrag = useDragSort(playlists, handleReorderPlaylists);
+  const itemDrag = useDragSort(items, handleReorderItems);
+
+  /* ── Attach / detach playlist ── */
   const attachToPlaylist = async (createdItem, playlistId) => {
     if (!createdItem?.id || !playlistId) return;
     try {
       const existing = await base44.entities.PlaylistTrack.list(
-        `-playlist_id eq "${playlistId}"`,
-        200
+        `-playlist_id eq "${playlistId}"`, 200
       ).catch(() => []);
       const already = (Array.isArray(existing) ? existing : []).find(
         (pt) => pt.track_id === createdItem.id && pt.playlist_id === playlistId
@@ -129,11 +278,8 @@ export default function EntityCrud({
         kind: entity === "Video" ? "video" : "audio",
         order: Date.now(),
       });
-    } catch (e) {
-      toast({
-        title: "Attention",
-        description: "Contenu enregistré mais n'a pas pu être ajouté à la playlist.",
-      });
+    } catch {
+      toast({ title: "Attention", description: "Contenu enregistré mais n'a pas pu être ajouté à la playlist." });
     }
   };
 
@@ -142,9 +288,8 @@ export default function EntityCrud({
       const pts = await base44.entities.PlaylistTrack.list("-created_date", 200);
       const arr = Array.isArray(pts) ? pts : [];
       await Promise.all(
-        arr
-          .filter((pt) => pt.track_id === itemId)
-          .map((pt) => base44.entities.PlaylistTrack.delete(pt.id).catch(() => {}))
+        arr.filter((pt) => pt.track_id === itemId)
+           .map((pt) => base44.entities.PlaylistTrack.delete(pt.id).catch(() => {}))
       );
     } catch {}
   };
@@ -153,12 +298,10 @@ export default function EntityCrud({
     setSaving(true);
     try {
       const { playlist_id, ...rest } = data;
-
       let createdItem;
       if (editing) {
         createdItem = await base44.entities[entity].update(editing.id, rest);
         toast({ title: "Mis à jour" });
-        // Retirer les liens existants puis re-lier à la playlist choisie (ou aucune)
         await detachFromPlaylists(editing.id);
         await attachToPlaylist(createdItem, playlist_id);
       } else {
@@ -167,7 +310,6 @@ export default function EntityCrud({
         toast({ title: "Créé" });
         await attachToPlaylist(createdItem, playlist_id);
       }
-
       setOpen(false);
       await load();
       await loadPlaylists();
@@ -181,7 +323,6 @@ export default function EntityCrud({
   const handlePlaylistCreated = async (newPlaylist) => {
     setShowCreatePlaylist(false);
     await loadPlaylists();
-    // Si le formulaire d'ajout est ouvert, pré-sélectionner la nouvelle playlist.
     if (newPlaylist?.id && open) {
       pendingSelectRef.current = newPlaylist.id;
       setFormKey((k) => `${k}-pl-${newPlaylist.id}`);
@@ -189,22 +330,12 @@ export default function EntityCrud({
   };
 
   const removePlaylist = async (playlist) => {
-    if (
-      !confirm(
-        `Supprimer la playlist « ${playlist.name} » ? Les contenus qu'elle contient seront aussi supprimés.`
-      )
-    )
-      return;
+    if (!confirm(`Supprimer la playlist « ${playlist.name} » ? Les contenus qu'elle contient seront aussi supprimés.`)) return;
     try {
-      const pts = await base44.entities.PlaylistTrack.list(
-        `-playlist_id eq "${playlist.id}"`,
-        500
-      ).catch(() => []);
+      const pts = await base44.entities.PlaylistTrack.list(`-playlist_id eq "${playlist.id}"`, 500).catch(() => []);
       const arr = Array.isArray(pts) ? pts : [];
-      // Supprimer les contenus liés selon l'entité de la section.
-      const contentEntity = entity;
       for (const pt of arr) {
-        await base44.entities[contentEntity].delete(pt.track_id).catch(() => {});
+        await base44.entities[entity].delete(pt.track_id).catch(() => {});
         await base44.entities.PlaylistTrack.delete(pt.id).catch(() => {});
       }
       await base44.entities.Playlist.delete(playlist.id);
@@ -229,12 +360,14 @@ export default function EntityCrud({
     }
   };
 
+  /* ─── Rendu ─────────────────────────────────────────────────────────── */
   return (
     <div>
+      {/* ── Barre d'actions ── */}
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm text-muted-foreground">{items.length} élément(s)</p>
         {!readOnly && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap justify-end">
             {showPlaylist && (
               <button
                 onClick={() => setShowCreatePlaylist(true)}
@@ -258,22 +391,38 @@ export default function EntityCrud({
         )}
       </div>
 
+      {/* ── Section playlists ── */}
       {showPlaylist && isAdmin && (
         <div className="mb-5">
-          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2">
-            Playlists ({playlists.length})
-          </p>
-          {playlists.length === 0 ? (
-            <p className="text-sm text-foreground/50">
-              Aucune playlist. Utilisez « Créer une nouvelle playlist ».
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+              Playlists ({playlists.length})
             </p>
+            {playlists.length > 1 && (
+              <LockToggle locked={playlistsLocked} onToggle={() => setPlaylistsLocked((v) => !v)} />
+            )}
+          </div>
+
+          {playlists.length === 0 ? (
+            <p className="text-sm text-foreground/50">Aucune playlist. Utilisez « Créer une nouvelle playlist ».</p>
           ) : (
-            <div className="space-y-2">
-              {playlists.map((p) => (
+            <div ref={playlistDrag.listRef} className="space-y-2">
+              {playlists.map((p, idx) => (
                 <div
                   key={p.id}
-                  className="flex items-center gap-3 rounded-xl border border-border bg-card p-3"
+                  className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 transition-transform duration-150 select-none"
                 >
+                  {/* Poignée drag */}
+                  {!playlistsLocked && (
+                    <div
+                      className="cursor-grab active:cursor-grabbing touch-none shrink-0 text-muted-foreground"
+                      onMouseDown={playlistDrag.onMouseDown(idx)}
+                      onTouchStart={playlistDrag.onTouchStart(idx)}
+                    >
+                      <GripVertical className="h-5 w-5" />
+                    </div>
+                  )}
+
                   <div className="h-10 w-10 shrink-0 overflow-hidden rounded-[10px] bg-muted ring-1 ring-border grid place-items-center brand-gradient">
                     {p.cover_url ? (
                       <Image src={p.cover_url} fittingType="fill" className="w-full h-full" />
@@ -281,12 +430,14 @@ export default function EntityCrud({
                       <Music className="h-4 w-4 text-white/90" />
                     )}
                   </div>
+
                   <div className="flex-1 min-w-0">
                     <div className="font-bold text-sm truncate">{p.name}</div>
                     <div className="text-xs text-muted-foreground">
                       {new Date(p.created_date || Date.now()).toLocaleDateString("fr-FR")}
                     </div>
                   </div>
+
                   <button
                     onClick={() => removePlaylist(p)}
                     className="h-8 w-8 grid place-items-center rounded-full hover:bg-muted text-destructive shrink-0"
@@ -301,72 +452,83 @@ export default function EntityCrud({
         </div>
       )}
 
+      {/* ── Liste des éléments (musiques / prédications…) ── */}
       {loading ? (
         <div className="flex justify-center py-10">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
       ) : items.length === 0 ? (
-        <p className="text-sm text-foreground/50 py-8">
-          {emptyLabel || "Aucun élément."}
-        </p>
+        <p className="text-sm text-foreground/50 py-8">{emptyLabel || "Aucun élément."}</p>
       ) : (
-        <div className="space-y-2">
-          {items.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-start gap-3 rounded-xl border border-border bg-card p-3"
-            >
-              {thumbField && item[thumbField] && (
-                <div className="h-12 w-12 shrink-0 overflow-hidden rounded-[12px] bg-muted ring-1 ring-border">
-                  <Image
-                    src={item[thumbField]}
-                    fittingType="fill"
-                    className="h-full w-full"
-                  />
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <div className="font-bold text-sm truncate">
-                  {listColumns.map((c) => item[c]).filter(Boolean).join(" · ") ||
-                    "Sans titre"}
-                </div>
-                {detailField && item[detailField] && (
-                  <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                    {item[detailField]}
+        <>
+          {isAdmin && items.length > 1 && (
+            <div className="flex justify-end mb-2">
+              <LockToggle locked={tracksLocked} onToggle={() => setTracksLocked((v) => !v)} />
+            </div>
+          )}
+          <div ref={itemDrag.listRef} className="space-y-2">
+            {items.map((item, idx) => (
+              <div
+                key={item.id}
+                className="flex items-start gap-3 rounded-xl border border-border bg-card p-3 transition-transform duration-150 select-none"
+              >
+                {/* Poignée drag musiques */}
+                {!tracksLocked && isAdmin && (
+                  <div
+                    className="cursor-grab active:cursor-grabbing touch-none shrink-0 text-muted-foreground pt-1"
+                    onMouseDown={itemDrag.onMouseDown(idx)}
+                    onTouchStart={itemDrag.onTouchStart(idx)}
+                  >
+                    <GripVertical className="h-5 w-5" />
                   </div>
                 )}
-                <div className="text-xs text-muted-foreground mt-1">
-                  {new Date(item.created_date || item.updated_date).toLocaleDateString(
-                    "fr-FR"
+
+                {thumbField && item[thumbField] && (
+                  <div className="h-12 w-12 shrink-0 overflow-hidden rounded-[12px] bg-muted ring-1 ring-border">
+                    <Image src={item[thumbField]} fittingType="fill" className="h-full w-full" />
+                  </div>
+                )}
+
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-sm truncate">
+                    {listColumns.map((c) => item[c]).filter(Boolean).join(" · ") || "Sans titre"}
+                  </div>
+                  {detailField && item[detailField] && (
+                    <div className="text-xs text-muted-foreground mt-1 line-clamp-2">{item[detailField]}</div>
                   )}
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {new Date(item.created_date || item.updated_date).toLocaleDateString("fr-FR")}
+                  </div>
                 </div>
+
+                {!readOnly && (
+                  <>
+                    <button
+                      onClick={() => {
+                        setEditing(item);
+                        pendingSelectRef.current = null;
+                        setFormKey(`edit-${item.id}`);
+                        setOpen(true);
+                      }}
+                      className="h-8 w-8 grid place-items-center rounded-full hover:bg-muted shrink-0"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => remove(item)}
+                      className="h-8 w-8 grid place-items-center rounded-full hover:bg-muted text-destructive shrink-0"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </>
+                )}
               </div>
-              {!readOnly && (
-                <>
-                  <button
-                    onClick={() => {
-                      setEditing(item);
-                      pendingSelectRef.current = null;
-                      setFormKey(`edit-${item.id}`);
-                      setOpen(true);
-                    }}
-                    className="h-8 w-8 grid place-items-center rounded-full hover:bg-muted shrink-0"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => remove(item)}
-                    className="h-8 w-8 grid place-items-center rounded-full hover:bg-muted text-destructive shrink-0"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </>
-              )}
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </>
       )}
 
+      {/* ── Dialog formulaire ── */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
@@ -383,14 +545,10 @@ export default function EntityCrud({
         </DialogContent>
       </Dialog>
 
-      {/* Modale de création de playlist — fonctionne depuis la liste comme
-          depuis le formulaire (bouton vert dans le champ Playlist). */}
       <CreatePlaylistModal
         open={showCreatePlaylist}
         onOpenChange={(v) => setShowCreatePlaylist(v)}
-        onSaved={(newPlaylist) => {
-          handlePlaylistCreated(newPlaylist);
-        }}
+        onSaved={(newPlaylist) => { handlePlaylistCreated(newPlaylist); }}
         category={PLAYLIST_CATEGORY[entity] || "other"}
       />
     </div>
