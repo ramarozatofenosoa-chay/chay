@@ -2,8 +2,6 @@ import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 
-import CreatePlaylistModal from "@/components/media/CreatePlaylistModal";
-import PlaylistPicker from "@/components/media/PlaylistPicker";
 import PullToRefresh from "@/components/PullToRefresh";
 import CategoryGrid from "@/components/media/CategoryGrid";
 import MediaCategory from "@/components/media/MediaCategory";
@@ -22,10 +20,6 @@ export default function Media() {
   const navigate = useNavigate();
   const activeCat = searchParams.get("cat");
   const [loading, setLoading] = useState(true);
-  const [showCreatePlaylist, setShowCreatePlaylist] = useState(false);
-  const [createCat, setCreateCat] = useState("music");
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const [pickerTrack, setPickerTrack] = useState(null);
   const [query, setQuery] = useState("");
 
   const [tracks, setTracks] = useState([]);
@@ -38,8 +32,6 @@ export default function Media() {
   const [playlists, setPlaylists] = useState([]);
   const [playlistTracks, setPlaylistTracks] = useState([]);
 
-  const isAdmin = user?.role === "admin";
-  const isMembre = user?.is_membre === true;
 
   const loadAll = async () => {
     const [t, s, v, a, y, g, p, pl, pt] = await Promise.all([
@@ -106,57 +98,6 @@ export default function Media() {
     setPlaylist((p) => p.filter((i) => i.id !== id));
   };
 
-  const addToAdminPlaylist = (track) => {
-    setPickerTrack(track);
-    setPickerOpen(true);
-  };
-
-  const pickPlaylist = async (playlistId) => {
-    if (!pickerTrack) return;
-    try {
-      await base44.entities.PlaylistTrack.create({
-        playlist_id: playlistId,
-        track_id: pickerTrack.id,
-        title: pickerTrack.title,
-        artist: pickerTrack.artist || null,
-        audio_url: pickerTrack.audio_url || null,
-        cover_url: pickerTrack.cover_url || null,
-        kind: pickerTrack.kind || "audio",
-      });
-      toast({ title: "Ajouté à la playlist" });
-      await loadAll();
-    } catch (e) {
-      toast({ title: "Erreur", description: e.message, variant: "destructive" });
-    }
-    setPickerOpen(false);
-    setPickerTrack(null);
-  };
-
-  const removePlaylistTrack = async (id) => {
-    await base44.entities.PlaylistTrack.delete(id).catch(() => {});
-    setPlaylistTracks((p) => p.filter((i) => i.id !== id));
-  };
-
-  const deletePlaylist = async (playlistId) => {
-    if (!confirm("Supprimer cette playlist entière ?")) return;
-    try {
-      // Supprime d'abord tous les tracks de la playlist
-      const plTracks = await base44.entities.PlaylistTrack.list("-created_date", 200);
-      const tracks = Array.isArray(plTracks) ? plTracks : [];
-      await Promise.all(
-        tracks.filter((t) => t.playlist_id === playlistId).map((t) =>
-          base44.entities.PlaylistTrack.delete(t.id).catch(() => {})
-        )
-      );
-      // Supprime la playlist elle-même
-      await base44.entities.Playlist.delete(playlistId);
-      toast({ title: "Playlist supprimée" });
-      await loadAll();
-    } catch (e) {
-      toast({ title: "Erreur", description: e.message, variant: "destructive" });
-    }
-  };
-
   const playPlaylistItem = (item) => {
     if (currentTrack?.id === item.track_id) {
       toggle();
@@ -217,22 +158,12 @@ export default function Media() {
           isPinned={isPinned}
           playlists={playlists}
           playlistTracks={playlistTracks}
-          onAddToAdminPlaylist={addToAdminPlaylist}
-          onCreatePlaylist={(cat) => { setCreateCat(cat || "music"); setShowCreatePlaylist(true); }}
           onSaved={loadAll}
-          onRemovePlaylistTrack={removePlaylistTrack}
-          onDeletePlaylist={deletePlaylist}
-          isAdmin={isAdmin}
         />
       ) : (
         <CategoryGrid onOpen={openCat} radioPlaying={radio.isPlaying} onToggleRadio={() => radio.toggle()} />
       )}
 
-      
-      {showCreatePlaylist && (
-        <CreatePlaylistModal open={showCreatePlaylist} onOpenChange={setShowCreatePlaylist} onSaved={loadAll} category={createCat} />
-      )}
-      <PlaylistPicker open={pickerOpen} onOpenChange={setPickerOpen} playlists={playlists} onPick={pickPlaylist} />
     </div>
     </PullToRefresh>
   );
