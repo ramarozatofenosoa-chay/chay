@@ -133,6 +133,7 @@ export default function Media() {
               Musique, prédications, films, articles et plus encore.
             </p>
           </div>
+        )}
       </header>
 
       {loading && activeCat !== "radio" ? (
