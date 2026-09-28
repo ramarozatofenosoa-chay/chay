@@ -11,7 +11,6 @@ import {
   Star,
 } from "lucide-react";
 import { Image } from "@/components/ui/image";
-import AddPlaylistTrackModal from "@/components/media/AddPlaylistTrackModal";
 import VideoPlayer from "@/components/player/VideoPlayer";
 import { base44 } from "@/api/base44Client";
 import { useToast } from "@/components/ui/use-toast";
@@ -34,7 +33,6 @@ export default function PlaylistCategoryView({
 }) {
   const { toast } = useToast();
   const [open, setOpen] = useState(null);
-  const [addOpen, setAddOpen] = useState(false);
 
   const isVideo = kind === "video";
   const Icon = isVideo ? Film : category === "sermons" ? Headphones : Music;
@@ -42,14 +40,6 @@ export default function PlaylistCategoryView({
   const cats = playlists.filter((p) => (p.category || "music") === category);
   const tracks = open ? playlistTracks.filter((t) => t.playlist_id === open.id) : [];
 
-  const removeTrack = async (id) => {
-    try {
-      await base44.entities.PlaylistTrack.delete(id);
-      onSaved?.();
-    } catch (e) {
-      toast({ title: "Erreur", description: e.message, variant: "destructive" });
-    }
-  };
 
   const favItem = (t) => ({
     id: t.track_id,
@@ -75,14 +65,6 @@ export default function PlaylistCategoryView({
           <h2 className="font-display font-extrabold text-2xl truncate flex-1">
             {open.name}
           </h2>
-          {isAdmin && (
-            <button
-              onClick={() => setAddOpen(true)}
-              className="inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-4 py-2.5 text-sm font-bold"
-            >
-              <Plus className="h-4 w-4" /> Ajouter
-            </button>
-          )}
         </div>
 
         {tracks.length ? (
@@ -110,14 +92,6 @@ export default function PlaylistCategoryView({
                     >
                       <Star className="h-4 w-4" fill={isFavorite?.(t.track_id) ? "currentColor" : "none"} />
                     </button>
-                    {isAdmin && (
-                      <button
-                        onClick={() => removeTrack(t.id)}
-                        className="h-9 w-9 grid place-items-center rounded-full text-foreground/50 hover:text-destructive hover:bg-muted"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    )}
                   </div>
                 </div>
               ) : (
@@ -158,17 +132,6 @@ export default function PlaylistCategoryView({
                   >
                     <Star className="h-4 w-4" fill={isFavorite?.(t.track_id) ? "currentColor" : "none"} />
                   </button>
-                  {isAdmin && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeTrack(t.id);
-                      }}
-                      className="h-9 w-9 grid place-items-center rounded-full text-foreground/50 hover:text-destructive hover:bg-muted"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  )}
                 </div>
               )
             )}
@@ -179,14 +142,6 @@ export default function PlaylistCategoryView({
           </p>
         )}
 
-        <AddPlaylistTrackModal
-          open={addOpen}
-          onOpenChange={setAddOpen}
-          playlist={open}
-          category={category}
-          kind={kind}
-          onSaved={onSaved}
-        />
       </div>
     );
   }
@@ -195,14 +150,6 @@ export default function PlaylistCategoryView({
     <div>
       <div className="flex items-center justify-between mb-5">
         <p className="text-sm text-foreground/55">Les contenus sont organisés en playlists.</p>
-        {isAdmin && onCreatePlaylist && (
-          <button
-            onClick={onCreatePlaylist}
-            className="inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-4 py-2.5 text-sm font-bold hover:scale-105 transition"
-          >
-            <Plus className="h-4 w-4" /> Créer une playlist
-          </button>
-        )}
       </div>
 
       {cats.length ? (

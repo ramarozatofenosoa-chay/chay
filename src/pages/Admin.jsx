@@ -61,12 +61,12 @@ const SECTIONS = [
     key: "Sermon",
     label: "Prédications",
     icon: Headphones,
-    sort: "-date",
-    listColumns: ["title", "speaker", "date"],
+    sort: "-created_date",
+    listColumns: ["title", "speaker"],
+    playlistField: "cover_url",
     fields: [
       { name: "title", label: "Titre", type: "text", required: true },
       { name: "speaker", label: "Prédicateur", type: "text", required: true },
-      { name: "date", label: "Date", type: "date", required: true },
       { name: "description", label: "Description", type: "textarea" },
       { name: "category", label: "Catégorie", type: "text" },
       { name: "language", label: "Langue", type: "select", options: LANGS },
@@ -107,6 +107,7 @@ const SECTIONS = [
     icon: Music,
     sort: "-created_date",
     listColumns: ["title", "artist"],
+    playlistField: "cover_url",
     fields: [
       { name: "title", label: "Titre", type: "text", required: true },
       { name: "artist", label: "Artiste", type: "text", required: true },
@@ -126,6 +127,7 @@ const SECTIONS = [
     icon: Film,
     sort: "-created_date",
     listColumns: ["title"],
+    playlistField: "cover_url",
     fields: [
       { name: "title", label: "Titre", type: "text", required: true },
       { name: "video_url", label: "Vidéo", type: "file", accept: "video/*", required: true },
@@ -412,6 +414,7 @@ export default function Admin() {
                     readOnly={section.readOnly}
                     detailField={section.detailField}
                     thumbField={section.thumbField}
+                    playlistField={section.playlistField}
                     showPlaylist={section.showPlaylist}
                   />
                 )}
