@@ -49,8 +49,12 @@ export default function FavoritesView({
           </p>
           {playlists.map((pl) => (
             <div key={pl.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
-              <div className="h-10 w-10 rounded-xl brand-gradient grid place-items-center text-white shrink-0">
-                <Music className="h-5 w-5" />
+              <div className="h-10 w-10 rounded-xl brand-gradient grid place-items-center text-white shrink-0 overflow-hidden">
+                {pl.cover_url ? (
+                  <img src={pl.cover_url} alt={pl.name} className="w-full h-full object-cover" />
+                ) : (
+                  <Music className="h-5 w-5" />
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="font-bold text-sm truncate">{pl.name}</div>

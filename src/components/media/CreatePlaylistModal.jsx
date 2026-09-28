@@ -54,7 +54,15 @@ export default function CreatePlaylistModal({
     try {
       const file = new File([blob], "icon.jpg", { type: "image/jpeg" });
       const res = await base44.integrations.Core.UploadPublicFile({ file });
-      setCoverUrl(res.file_url);
+      // L'API peut renvoyer l'URL sous des clés différentes selon la version.
+      const url =
+        typeof res === "string"
+          ? res
+          : res?.file_url || res?.url || res?.uri || res?.data?.file_url || null;
+      if (!url || !/^https?:\/\//i.test(url)) {
+        throw new Error("Réponse d'upload inattendue : " + JSON.stringify(res)?.slice(0, 120));
+      }
+      setCoverUrl(url);
       setIconChosen(true);
       setRawFile(null);
     } catch (err) {
@@ -77,21 +85,39 @@ export default function CreatePlaylistModal({
       // enregistrée sous une autre clé / tronquée).
       const validCover =
         typeof coverUrl === "string" && /^https?:\/\//i.test(coverUrl) ? coverUrl : null;
+      if (coverUrl && !validCover) {
+        toast({
+          title: "Image non valide",
+          description: "L'URL de l'image n'a pas été retenue — réessayez ou utilisez l'icône par défaut.",
+          variant: "destructive",
+        });
+      }
       const payload = {
         name: name.trim(),
         description: description.trim() || null,
         cover_url: validCover,
         category,
       };
-      const newPlaylist = await base44.entities.Playlist.create(payload);
+      let newPlaylist = await base44.entities.Playlist.create(payload);
       // Relecture immédiate : si le serveur a ignoré la couverture sans lever
       // d'erreur, on retente une mise à jour explicite avant de rafraîchir.
-      if (validCover && !newPlaylist?.cover_url) {
-        await base44.entities.Playlist
-          .update(newPlaylist.id, { cover_url: validCover })
-          .catch(() => {});
+      if (validCover && newPlaylist?.id && !newPlaylist.cover_url) {
+        try {
+          newPlaylist = await base44.entities.Playlist.update(newPlaylist.id, {
+            cover_url: validCover,
+          });
+        } catch {}
       }
-      toast({ title: "Playlist créée" });
+      if (validCover && !newPlaylist?.cover_url) {
+        toast({
+          title: "Couverture non enregistrée",
+          description:
+            "La playlist est créée, mais le champ « cover_url » semble absent de l'entité Playlist côté Base44. Ajoutez ce champ (type texte) dans Entities → Playlist, puis Publish.",
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Playlist créée" });
+      }
       onOpenChange(false);
       onSaved?.(newPlaylist);
     } catch (e) {
