@@ -58,7 +58,7 @@ export default function MediaCategory({
   currentTrack, isPlaying, play, playQueue, toggle,
   addToPlaylist, removeFromPlaylist, playPlaylistItem, isPinned,
   playlists = [], playlistTracks = [],
-  onAddToAdminPlaylist, onCreatePlaylist, onRemovePlaylistTrack, onDeletePlaylist, onSaved, isAdmin,
+  onSaved,
 }) {
   const { articles, youtube, gallery, playlist } = data;
   const [ytSection, setYtSection] = useState(null);
@@ -119,7 +119,7 @@ export default function MediaCategory({
           category="music" kind="audio" favoriteCategory="music"
           playlists={playlists} playlistTracks={playlistTracks}
           currentTrack={currentTrack} isPlaying={isPlaying} playQueue={playQueue} toggle={toggle}
-          isAdmin={isAdmin} onCreatePlaylist={() => onCreatePlaylist("music")} onSaved={onSaved}
+          onSaved={onSaved}
           onToggleFavorite={addToPlaylist} isFavorite={isPinned}
         />
       )}
@@ -129,7 +129,7 @@ export default function MediaCategory({
           category="sermons" kind="audio" favoriteCategory="sermons"
           playlists={playlists} playlistTracks={playlistTracks}
           currentTrack={currentTrack} isPlaying={isPlaying} playQueue={playQueue} toggle={toggle}
-          isAdmin={isAdmin} onCreatePlaylist={() => onCreatePlaylist("sermons")} onSaved={onSaved}
+          onSaved={onSaved}
           onToggleFavorite={addToPlaylist} isFavorite={isPinned}
         />
       )}
@@ -139,7 +139,7 @@ export default function MediaCategory({
           category="films" kind="video" favoriteCategory="films"
           playlists={playlists} playlistTracks={playlistTracks}
           currentTrack={currentTrack} isPlaying={isPlaying} playQueue={playQueue} toggle={toggle}
-          isAdmin={isAdmin} onCreatePlaylist={() => onCreatePlaylist("films")} onSaved={onSaved}
+          onSaved={onSaved}
           onToggleFavorite={addToPlaylist} isFavorite={isPinned}
         />
       )}
