@@ -1,6 +1,6 @@
 {
   "appId": "io.chay.app",
-  "appName": "ÉGLISE CHAY",
+  "appName": "├ëGLISE CHAY",
   "bundledWebRuntime": false,
   "server": {
     "url": "https://chay.base44.app",
@@ -25,16 +25,10 @@
       "splashImmersive": false
     }
   },
-  "splash": {
-<<<<<<< HEAD
-    "showSplash": true,
-    "autoHide": false,
-    "fadeDuration": 300,
-=======
-    "showSplash": false,
-    "autoHide": true,
-    "fadeDuration": 0,
->>>>>>> d5976a07386b441ef6d91d9c38fe344f697b9134
-    "splashFullscreen": true
-  }
+"splash": {
+  "showSplash": true,
+  "autoHide": false,
+  "fadeDuration": 300,
+  "splashFullscreen": true
+}
 }
