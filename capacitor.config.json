@@ -15,10 +15,26 @@
     "SplashMaintainAspectRatio": true,
     "SplashShowDelay": 0
   },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0,
+      "showSpinner": false,
+      "backgroundColor": "#FDFBF7",
+      "androidScaleType": "CENTER_CROP",
+      "splashFullScreen": true,
+      "splashImmersive": false
+    }
+  },
   "splash": {
+<<<<<<< HEAD
     "showSplash": true,
     "autoHide": false,
     "fadeDuration": 300,
+=======
+    "showSplash": false,
+    "autoHide": true,
+    "fadeDuration": 0,
+>>>>>>> d5976a07386b441ef6d91d9c38fe344f697b9134
     "splashFullscreen": true
   }
 }
