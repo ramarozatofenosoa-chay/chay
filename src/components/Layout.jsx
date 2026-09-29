@@ -14,7 +14,11 @@ import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { syncWebPush, disableWebPush, onWebPushNotificationClick } from "@/lib/webPush";
 import NotificationBanner from "@/components/NotificationBanner";
-import { hasInAppHistory } from "@/lib/backNavigation";
+import {
+  getBackFallback,
+  hasInAppHistory,
+} from "@/lib/backNavigation";
+import { hasOpenOverlay } from "@/hooks/useBackHandler";
 import { useAudioPlayer } from "@/lib/AudioPlayerContext";
 import { useRadio } from "@/lib/RadioContext";
 import { stopActiveMediaControl } from "@/lib/mediaControl";
@@ -49,6 +53,19 @@ export default function Layout() {
   const navigate = useNavigate();
   usePushNotifications(navigate);
   const webPushSynced = useRef(false);
+  const goBack = () => {
+    if (hasOpenOverlay()) {
+      window.history.back();
+      return;
+    }
+    if (hasInAppHistory(window.history.state)) {
+      navigate(-1);
+    } else {
+      navigate(getBackFallback(location.pathname, location.search), { replace: true });
+    }
+  };
+  const goBackRef = useRef(goBack);
+  goBackRef.current = goBack;
 
   const stopAllPlayback = () => {
     stopActiveMediaControl();
@@ -91,6 +108,21 @@ export default function Layout() {
       else listener = handle;
     }).catch((error) => {
       console.warn("[Layout] Unable to register app background playback handler.", error);
+    });
+    return () => {
+      cancelled = true;
+      listener?.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    let listener;
+    let cancelled = false;
+    CapacitorApp.addListener("backButton", () => goBackRef.current()).then((handle) => {
+      if (cancelled) handle.remove();
+      else listener = handle;
+    }).catch((error) => {
+      console.warn("[Layout] Unable to register native back-button handler.", error);
     });
     return () => {
       cancelled = true;
@@ -149,14 +181,6 @@ export default function Layout() {
     urlParams.get("c") ||
     urlParams.get("game") ||
     urlParams.get("view"); // sous-écrans Biblette (lecteur, dictionnaire, recherche)
-
-  const goBack = () => {
-    if (hasInAppHistory(window.history.state)) {
-      navigate(-1);
-    } else {
-      navigate("/", { replace: true });
-    }
-  };
 
   return (
     <LocationGate>
