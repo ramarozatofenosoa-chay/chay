@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import FieldInput from "@/components/admin/FieldInput";
@@ -11,16 +11,42 @@ export default function EntityForm({ fields, initial, onSubmit, onCancel, saving
     });
     return d;
   });
-  // Suit si un upload de fichier est en cours (pour bloquer la soumission)
   const [uploading, setUploading] = useState(false);
+  // L'utilisateur a cliqué « Enregistrer » pendant un envoi : on enregistre dès qu'il est terminé.
+  const [pending, setPending] = useState(false);
+  const [missing, setMissing] = useState("");
 
   const set = (name) => (v) => setData((d) => ({ ...d, [name]: v }));
 
+  const missingFile = () =>
+    fields.find((f) => f.type === "file" && f.required && !data[f.name]);
+
   const submit = (e) => {
     e.preventDefault();
-    if (uploading) return;
+    setMissing("");
+    if (uploading) {
+      setPending(true);
+      return;
+    }
+    const m = missingFile();
+    if (m) {
+      setMissing(`Le champ « ${m.label} » est obligatoire.`);
+      return;
+    }
     onSubmit(data);
   };
+
+  useEffect(() => {
+    if (!pending || uploading) return;
+    setPending(false);
+    const m = missingFile();
+    if (m) {
+      setMissing(`L'envoi de « ${m.label} » a échoué. Réessayez avant d'enregistrer.`);
+      return;
+    }
+    onSubmit(data);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pending, uploading]);
 
   return (
     <form onSubmit={submit} className="space-y-4">
@@ -38,10 +64,11 @@ export default function EntityForm({ fields, initial, onSubmit, onCancel, saving
           />
         </div>
       ))}
+      {missing && <p className="text-sm font-semibold text-destructive">{missing}</p>}
       <div className="flex gap-2 pt-2">
-        <Button type="submit" disabled={saving || uploading}>
-          {uploading ? (
-            <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Upload en cours…</>
+        <Button type="submit" disabled={saving || pending}>
+          {pending ? (
+            <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Enregistrement dès que le fichier est envoyé…</>
           ) : saving ? (
             <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Enregistrement…</>
           ) : (

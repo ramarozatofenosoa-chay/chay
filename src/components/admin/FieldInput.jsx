@@ -93,6 +93,9 @@ function FileUploadField({ field, value, onChange, onUploadingChange }) {
           <div className="flex-1 min-w-0">
             <div className="text-sm font-bold text-primary">Envoi en cours…</div>
             <div className="text-xs text-foreground/60 truncate">{fileName}</div>
+            <div className="text-xs text-foreground/55 mt-1">
+              Vous pouvez remplir les autres champs : l'enregistrement se fera dès que le fichier sera arrivé.
+            </div>
           </div>
         </div>
       )}
