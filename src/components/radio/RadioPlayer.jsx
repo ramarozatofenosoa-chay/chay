@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useRadio, MAX_RADIO_RETRIES } from "@/lib/RadioContext";
 import Visualizer from "@/components/radio/Visualizer";
 import { useToast } from "@/components/ui/use-toast";
@@ -10,6 +10,7 @@ import {
   Loader2,
   RadioTower,
 } from "lucide-react";
+import { registerMediaControl } from "@/lib/mediaControl";
 
 export default function RadioPlayer() {
   const {
@@ -20,11 +21,22 @@ export default function RadioPlayer() {
     errorCode,
     retries,
     toggle,
+    stop,
     retryNow,
   } = useRadio();
   const { toast } = useToast();
 
   const buffering = preparing || state === "connecting" || state === "buffering";
+  useEffect(() => {
+    if (!isPlaying && !buffering) return undefined;
+    return registerMediaControl({
+      type: "radio",
+      title: "Radio Chay",
+      isPlaying,
+      toggle: stop,
+      stop,
+    });
+  }, [isPlaying, buffering, stop]);
   const statusText =
     preparing || state === "connecting"
       ? "Connexion…"

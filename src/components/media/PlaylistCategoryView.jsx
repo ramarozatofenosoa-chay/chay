@@ -297,6 +297,7 @@ export default function PlaylistCategoryView({
                     <VideoPlayer
                       src={t.video_url}
                       poster={t.cover_url}
+                      title={t.title}
                       className="w-full max-h-72"
                     />
                   ) : (

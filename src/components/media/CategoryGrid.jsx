@@ -1,10 +1,10 @@
 import React from "react";
 import { CATEGORIES } from "@/lib/mediaConstants";
 
-export default function CategoryGrid({ onOpen, radioPlaying, onToggleRadio }) {
+export default function CategoryGrid({ onOpen, radioPlaying, onToggleRadio, isAdmin = false }) {
   return (
     <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4 md:gap-6">
-      {CATEGORIES.map((c) => {
+      {CATEGORIES.filter((category) => !(isAdmin && category.id === "playlist")).map((c) => {
         const Icon = c.icon;
         const isRadio = c.id === "radio";
         return (

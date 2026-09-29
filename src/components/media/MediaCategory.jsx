@@ -377,7 +377,7 @@ export default function MediaCategory({
         </div>
       )}
 
-      {cat === "playlist" && (
+      {cat === "playlist" && !isAdmin && (
         <FavoritesView
           playlist={playlist}
           currentTrack={currentTrack}

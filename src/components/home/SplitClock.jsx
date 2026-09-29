@@ -4,26 +4,7 @@ import { Sparkles, History, ChevronLeft, ChevronRight } from "lucide-react"; // 
 import { useNavigate } from "react-router-dom";
 import ContentDetailDialog from "./ContentDetailDialog";
 import { getContentMediaPath } from "@/lib/contentLinks";
-
-function describe(c) {
-  const title = c?.title || "";
-  const cat = c?.category || "Média";
-  let noun = "Le contenu";
-  switch (c?.type) {
-    case "audio": noun = "La chanson"; break;
-    case "video": noun = "Le film"; break;
-    case "youtube": noun = "La vidéo"; break;
-    case "article": noun = "L'article"; break;
-    case "gallery": noun = "La photo"; break;
-    case "predication": noun = "La prédication"; break;
-    case "enseignement": noun = "L'enseignement"; break;
-    case "annonce": noun = "L'annonce"; break;
-    case "evenement": noun = "L'événement"; break;
-    case "actualite": noun = "L'actualité"; break;
-    default: break;
-  }
-  return { noun, cat, title };
-}
+import { getHomeContentMessage } from "@/lib/homeContentMessage";
 
 /**
  * Widget Nouveauté / Précédemment : Affichage côte à côte avec navigation par flèches.
@@ -53,8 +34,6 @@ export default function SplitClock() {
   // Composant interne pour un panneau (Gauche ou Droite)
    // Composant interne pour un panneau (Gauche ou Droite) - VERSION OPTIMISÉE TEXTE COMPLET
   const Pane = ({ label, icon: Icon, item, isLatest }) => {
-    const d = describe(item);
-    
     return (
       <button
         type="button"
@@ -78,8 +57,7 @@ export default function SplitClock() {
         {item ? (
           <>
             <p className="selectable text-[0.75rem] leading-tight text-foreground/90 line-clamp-none">
-              {d.noun} « {d.title} » <br/>
-              <span className="text-[0.65rem] text-foreground/60 block mt-0.5">dans {d.cat}</span>
+              {getHomeContentMessage(item)}
             </p>
             
             {/* Navigation par flèche au lieu de texte */}

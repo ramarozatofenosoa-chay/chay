@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { App as CapacitorApp } from "@capacitor/app";
 import { NavLink, Link, useLocation, useNavigate } from "react-router-dom";
 import { Home, Users, BookOpen, PlayCircle, Gamepad2, Bell, User, ChevronLeft, Settings, MessageCircle } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -14,6 +15,10 @@ import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { syncWebPush, disableWebPush, onWebPushNotificationClick } from "@/lib/webPush";
 import NotificationBanner from "@/components/NotificationBanner";
 import { hasInAppHistory } from "@/lib/backNavigation";
+import { useAudioPlayer } from "@/lib/AudioPlayerContext";
+import { useRadio } from "@/lib/RadioContext";
+import { stopActiveMediaControl } from "@/lib/mediaControl";
+import GlobalMediaControl from "@/components/GlobalMediaControl";
 
 const LOGO_URL =
   "https://media.base44.com/images/public/6aa138d0e963d9e5f59d838c/c26279d55_logo.png";
@@ -30,6 +35,12 @@ const ROOT_TABS = NAV.map((n) => n.to);
 
 export default function Layout() {
   const { user, isAuthenticated } = useAuth();
+  const audioPlayer = useAudioPlayer();
+  const radio = useRadio();
+  const audioStopRef = useRef(audioPlayer.stop);
+  const radioStopRef = useRef(radio.stop);
+  audioStopRef.current = audioPlayer.stop;
+  radioStopRef.current = radio.stop;
   usePresenceHeartbeat(user);
   const unread = useUnreadMessages(user);
   const notifUnread = useUnreadNotifications(user);
@@ -38,6 +49,54 @@ export default function Layout() {
   const navigate = useNavigate();
   usePushNotifications(navigate);
   const webPushSynced = useRef(false);
+
+  const stopAllPlayback = () => {
+    stopActiveMediaControl();
+    audioStopRef.current();
+    radioStopRef.current();
+    document.querySelectorAll("audio, video").forEach((media) => media.pause());
+  };
+  const stopAllPlaybackRef = useRef(stopAllPlayback);
+  stopAllPlaybackRef.current = stopAllPlayback;
+  const previousLocationRef = useRef(`${location.pathname}${location.search}`);
+
+  useEffect(() => {
+    const currentLocation = `${location.pathname}${location.search}`;
+    if (previousLocationRef.current !== currentLocation) {
+      previousLocationRef.current = currentLocation;
+      stopAllPlaybackRef.current();
+    }
+  }, [location.pathname, location.search]);
+
+  useEffect(() => {
+    const stopWhenHidden = () => {
+      if (document.visibilityState === "hidden") stopAllPlaybackRef.current();
+    };
+    const stopOnPageHide = () => stopAllPlaybackRef.current();
+    document.addEventListener("visibilitychange", stopWhenHidden);
+    window.addEventListener("pagehide", stopOnPageHide);
+    return () => {
+      document.removeEventListener("visibilitychange", stopWhenHidden);
+      window.removeEventListener("pagehide", stopOnPageHide);
+    };
+  }, []);
+
+  useEffect(() => {
+    let listener;
+    let cancelled = false;
+    CapacitorApp.addListener("appStateChange", ({ isActive }) => {
+      if (!isActive) stopAllPlaybackRef.current();
+    }).then((handle) => {
+      if (cancelled) handle.remove();
+      else listener = handle;
+    }).catch((error) => {
+      console.warn("[Layout] Unable to register app background playback handler.", error);
+    });
+    return () => {
+      cancelled = true;
+      listener?.remove();
+    };
+  }, []);
 
   // Push navigateur : (ré)abonne silencieusement si la permission est déjà
   // accordée ; désabonne cet appareil à la déconnexion (comme le token FCM).
@@ -236,6 +295,7 @@ export default function Layout() {
       </nav>
 
       <MiniPlayer />
+      <GlobalMediaControl />
     </div>
     </LocationGate>
   );

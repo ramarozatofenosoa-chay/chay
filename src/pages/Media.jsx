@@ -206,7 +206,12 @@ export default function Media() {
           onDeletePlaylist={deletePlaylist}
         />
       ) : (
-        <CategoryGrid onOpen={openCat} radioPlaying={radio.isPlaying} onToggleRadio={() => radio.toggle()} />
+        <CategoryGrid
+          onOpen={openCat}
+          radioPlaying={radio.isPlaying}
+          onToggleRadio={() => radio.toggle()}
+          isAdmin={user?.role === "admin"}
+        />
       )}
 
     </div>
