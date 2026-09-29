@@ -29,7 +29,6 @@ export default function PlayerFullscreen({ onCollapse, cover }) {
     loop,
     toggleShuffle,
     toggleLoop,
-    stop,
     currentTime,
     duration,
     seek,
@@ -56,8 +55,8 @@ export default function PlayerFullscreen({ onCollapse, cover }) {
         </span>
         <button
           type="button"
-          onClick={stop}
-          aria-label="Arrêter et fermer le lecteur"
+          onClick={onCollapse}
+          aria-label="Réduire le lecteur et continuer la lecture"
           className="grid h-10 w-10 place-items-center rounded-full text-foreground/60 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <X className="h-5 w-5" aria-hidden="true" />
