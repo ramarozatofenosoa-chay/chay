@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  getMediaControlKey,
   registerMediaControl,
   publishMediaControl,
   requestMediaPlayback,
@@ -9,6 +10,14 @@ import {
   subscribeMediaPlaybackRequests,
   updateMediaControl,
 } from "./mediaControl.js";
+
+test("media control keys stringify Symbol ids before React interpolation", () => {
+  assert.equal(
+    getMediaControlKey({ id: Symbol("music"), source: "track.mp3" }),
+    "Symbol(music):track.mp3"
+  );
+  assert.equal(getMediaControlKey(null), null);
+});
 
 test("registered media control is published and removed by its disposer", () => {
   let latest;

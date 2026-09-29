@@ -13,7 +13,7 @@ import {
   SkipBack,
   SkipForward,
 } from "lucide-react";
-import { subscribeMediaControl } from "@/lib/mediaControl";
+import { getMediaControlKey, subscribeMediaControl } from "@/lib/mediaControl";
 import { Image } from "@/components/ui/image";
 import SeekBar from "@/components/player/SeekBar";
 
@@ -46,7 +46,7 @@ export default function PullDownMediaBar() {
   const isDragging = useRef(false);
   const controlRef = useRef(null);
 
-  const mediaKey = control ? `${String(control.id)}:${control.source || ""}` : null;
+  const mediaKey = getMediaControlKey(control);
 
   useEffect(() => subscribeMediaControl(setControl), []);
 
@@ -132,7 +132,7 @@ export default function PullDownMediaBar() {
     <AnimatePresence>
       {control && (
         <motion.div
-          key={`pull-down-${control.id}`}
+          key={`pull-down-${mediaKey}`}
           initial={{ y: -400, opacity: 0 }}
           animate={{ y: yOffset, opacity: isVisible ? 1 : 0 }}
           exit={{ y: -400, opacity: 0 }}
@@ -154,7 +154,7 @@ export default function PullDownMediaBar() {
               {/* Header with artwork and title */}
               <div className="flex items-start gap-3 mb-3">
                 <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-muted flex items-center justify-center">
-                  {control.artwork && control.artwork.trim() ? (
+                  {typeof control.artwork === "string" && control.artwork.trim() ? (
                     <Image src={control.artwork} alt="" fittingType="fill" className="h-full w-full object-cover" />
                   ) : (
                     <Icon className="h-6 w-6 text-primary" aria-hidden="true" />
