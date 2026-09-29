@@ -10,6 +10,7 @@ import {
   ChevronDown,
   Music,
   Loader2,
+  X,
 } from "lucide-react";
 import { useAudioPlayer } from "@/lib/AudioPlayerContext";
 import { Image } from "@/components/ui/image";
@@ -53,7 +54,14 @@ export default function PlayerFullscreen({ onCollapse, cover }) {
         <span className="text-xs font-semibold uppercase tracking-wide text-foreground/50">
           En lecture
         </span>
-        <span className="h-10 w-10" />
+        <button
+          type="button"
+          onClick={stop}
+          aria-label="Arrêter et fermer le lecteur"
+          className="grid h-10 w-10 place-items-center rounded-full text-foreground/60 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          <X className="h-5 w-5" aria-hidden="true" />
+        </button>
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center px-6 gap-6 overflow-y-auto">

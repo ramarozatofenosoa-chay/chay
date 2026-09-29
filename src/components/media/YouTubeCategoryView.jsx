@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import React, { useCallback, useEffect, useState } from "react";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { Plus } from "lucide-react";
 import YouTubeCard from "@/components/media/YouTubeCard";
 import AddYouTubeLinkModal from "@/components/media/AddYouTubeLinkModal";
-import YouTubeViewer from "@/components/media/YouTubeViewer";
+import { clearMediaControl, requestMediaPlayback } from "@/lib/mediaControl";
 
 export default function YouTubeCategoryView({
   section,
@@ -15,29 +15,60 @@ export default function YouTubeCategoryView({
   const [addOpen, setAddOpen] = useState(false);
   const [playingIndex, setPlayingIndex] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
   const items = youtube.filter((y) => (y.section || "culte") === section);
   const sectionLabels = { culte: "Culte", louange: "Louange", celebration: "Célébration" };
+
+  const startVideoAt = useCallback((index) => {
+    const video = items[index];
+    if (!video?.youtube_id) return;
+    const playAt = (targetIndex) => {
+      const item = items[targetIndex];
+      if (!item?.youtube_id) return;
+      let id;
+      const stop = () => {
+        clearMediaControl(id);
+        setPlayingIndex(null);
+        if (location.pathname === "/media" && searchParams.has("video")) {
+          const nextParams = new URLSearchParams(searchParams);
+          nextParams.delete("video");
+          setSearchParams(nextParams, { replace: true });
+        }
+      };
+      id = requestMediaPlayback({
+        type: "youtube",
+        engine: "youtube",
+        title: item.title || "Vidéo YouTube",
+        subtitle: sectionLabels[section] || section,
+        artwork: item.thumbnail_url || item.cover_url || `https://img.youtube.com/vi/${item.youtube_id}/hqdefault.jpg`,
+        source: item.youtube_id,
+        isPlaying: true,
+        isBuffering: true,
+        currentTime: 0,
+        duration: 0,
+        isLive: false,
+        previous: targetIndex > 0 ? () => playAt(targetIndex - 1) : null,
+        next: targetIndex < items.length - 1 ? () => playAt(targetIndex + 1) : null,
+        queue: items.map((entry) => ({
+          id: entry.id,
+          title: entry.title,
+          source: entry.youtube_id,
+          artwork: entry.thumbnail_url || entry.cover_url || null,
+        })),
+        queueIndex: targetIndex,
+        stop,
+      }, "youtube");
+      setPlayingIndex(targetIndex);
+    };
+    playAt(index);
+  }, [items, section, searchParams, setSearchParams, location.pathname]);
 
   useEffect(() => {
     if (!targetVideoId) return;
     const targetIndex = items.findIndex((video) => video.id === targetVideoId);
-    setPlayingIndex(targetIndex >= 0 ? targetIndex : null);
-  }, [targetVideoId, section, youtube]);
-
-  const handleVideoEnd = () => {
-    if (playingIndex !== null && playingIndex < items.length - 1) {
-      setPlayingIndex(playingIndex + 1);
-    }
-  };
-
-  const closeVideo = () => {
-    setPlayingIndex(null);
-    if (searchParams.has("video")) {
-      const next = new URLSearchParams(searchParams);
-      next.delete("video");
-      setSearchParams(next, { replace: true });
-    }
-  };
+    if (targetIndex >= 0) startVideoAt(targetIndex);
+    else setPlayingIndex(null);
+  }, [targetVideoId, startVideoAt]);
 
   return (
     <div>
@@ -63,7 +94,7 @@ export default function YouTubeCategoryView({
               video={y}
               index={i}
               playingIndex={playingIndex}
-              onPlay={(idx) => setPlayingIndex(idx)}
+              onPlay={startVideoAt}
             />
           ))}
         </div>
@@ -78,16 +109,6 @@ export default function YouTubeCategoryView({
 
       <AddYouTubeLinkModal open={addOpen} onOpenChange={setAddOpen} section={section} onSaved={onSaved} />
 
-      {playingIndex !== null && items[playingIndex] && (
-        <YouTubeViewer
-          video={items[playingIndex]}
-          videos={items}
-          currentIndex={playingIndex}
-          open={playingIndex !== null}
-          onClose={closeVideo}
-          onEnded={handleVideoEnd}
-        />
-      )}
     </div>
   );
 }

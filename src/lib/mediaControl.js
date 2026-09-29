@@ -1,23 +1,39 @@
-let activeControl = null;
+const controls = new Map();
+const publishedIds = new Map();
+let activeId = null;
 const listeners = new Set();
+const playbackRequestListeners = new Set();
+
+function getActiveControl() {
+  return activeId ? controls.get(activeId) || null : null;
+}
 
 function notify() {
-  listeners.forEach((listener) => listener(activeControl));
+  const control = getActiveControl();
+  listeners.forEach((listener) => listener(control));
 }
 
 export function subscribeMediaControl(listener) {
   listeners.add(listener);
-  listener(activeControl);
+  listener(getActiveControl());
   return () => listeners.delete(listener);
+}
+
+export function subscribeMediaPlaybackRequests(listener) {
+  playbackRequestListeners.add(listener);
+  return () => playbackRequestListeners.delete(listener);
 }
 
 export function registerMediaControl(control) {
   const id = Symbol(control.type);
-  activeControl = { ...control, id };
+  if (control.isPlaying) stopPreviousControl(id);
+  controls.set(id, { ...control, id });
+  activeId = id;
   notify();
   const dispose = () => {
-    if (activeControl?.id === id) {
-      activeControl = null;
+    controls.delete(id);
+    if (activeId === id) {
+      activeId = null;
       notify();
     }
   };
@@ -26,14 +42,64 @@ export function registerMediaControl(control) {
 }
 
 export function updateMediaControl(id, updates) {
-  if (activeControl?.id !== id) return;
-  activeControl = { ...activeControl, ...updates };
-  notify();
+  const current = controls.get(id);
+  if (!current) return;
+  controls.set(id, { ...current, ...updates });
+  if (updates.isPlaying === true) activeId = id;
+  if (activeId === id) notify();
 }
 
 export function stopActiveMediaControl() {
-  const control = activeControl;
-  activeControl = null;
-  notify();
+  const control = getActiveControl();
   control?.stop();
+  if (control?.id) clearMediaControl(control.id);
+}
+
+export function clearMediaControl(id) {
+  controls.delete(id);
+  for (const [owner, publishedId] of publishedIds) {
+    if (publishedId === id) publishedIds.delete(owner);
+  }
+  if (activeId === id) {
+    activeId = null;
+    notify();
+  }
+}
+
+export function publishMediaControl(control, owner = control.type) {
+  let id = publishedIds.get(owner);
+  const current = id ? controls.get(id) : null;
+  if (!current) {
+    id = Symbol(owner);
+    publishedIds.set(owner, id);
+  }
+  if (control.isPlaying) {
+    stopPreviousControl(id);
+    for (const [otherId] of controls) {
+      if (otherId !== id) controls.delete(otherId);
+    }
+    for (const [otherOwner, publishedId] of publishedIds) {
+      if (publishedId !== id) publishedIds.delete(otherOwner);
+    }
+    activeId = id;
+  }
+  controls.set(id, { ...current, ...control, id, owner });
+  if ((!activeId || !controls.has(activeId)) && (control.isPlaying || current)) activeId = id;
+  if (activeId === id) notify();
+  return id;
+}
+
+export function requestMediaPlayback(control, owner = control.type) {
+  const id = publishMediaControl(control, owner);
+  const active = controls.get(id);
+  playbackRequestListeners.forEach((listener) => listener(active));
+  return id;
+}
+
+function stopPreviousControl(nextId) {
+  if (!activeId || activeId === nextId) return;
+  const previous = getActiveControl();
+  if (!previous) return;
+  if (typeof previous.stop === "function") previous.stop();
+  if (activeId === previous.id) clearMediaControl(previous.id);
 }

@@ -10,7 +10,7 @@ import {
   buildWordProjectAudioUrl,
   isWordProjectAudioEnabled,
 } from "@/lib/wordProjectAudio";
-import { registerMediaControl } from "@/lib/mediaControl";
+import { useAudioPlayer } from "@/lib/AudioPlayerContext";
 
 const STORAGE_PREFIX = "bible_audio_pos_";
 
@@ -22,160 +22,107 @@ function fmtTime(s) {
   return `${m}:${String(sec).padStart(2, "0")}`;
 }
 
-// Calcule le ratio tamponné (0..1) depuis audio.buffered.
-function getBufferedRatio(a) {
-  if (!a || !a.buffered || a.buffered.length === 0) return 0;
-  if (!Number.isFinite(a.duration) || a.duration <= 0) return 0;
-  // Pour un MP3 progressif, la dernière plage représente le plus avancé téléchargé.
-  const end = a.buffered.end(a.buffered.length - 1);
-  return Math.max(0, Math.min(1, end / a.duration));
-}
-
 // Lecteur audio minimaliste pour la LSG (WordProject).
 // Affiche le livre + chapitre au-dessus, un bouton play/pause centré,
 // une barre de progression + tampon cliquable/glissable, et des flèches
 // pour chapitre précédent / suivant. Volume géré par le système.
 export default function BibleAudioPlayer({ book, chapter, onPrev, onNext }) {
-  const audioRef = useRef(null);
   const barRef = useRef(null);
   const autoPlayNextRef = useRef(false);
+  const {
+    currentTrack,
+    isPlaying: globalIsPlaying,
+    currentTime: globalCurrentTime,
+    duration: globalDuration,
+    playerState,
+    bufferedRatio,
+    play,
+    toggle,
+    seek: globalSeek,
+  } = useAudioPlayer();
   const enabled = isWordProjectAudioEnabled();
   const url = enabled ? buildWordProjectAudioUrl(book, chapter) : null;
   const posKey = book && chapter ? `${STORAGE_PREFIX}${book.order}_${chapter}` : null;
 
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [mediaControlActive, setMediaControlActive] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  // ➕ NOUVEAU : états pour la barre de progression / tampon / seek
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [bufferedRatio, setBufferedRatio] = useState(0);
   const [dragging, setDragging] = useState(false);
+  const isCurrentTrack = currentTrack?.id === url;
+  const isPlaying = isCurrentTrack && globalIsPlaying;
+  const currentTime = isCurrentTrack ? globalCurrentTime : 0;
+  const duration = isCurrentTrack ? globalDuration : 0;
+  const loading = isCurrentTrack && (playerState === "connecting" || playerState === "buffering");
 
   useEffect(() => {
-    if (!audioRef.current || !url) return;
-    setIsPlaying(false);
-    setError("");
-    setLoading(true);
-    // ➕ NOUVEAU : reset des états de progression au changement de chapitre
-    setCurrentTime(0);
-    setDuration(0);
-    setBufferedRatio(0);
+    if (!url) return;
     setDragging(false);
-    audioRef.current.load();
-  }, [url]);
-
-  const onLoadedMetadata = () => {
-    const a = audioRef.current;
-    if (!a) return;
-    a.volume = 1; // volume maximal → contrôlé par le système
-    // ➕ NOUVEAU : récupérer la durée + tampon initial
-    setDuration(Number.isFinite(a.duration) ? a.duration : 0);
-    setBufferedRatio(getBufferedRatio(a));
-    if (posKey) {
-      const saved = Number(localStorage.getItem(posKey));
-      if (Number.isFinite(saved) && saved > 0 && saved < (a.duration || Infinity)) {
-        try {
-          a.currentTime = saved;
-          setCurrentTime(saved); // ➕ NOUVEAU :同步 la barre à la position reprise
-        } catch { /* seek pas encore prêt */ }
-      }
-    }
-    setLoading(false);
     if (autoPlayNextRef.current) {
       autoPlayNextRef.current = false;
-      a.play().catch(() => {});
+      playBibleChapter();
     }
-  };
+  }, [url]);
 
-  // ➕ NOUVEAU : mise à jour continue de la position + du tampon pendant la lecture
-  const onTimeUpdate = () => {
-    const a = audioRef.current;
-    if (!a) return;
-    if (Number.isFinite(a.currentTime)) setCurrentTime(a.currentTime);
-    setBufferedRatio(getBufferedRatio(a));
-  };
-  const onProgress = () => {
-    const a = audioRef.current;
-    if (a) setBufferedRatio(getBufferedRatio(a));
-  };
+  const playBibleChapter = useCallback(() => {
+    if (!url) return;
+    const saved = posKey ? Number(localStorage.getItem(posKey)) : 0;
+    play({
+      id: url,
+      title: `${book?.name || "Bible"} ${chapter}`,
+      speaker: "Bible audio",
+      mediaType: "bible",
+      audio_url: url,
+      initialTime: Number.isFinite(saved) && saved > 0 ? saved : 0,
+      previousAction: onPrev ? () => { autoPlayNextRef.current = true; onPrev(); } : null,
+      nextAction: onNext ? () => { autoPlayNextRef.current = true; onNext(); } : null,
+      onEnded: onNext ? () => { autoPlayNextRef.current = true; onNext(); } : null,
+      onStop: (time) => {
+        if (posKey && Number.isFinite(time)) localStorage.setItem(posKey, String(time));
+      },
+    });
+  }, [url, posKey, book?.name, chapter, play, onPrev, onNext]);
 
   // Sauvegarde périodique de la position d'écoute.
   useEffect(() => {
     if (!posKey) return;
     const id = setInterval(() => {
-      const a = audioRef.current;
-      if (a && !a.paused && Number.isFinite(a.currentTime) && a.currentTime > 0) {
-        localStorage.setItem(posKey, String(a.currentTime));
+      if (isCurrentTrack && globalIsPlaying && Number.isFinite(globalCurrentTime) && globalCurrentTime > 0) {
+        localStorage.setItem(posKey, String(globalCurrentTime));
       }
     }, 4000);
     return () => clearInterval(id);
-  }, [posKey]);
+  }, [posKey, isCurrentTrack, globalIsPlaying, globalCurrentTime]);
 
   const saveNow = useCallback(() => {
-    const a = audioRef.current;
-    if (posKey && a && Number.isFinite(a.currentTime)) {
-      localStorage.setItem(posKey, String(a.currentTime));
+    if (posKey && isCurrentTrack && Number.isFinite(globalCurrentTime)) {
+      localStorage.setItem(posKey, String(globalCurrentTime));
     }
-  }, [posKey]);
+  }, [posKey, isCurrentTrack, globalCurrentTime]);
 
   useEffect(() => {
     const onHide = () => saveNow();
-    const pauseOnHide = () => {
-      onHide();
-      if (document.visibilityState === "hidden") audioRef.current?.pause();
-    };
-    document.addEventListener("visibilitychange", pauseOnHide);
-    window.addEventListener("pagehide", pauseOnHide);
+    document.addEventListener("visibilitychange", onHide);
+    window.addEventListener("pagehide", onHide);
     return () => {
-      document.removeEventListener("visibilitychange", pauseOnHide);
-      window.removeEventListener("pagehide", pauseOnHide);
+      document.removeEventListener("visibilitychange", onHide);
+      window.removeEventListener("pagehide", onHide);
       saveNow();
     };
   }, [saveNow]);
 
-  const togglePlay = useCallback(async () => {
-    const a = audioRef.current;
-    if (!a || !url) return;
-    try {
-      if (a.paused) await a.play();
-      else a.pause();
-    } catch {
-      setError("Lecture bloquée par le navigateur. Appuyez à nouveau sur Lire.");
-    }
-  }, [url]);
-
-  const stopPlayback = useCallback(() => {
-    audioRef.current?.pause();
-    setMediaControlActive(false);
-  }, []);
-
-  useEffect(() => {
-    if (!mediaControlActive || !url) return undefined;
-    return registerMediaControl({
-      type: "bible",
-      title: `Bible audio · ${book?.name || ""} ${chapter}`,
-      isPlaying,
-      toggle: togglePlay,
-      stop: stopPlayback,
-    });
-  }, [mediaControlActive, isPlaying, url, book?.name, chapter, togglePlay, stopPlayback]);
+  const togglePlay = useCallback(() => {
+    if (!url) return;
+    if (isCurrentTrack) toggle();
+    else playBibleChapter();
+  }, [url, isCurrentTrack, toggle, playBibleChapter]);
 
   // ➕ NOUVEAU : seek par clic / glisser sur la barre
   const seekFromClientX = useCallback((clientX) => {
-    const a = audioRef.current;
     const bar = barRef.current;
-    if (!a || !bar) return;
-    if (!Number.isFinite(a.duration) || a.duration <= 0) return;
+    if (!isCurrentTrack || !bar || !Number.isFinite(duration) || duration <= 0) return;
     const rect = bar.getBoundingClientRect();
     let ratio = (clientX - rect.left) / rect.width;
     ratio = Math.max(0, Math.min(1, ratio));
-    const t = ratio * a.duration;
-    try { a.currentTime = t; } catch { /* ignore */ }
-    setCurrentTime(t);
-  }, []);
+    const t = ratio * duration;
+    globalSeek(t);
+  }, [isCurrentTrack, duration, globalSeek]);
 
   const handlePointerDown = (e) => {
     e.preventDefault();
@@ -202,26 +149,6 @@ export default function BibleAudioPlayer({ book, chapter, onPrev, onNext }) {
 
   return (
     <div className="border-b border-border bg-card px-5 py-5 md:px-6">
-      <audio
-        ref={audioRef}
-        src={url}
-        preload="auto"
-        onLoadedMetadata={onLoadedMetadata}
-        onPlay={() => { setIsPlaying(true); setMediaControlActive(true); }}
-        onPause={() => setIsPlaying(false)}
-        onEnded={() => { setIsPlaying(false); if (!onNext) setMediaControlActive(false); saveNow(); if (onNext) { autoPlayNextRef.current = true; onNext(); } }}
-        onWaiting={() => setLoading(true)}
-        onPlaying={() => { setLoading(false); setError(""); }}
-        onError={() => {
-          setIsPlaying(false);
-          setMediaControlActive(false);
-          setLoading(false);
-          setError("Fichier audio indisponible pour ce chapitre.");
-        }}
-        onTimeUpdate={onTimeUpdate}      // ➕ NOUVEAU
-        onProgress={onProgress}          // ➕ NOUVEAU
-      />
-
       <div className="flex flex-col items-center gap-3">
         <p className="text-center text-sm font-bold text-foreground">
           {book?.name} {chapter}
@@ -229,7 +156,7 @@ export default function BibleAudioPlayer({ book, chapter, onPrev, onNext }) {
 
         <div className="flex items-center gap-8">
           <button
-            onClick={() => { if (isPlaying) autoPlayNextRef.current = true; onPrev(); }}
+            onClick={() => { if (isPlaying) autoPlayNextRef.current = true; onPrev?.(); }}
             aria-label="Chapitre précédent"
             disabled={!onPrev}
             className="grid h-10 w-10 place-items-center rounded-xl text-foreground/70 transition hover:bg-muted disabled:opacity-30"
@@ -252,7 +179,7 @@ export default function BibleAudioPlayer({ book, chapter, onPrev, onNext }) {
           </button>
 
           <button
-            onClick={() => { if (isPlaying) autoPlayNextRef.current = true; onNext(); }}
+            onClick={() => { if (isPlaying) autoPlayNextRef.current = true; onNext?.(); }}
             aria-label="Chapitre suivant"
             disabled={!onNext}
             className="grid h-10 w-10 place-items-center rounded-xl text-foreground/70 transition hover:bg-muted disabled:opacity-30"
@@ -301,8 +228,8 @@ export default function BibleAudioPlayer({ book, chapter, onPrev, onNext }) {
           </div>
         </div>
 
-        {error && (
-          <p className="text-xs text-destructive">{error}</p>
+        {isCurrentTrack && playerState === "error" && (
+          <p className="text-xs text-destructive">Fichier audio indisponible pour ce chapitre.</p>
         )}
       </div>
     </div>

@@ -1,56 +1,63 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Loader2 } from "lucide-react";
-import { useMediaPlayerState } from "@/hooks/useMediaPlayerState";
-import { registerMediaControl } from "@/lib/mediaControl";
+import React from "react";
+import { Film, Play } from "lucide-react";
+import { Image } from "@/components/ui/image";
+import { clearMediaControl, requestMediaPlayback } from "@/lib/mediaControl";
 
-// Lecteur vidéo (Films) — réutilise le même hook que la radio, la musique et
-// les prédications. Superpose un spinner de tamponnage cohérent.
-export default function VideoPlayer({ src, poster, title = "Film", className = "" }) {
-  const ref = useRef(null);
-  const [hasStarted, setHasStarted] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const { state } = useMediaPlayerState(ref, { isLive: false });
-  const buffering = state === "connecting" || state === "buffering";
-
-  useEffect(() => {
-    if (!hasStarted) return undefined;
-    const video = ref.current;
-    return registerMediaControl({
-      type: "video",
-      title,
-      isPlaying,
-      toggle: () => {
-        if (!video) return;
-        if (video.paused) video.play().catch(() => {});
-        else video.pause();
-      },
-      stop: () => {
-        video?.pause();
-        setHasStarted(false);
-      },
-    });
-  }, [hasStarted, isPlaying, title]);
+export default function VideoPlayer({
+  src,
+  poster,
+  title = "Film",
+  queue = [],
+  currentIndex = 0,
+  className = "",
+}) {
+  const startPlayback = () => {
+    const startAt = (index) => {
+      const item = queue[index];
+      const source = item?.src || src;
+      const itemTitle = item?.title || title;
+      const artwork = item?.poster || poster || null;
+      let id;
+      const stop = () => clearMediaControl(id);
+      id = requestMediaPlayback({
+        type: "video",
+        engine: "video",
+        title: itemTitle,
+        subtitle: "Film",
+        artwork,
+        source,
+        isPlaying: true,
+        isBuffering: true,
+        currentTime: 0,
+        duration: 0,
+        isLive: false,
+        previous: index > 0 ? () => startAt(index - 1) : null,
+        next: index < queue.length - 1 ? () => startAt(index + 1) : null,
+        queue,
+        queueIndex: index,
+        seek: null,
+        toggle: null,
+        stop,
+      }, "video");
+    };
+    startAt(currentIndex);
+  };
 
   return (
-    <div className={`relative bg-black ${className}`}>
-      <video
-        ref={ref}
-        src={src}
-        controls
-        controlsList="nodownload"
-        disablePictureInPicture
-        poster={poster}
-        preload="auto"
-        className="w-full h-full"
-        onPlay={() => { setHasStarted(true); setIsPlaying(true); }}
-        onPause={() => setIsPlaying(false)}
-        onEnded={() => { setIsPlaying(false); setHasStarted(false); }}
-      />
-      {buffering && (
-        <div className="absolute inset-0 grid place-items-center bg-black/30 pointer-events-none">
-          <Loader2 className="h-9 w-9 animate-spin text-white" />
-        </div>
+    <button
+      type="button"
+      onClick={startPlayback}
+      aria-label={`Lire le film ${title}`}
+      className={`group relative grid min-h-40 w-full place-items-center overflow-hidden rounded-xl bg-black text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${className}`}
+    >
+      {poster ? (
+        <Image src={poster} alt="" fittingType="fill" className="absolute inset-0 h-full w-full object-cover opacity-80 transition group-hover:opacity-60" />
+      ) : (
+        <Film className="absolute h-12 w-12 text-white/30" aria-hidden="true" />
       )}
-    </div>
+      <span className="relative grid h-14 w-14 place-items-center rounded-full bg-black/55 shadow-lg transition group-hover:scale-105">
+        <Play className="ml-0.5 h-6 w-6" aria-hidden="true" />
+      </span>
+    </button>
   );
 }

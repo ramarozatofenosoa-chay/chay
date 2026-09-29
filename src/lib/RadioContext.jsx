@@ -8,6 +8,7 @@ import React, {
 import { RADIO_URL, RADIO_LOGO } from "@/lib/mediaConstants";
 import { isRadioMseSupported, startRadioStream } from "@/lib/radioMse";
 import { useMediaPlayerState } from "@/hooks/useMediaPlayerState";
+import { clearMediaControl, publishMediaControl } from "@/lib/mediaControl";
 
 const RadioContext = createContext(null);
 export const useRadio = () => useContext(RadioContext);
@@ -44,6 +45,7 @@ export function RadioPlayerProvider({ children }) {
   const prevStateRef = useRef("idle");
   // Flux MSE en cours (null en mode repli <audio>).
   const streamRef = useRef(null);
+  const mediaControlIdRef = useRef(null);
 
   // Machine à états partagée — radio en direct (isLive = true).
   const { state, errorCode } = useMediaPlayerState(audioRef, {
@@ -215,6 +217,36 @@ export function RadioPlayerProvider({ children }) {
   useEffect(() => {
     updateMediaSession(isPlaying);
   }, [isPlaying]);
+
+  useEffect(() => {
+    if (isPlaying || isLoading || preparing) {
+      mediaControlIdRef.current = publishMediaControl(
+        {
+          type: "radio",
+          engine: "radio",
+          title: "Radio Chay",
+          subtitle: "En direct",
+          artwork: RADIO_LOGO,
+          source: RADIO_URL,
+          isPlaying: isPlaying || isLoading || preparing,
+          isBuffering: isLoading || preparing,
+          isLive: true,
+          hasPrevious: false,
+          hasNext: false,
+          queue: [],
+          queueIndex: 0,
+          toggle: stop,
+          stop,
+          previous: null,
+          next: null,
+        },
+        "radio"
+      );
+    } else if (mediaControlIdRef.current) {
+      clearMediaControl(mediaControlIdRef.current);
+      mediaControlIdRef.current = null;
+    }
+  }, [isPlaying, isLoading, preparing, stop]);
 
   useEffect(() => {
     const a = audioRef.current;

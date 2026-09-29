@@ -1,4 +1,6 @@
 import React from "react";
+import { useAudioPlayer } from "@/lib/AudioPlayerContext";
+import { Play } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -26,10 +28,11 @@ const TYPE_LABELS = {
 
 // Affiche le contenu d'une nouveauté dans l'application (jamais de lien externe).
 export default function ContentDetailDialog({ item, open, onOpenChange }) {
+  const { play } = useAudioPlayer();
   if (!item) return null;
 
   const isVideo = item.type === "video";
-  const isAudio = item.type === "audio";
+  const isAudio = item.type === "audio" || item.type === "predication";
   const label = TYPE_LABELS[item.type] || "Contenu";
   const date = item.published_at
     ? new Date(item.published_at).toLocaleDateString("fr-FR", {
@@ -62,7 +65,21 @@ export default function ContentDetailDialog({ item, open, onOpenChange }) {
           <VideoPlayer src={item.media_url} title={item.title} className="w-full max-h-72 rounded-xl" />
         )}
         {isAudio && item.media_url && (
-          <audio controls src={item.media_url} className="w-full mt-2" />
+          <button
+            type="button"
+            onClick={() => play({
+              id: item.id,
+              title: item.title,
+              speaker: label,
+              mediaType: item.type === "predication" ? "sermons" : "audio",
+              audio_url: item.media_url,
+              cover_url: item.thumbnail_url,
+            })}
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-bold text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          >
+            <Play className="h-4 w-4" aria-hidden="true" />
+            Lire dans le mini-lecteur
+          </button>
         )}
 
         {item.description && (
