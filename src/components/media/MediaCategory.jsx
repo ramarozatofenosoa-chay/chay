@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ChevronLeft, Search } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import { Image } from "@/components/ui/image";
 import ArticleCard from "@/components/media/ArticleCard";
 import RadioPlayer from "@/components/radio/RadioPlayer";
@@ -63,12 +64,21 @@ export default function MediaCategory({
   onDeletePlaylist,
 }) {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const isAdmin = user?.role === "admin";
   const { articles, youtube, gallery, playlist } = data;
+  const targetVideoId = searchParams.get("video");
+  const targetImageId = searchParams.get("image");
   const [ytSection, setYtSection] = useState(null);
   const [gallerySection, setGallerySection] = useState(null);
   const [galleryIdx, setGalleryIdx] = useState(null);
   const [orphanIdx, setOrphanIdx] = useState(null);
+
+  const clearTarget = (key) => {
+    const next = new URLSearchParams(searchParams);
+    next.delete(key);
+    setSearchParams(next, { replace: true });
+  };
 
   // Retour imbriqué : depuis une section (Église/Mindset, Culte/Louange),
   // le retour va d'abord à la liste des sections, puis quitte la catégorie —
@@ -76,9 +86,11 @@ export default function MediaCategory({
   const inSection = Boolean(gallerySection || ytSection);
   const backFromSection = () => {
     if (gallerySection) {
+      clearTarget("image");
       setGallerySection(null);
       setGalleryIdx(null);
     } else if (ytSection) {
+      clearTarget("video");
       setYtSection(null);
     }
   };
@@ -90,8 +102,14 @@ export default function MediaCategory({
   // ordonnée par ouverture, donc le retour ferme d'abord la photo, puis la
   // section — sans garde.
   useBackHandler(Boolean(gallerySection), backFromSection);
-  useBackHandler(Boolean(orphanIdx), () => setOrphanIdx(null));
-  useBackHandler(Boolean(ytSection), () => setYtSection(null));
+  useBackHandler(orphanIdx !== null, () => {
+    clearTarget("image");
+    setOrphanIdx(null);
+  });
+  useBackHandler(Boolean(ytSection), () => {
+    clearTarget("video");
+    setYtSection(null);
+  });
 
   const handleBack = () => {
     if (inSection) backFromSection();
@@ -111,6 +129,37 @@ export default function MediaCategory({
   const uncategorizedImages = gallery.filter(
     (g) => !normalizeSection(g.category)
   );
+
+  useEffect(() => {
+    if (!targetVideoId) return;
+    const target = youtube.find((video) => video.id === targetVideoId);
+    setYtSection(target?.section || "culte");
+  }, [targetVideoId, youtube]);
+
+  useEffect(() => {
+    if (!targetImageId) return;
+    const target = gallery.find((image) => image.id === targetImageId);
+    if (!target) {
+      setGallerySection(null);
+      setGalleryIdx(null);
+      setOrphanIdx(null);
+      return;
+    }
+
+    const section = normalizeSection(target.category);
+    if (section) {
+      const sectionItems = gallery.filter(
+        (image) => normalizeSection(image.category) === section
+      );
+      setGallerySection(section);
+      setGalleryIdx(sectionItems.findIndex((image) => image.id === targetImageId));
+      setOrphanIdx(null);
+    } else {
+      setGallerySection(null);
+      setGalleryIdx(null);
+      setOrphanIdx(uncategorizedImages.findIndex((image) => image.id === targetImageId));
+    }
+  }, [targetImageId, gallery]);
 
   return (
     <div>
@@ -161,7 +210,14 @@ export default function MediaCategory({
           {!ytSection ? (
             <div className="grid grid-cols-3 gap-4 md:gap-6 max-w-sm">
               {YOUTUBE_SECTIONS.map((s) => (
-                <SectionTile key={s.id} item={s} onClick={() => setYtSection(s.id)} />
+                <SectionTile
+                  key={s.id}
+                  item={s}
+                  onClick={() => {
+                    clearTarget("video");
+                    setYtSection(s.id);
+                  }}
+                />
               ))}
             </div>
           ) : (
@@ -172,7 +228,13 @@ export default function MediaCategory({
               >
                 <ChevronLeft className="h-5 w-5" /> YouTube
               </button>
-              <YouTubeCategoryView section={ytSection} youtube={youtube} isAdmin={isAdmin} onSaved={onSaved} />
+              <YouTubeCategoryView
+                section={ytSection}
+                youtube={youtube}
+                isAdmin={isAdmin}
+                onSaved={onSaved}
+                targetVideoId={targetVideoId}
+              />
             </div>
           )}
         </div>
@@ -188,11 +250,21 @@ export default function MediaCategory({
           ) : (
             <p className="text-foreground/50 text-sm">Aucun article publié.</p>
           )}
+          {searchParams.get("article") && !articles.some((article) => article.id === searchParams.get("article")) && (
+            <p role="status" className="mt-4 text-sm text-foreground/60">
+              Cet article n'est plus disponible.
+            </p>
+          )}
         </>
       )}
 
       {cat === "gallery" && (
         <div>
+          {targetImageId && !gallery.some((image) => image.id === targetImageId) && (
+            <p role="status" className="mb-4 text-sm text-foreground/60">
+              Cette photo n'est plus disponible.
+            </p>
+          )}
           {!gallerySection ? (
             <>
               <div className="grid grid-cols-2 gap-4 md:gap-6 max-w-[13rem]">
@@ -201,6 +273,7 @@ export default function MediaCategory({
                     key={s.id}
                     item={s}
                     onClick={() => {
+                      clearTarget("image");
                       setGallerySection(s.id);
                       setGalleryIdx(null);
                     }}
@@ -225,7 +298,10 @@ export default function MediaCategory({
                     {uncategorizedImages.map((g, i) => (
                       <button
                         key={g.id}
-                        onClick={() => setOrphanIdx(i)}
+                        onClick={() => {
+                          clearTarget("image");
+                          setOrphanIdx(i);
+                        }}
                         className="block aspect-square overflow-hidden bg-muted group rounded-xl"
                       >
                         <Image
@@ -239,7 +315,10 @@ export default function MediaCategory({
                   <GalleryViewer
                     items={uncategorizedImages}
                     index={orphanIdx}
-                    onClose={() => setOrphanIdx(null)}
+                    onClose={() => {
+                      clearTarget("image");
+                      setOrphanIdx(null);
+                    }}
                   />
                 </div>
               )}
@@ -248,6 +327,7 @@ export default function MediaCategory({
             <>
               <button
                 onClick={() => {
+                  clearTarget("image");
                   setGallerySection(null);
                   setGalleryIdx(null);
                 }}
@@ -261,7 +341,10 @@ export default function MediaCategory({
                   {sectionImages.map((g, i) => (
                     <button
                       key={g.id}
-                      onClick={() => setGalleryIdx(i)}
+                      onClick={() => {
+                        clearTarget("image");
+                        setGalleryIdx(i);
+                      }}
                       className="block aspect-square overflow-hidden bg-muted group"
                     >
                       {/* Au doigt, le zoom au survol reste « collé » après le
@@ -281,7 +364,14 @@ export default function MediaCategory({
                 </p>
               )}
 
-              <GalleryViewer items={sectionImages} index={galleryIdx} onClose={() => setGalleryIdx(null)} />
+              <GalleryViewer
+                items={sectionImages}
+                index={galleryIdx}
+                onClose={() => {
+                  clearTarget("image");
+                  setGalleryIdx(null);
+                }}
+              />
             </>
           )}
         </div>

@@ -334,6 +334,7 @@ export default function EntityCrud({
             title: createdItem.title,
             artist: createdItem.artist,
             playlist: playlistName,
+            playlistId: playlist_id,
             contentId: createdItem.id,
           });
         }

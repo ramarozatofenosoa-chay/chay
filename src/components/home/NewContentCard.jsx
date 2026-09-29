@@ -14,6 +14,9 @@ import {
 const ICONS = {
   audio: Music,
   video: Film,
+  youtube: Film,
+  article: Newspaper,
+  gallery: FileText,
   predication: BookOpen,
   enseignement: GraduationCap,
   annonce: Megaphone,
@@ -25,6 +28,9 @@ const ICONS = {
 const LABELS = {
   audio: "Audio",
   video: "Vidéo",
+  youtube: "Vidéo YouTube",
+  article: "Article",
+  gallery: "Photo",
   predication: "Prédication",
   enseignement: "Enseignement",
   annonce: "Annonce",
