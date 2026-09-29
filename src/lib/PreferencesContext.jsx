@@ -14,7 +14,7 @@ const LS_KEY = "chay-prefs";
 
 export const DEFAULT_PREFS = {
   theme: "auto",
-  text_size: "sm",
+  text_size: "md",
   contrast: "normal",
   reduce_animations: false,
   density: "comfortable",

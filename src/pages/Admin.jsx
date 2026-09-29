@@ -35,7 +35,7 @@ import { GALLERY_SECTIONS } from "@/lib/mediaConstants";
 
 const LANGS = [
   { value: "fr", label: "Français" },
-  { value: "en", label: "English" },
+  { value: "en", label: "Anglais" },
   { value: "mg", label: "Malagasy" },
 ];
 

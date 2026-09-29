@@ -7,7 +7,6 @@ import AnimatedOutlet from "@/components/AnimatedOutlet";
 import MiniPlayer from "@/components/MiniPlayer";
 import PullDownMediaBar from "@/components/PullDownMediaBar";
 import UniversalMediaSurface from "@/components/UniversalMediaSurface";
-import LocationGate from "@/components/LocationGate";
 import { Image } from "@/components/ui/image";
 import { useAuth } from "@/lib/AuthContext";
 import { usePresenceHeartbeat } from "@/hooks/usePresence";
@@ -29,11 +28,11 @@ const LOGO_URL =
   "https://media.base44.com/images/public/6aa138d0e963d9e5f59d838c/c26279d55_logo.png";
 
 const NAV = [
-  { to: "/", label: "Home", icon: Home, end: true },
-  { to: "/community", label: "Community", icon: Users },
+  { to: "/", label: "Accueil", icon: Home, end: true },
+  { to: "/community", label: "Communauté", icon: Users },
   { to: "/bible", label: "Bible", icon: BookOpen },
   { to: "/media", label: "Multimédia", icon: PlayCircle },
-  { to: "/games", label: "Games", icon: Gamepad2 },
+  { to: "/games", label: "Jeux", icon: Gamepad2 },
 ];
 
 const ROOT_TABS = NAV.map((n) => n.to);
@@ -143,7 +142,6 @@ export default function Layout() {
     urlParams.get("view"); // sous-écrans Biblette (lecteur, dictionnaire, recherche)
 
   return (
-    <LocationGate>
     <div className="min-h-screen bg-background overflow-x-hidden">
       <NotificationBanner />
       {/* Desktop floating glass rail */}
@@ -153,7 +151,7 @@ export default function Layout() {
             <Image src={LOGO_URL} alt="Chay" fittingType="fill" focalPointX={0.5} focalPointY={0.5} className="h-9 w-9 rounded-xl shadow-sm" />
           </Link>
 
-          <nav className="flex items-center gap-1">
+          <nav aria-label="Navigation principale" className="flex items-center gap-1">
             {NAV.map((item) => (
               <NavLink
                 key={item.to}
@@ -253,7 +251,7 @@ export default function Layout() {
       </main>
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 px-3" style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}>
+      <nav aria-label="Navigation principale" className="md:hidden fixed bottom-0 inset-x-0 z-40 px-3" style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}>
         <div className="mx-auto max-w-md flex items-center justify-around rounded-full border border-border bg-background/90 backdrop-blur-xl px-1.5 py-1.5 glow-soft">
           {NAV.map((item) => {
             const Icon = item.icon;
@@ -263,6 +261,7 @@ export default function Layout() {
                 key={item.to}
                 to={navTarget(item.to, item.end)}
                 end={item.end}
+                aria-label={item.label}
                 className="flex items-center justify-center px-2 py-1 rounded-full transition"
               >
                 <span
@@ -281,7 +280,6 @@ export default function Layout() {
       <PullDownMediaBar />
       <MiniPlayer />
       <UniversalMediaSurface />
-    </div>
-    </LocationGate>
+      </div>
   );
 }

@@ -19,7 +19,7 @@ export default function CategoryGrid({ onOpen, radioPlaying, onToggleRadio, isAd
               <Icon className="h-9 w-9 md:h-10 md:w-10" />
               {isRadio && radioPlaying && (
                 <span className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-full bg-black/40 backdrop-blur px-2 py-0.5 text-[0.6rem] font-bold uppercase">
-                  <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" /> Live
+                  <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" /> En direct
                 </span>
               )}
             </span>

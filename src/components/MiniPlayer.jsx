@@ -108,7 +108,7 @@ export default function MiniPlayer() {
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-bold text-foreground">{control.title}</span>
                     <span className="block truncate text-xs text-foreground/60">
-                      {isRadio ? "LIVE" : label}
+                      {isRadio ? "EN DIRECT" : label}
                       {!isRadio && ` · ${playbackStatus}`}
                     </span>
                   </span>

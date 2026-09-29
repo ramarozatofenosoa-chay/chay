@@ -11,7 +11,6 @@ export default function PrivacySection() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { prefs, setPref } = usePreferences();
-  const [cookies, setCookies] = useState(!!user?.accepte_cookies);
   const [comments, setComments] = useState(!!user?.accepte_commentaires_respect);
   const [busy, setBusy] = useState(false);
 
@@ -20,10 +19,52 @@ export default function PrivacySection() {
     try {
       await base44.auth.updateMe(patch);
       toast({ title: "Préférence enregistrée" });
+      return true;
     } catch (e) {
       toast({ title: "Erreur", description: e.message, variant: "destructive" });
+      return false;
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
+  };
+
+  const setLocationPersonalization = async (enabled) => {
+    if (!enabled) {
+      const saved = await update({
+        localisation_activee: false,
+        location_lat: null,
+        location_lng: null,
+        location_label: null,
+      });
+      if (saved) setPref("location_personalization", false);
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      toast({
+        title: "Localisation indisponible",
+        description: "Votre appareil ne permet pas d'obtenir votre position.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        const saved = await update({
+          localisation_activee: true,
+          location_lat: coords.latitude,
+          location_lng: coords.longitude,
+        });
+        if (saved) setPref("location_personalization", true);
+      },
+      (error) => toast({
+        title: "Position non partagée",
+        description: error.message || "Autorisez l'accès à la localisation pour activer cette option.",
+        variant: "destructive",
+      }),
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+    );
   };
 
   return (
@@ -36,36 +77,27 @@ export default function PrivacySection() {
       />
       <PrefSwitch
         label="Personnalisation basée sur la localisation"
-        description="Utiliser votre position pour du contenu pertinent (météo, annonces locales)."
+        description="Facultatif. Votre position précise est demandée uniquement à l'activation et supprimée lorsque vous désactivez cette option."
         checked={prefs.location_personalization}
-        onChange={async (v) => {
-          setPref("location_personalization", v);
-          await update({ localisation_activee: v });
-        }}
+        disabled={busy}
+        onChange={setLocationPersonalization}
       />
 
       <div className="border-t border-border my-2" />
       <div className="py-2">
-        <p className="text-sm font-semibold">Historique de localisation</p>
+        <p className="text-sm font-semibold">Contrôle de la localisation</p>
         <p className="text-xs text-foreground/50">
-          Aucun historique de localisation n'est actuellement stocké sur votre
-          compte.
+          Vous pouvez retirer l'accès à tout moment dans les paramètres de votre
+          appareil ou désactiver cette option ici. Les coordonnées enregistrées
+          sont alors supprimées du profil.
         </p>
       </div>
 
       <div className="border-t border-border my-2" />
       <PrefSwitch
-        label="Accepter les cookies"
-        checked={cookies}
-        disabled={busy}
-        onChange={(v) => {
-          setCookies(v);
-          update({ accepte_cookies: v });
-        }}
-      />
-      <PrefSwitch
         label="Accepter les commentaires respectueux"
         checked={comments}
+        disabled={busy}
         disabled={busy}
         onChange={(v) => {
           setComments(v);

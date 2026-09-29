@@ -165,7 +165,7 @@ export default function PullDownMediaBar() {
                     {control.title}
                   </h3>
                   <p className="text-xs text-foreground/60 truncate">
-                    {isRadio ? "LIVE" : label}
+                    {isRadio ? "EN DIRECT" : label}
                   </p>
                   {control.subtitle && control.subtitle !== typeLabel && (
                     <p className="text-xs text-foreground/50 truncate">

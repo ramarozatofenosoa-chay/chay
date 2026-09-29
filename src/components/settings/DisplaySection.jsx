@@ -50,8 +50,8 @@ export default function DisplaySection() {
           Français
         </div>
         <p className="text-xs text-foreground/50 mt-1">
-          La traduction complète de l'application est en cours. Le français est
-          actuellement activé.
+          L'interface est actuellement disponible en français. Les passages
+          rédigés en malgache sont conservés dans leur langue d'origine.
         </p>
       </div>
 

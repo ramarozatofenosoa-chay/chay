@@ -1,35 +1,34 @@
-import { useState, useEffect } from "react";
+import { lazy, Suspense, useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import { AnimatePresence } from "framer-motion";
 import SplashScreen from "@/components/SplashScreen";
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import Login from '@/pages/Login';
-import Register from '@/pages/Register';
-import ForgotPassword from '@/pages/ForgotPassword';
-import ResetPassword from '@/pages/ResetPassword';
-import Settings from '@/pages/Settings';
-import Notifications from '@/pages/Notifications';
 import { PreferencesProvider } from '@/lib/PreferencesContext';
 import { Navigate } from 'react-router-dom';
-// Add page imports here
 import Layout from '@/components/Layout';
-import Home from '@/pages/Home';
-import Bible from '@/pages/Bible';
-import Media from '@/pages/Media';
-import Games from '@/pages/Games';
-import Kids from '@/pages/Kids';
-import Community from '@/pages/Community';
-import Donate from '@/pages/Donate';
-import Contact from '@/pages/Contact';
-import Admin from '@/pages/Admin';
-import Messages from '@/pages/Messages';
+const PageNotFound = lazy(() => import("./lib/PageNotFound"));
+const Login = lazy(() => import("@/pages/Login"));
+const Register = lazy(() => import("@/pages/Register"));
+const ForgotPassword = lazy(() => import("@/pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
+const Settings = lazy(() => import("@/pages/Settings"));
+const Notifications = lazy(() => import("@/pages/Notifications"));
+const Home = lazy(() => import("@/pages/Home"));
+const Bible = lazy(() => import("@/pages/Bible"));
+const Media = lazy(() => import("@/pages/Media"));
+const Games = lazy(() => import("@/pages/Games"));
+const Kids = lazy(() => import("@/pages/Kids"));
+const Community = lazy(() => import("@/pages/Community"));
+const Donate = lazy(() => import("@/pages/Donate"));
+const Contact = lazy(() => import("@/pages/Contact"));
+const Admin = lazy(() => import("@/pages/Admin"));
+const Messages = lazy(() => import("@/pages/Messages"));
 import AppLoader from '@/components/AppLoader';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { AudioPlayerProvider } from '@/lib/AudioPlayerContext';
@@ -59,6 +58,7 @@ const AuthenticatedApp = () => {
 
   // Render the main app
   return (
+    <Suspense fallback={<AppLoader />}>
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
@@ -82,6 +82,7 @@ const AuthenticatedApp = () => {
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
+    </Suspense>
   );
 };
 

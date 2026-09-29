@@ -97,7 +97,7 @@ export default function Contact() {
               />
             </div>
             <div>
-              <label className={labelCls}>Email *</label>
+              <label className={labelCls}>Adresse e-mail *</label>
               <input
                 type="email"
                 value={form.email}

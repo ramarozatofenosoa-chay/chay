@@ -4,13 +4,17 @@ import { Film, Pause, Play, Radio, SkipBack, SkipForward, Square, X } from "luci
 import { Image } from "@/components/ui/image";
 import { useBackHandler } from "@/hooks/useBackHandler";
 import {
+  buildYouTubeEmbedUrl,
+  YOUTUBE_ORIGIN,
+  YOUTUBE_REFERRER_POLICY,
+} from "@/lib/youtubeEmbed";
+import {
   clearMediaControl,
   subscribeMediaControl,
   subscribeMediaPlaybackRequests,
   updateMediaControl,
 } from "@/lib/mediaControl";
 
-const YOUTUBE_ORIGIN = "https://www.youtube-nocookie.com";
 const AUDIO_TYPES = new Set(["audio", "music", "sermon", "sermons", "predication", "bible"]);
 const isAudioControl = (control) =>
   AUDIO_TYPES.has(control?.type) || control?.engine === "audio";
@@ -29,7 +33,14 @@ export default function UniversalMediaSurface() {
   const playYouTube = (source) => {
     const iframe = iframeRef.current;
     if (!iframe) return;
-    const url = `${YOUTUBE_ORIGIN}/embed/${source}?autoplay=1&rel=0&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`;
+    const url = buildYouTubeEmbedUrl(source, window.location.origin);
+    if (!url) {
+      const active = controlRef.current;
+      if (active?.type === "youtube") {
+        updateMediaControl(active.id, { isPlaying: false, isBuffering: false });
+      }
+      return;
+    }
     if (iframe.src !== url) iframe.src = url;
     youtubePlayingRef.current = true;
   };
@@ -231,7 +242,7 @@ export default function UniversalMediaSurface() {
             ) : (
               <Film className="mx-auto mb-5 h-24 w-24 text-white/80" aria-hidden="true" />
             )}
-            <p className="font-bold">{isRadio ? "LIVE" : "En lecture"}</p>
+            <p className="font-bold">{isRadio ? "EN DIRECT" : "En lecture"}</p>
           </div>
         </div>
       )}
@@ -288,6 +299,7 @@ export default function UniversalMediaSurface() {
           className={`h-full w-full ${isYouTube ? "block" : "hidden"}`}
           title={control?.title || "Lecteur YouTube"}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          referrerPolicy={YOUTUBE_REFERRER_POLICY}
           allowFullScreen
           onLoad={() => {
             const active = controlRef.current;

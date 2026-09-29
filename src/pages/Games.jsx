@@ -4,19 +4,19 @@ import { Gamepad2, Trophy, Flame, Check, X, RefreshCw, ArrowRight } from "lucide
 import { hasNavigationOrigin } from "@/lib/backNavigation";
 
 const GAMES = [
-  { id: "trivia", name: "Bible Trivia", desc: "Test your knowledge", tone: "from-[#4A6CFE] to-[#8A56E2]", live: true },
-  { id: "emoji", name: "Bible Emoji", desc: "Guess from emojis", tone: "from-[#8A56E2] to-[#FF57B2]", live: false },
-  { id: "scramble", name: "Word Scramble", desc: "Unscramble names", tone: "from-[#FF57B2] to-[#FF4D2D]", live: false },
-  { id: "puzzle", name: "Bible Puzzle", desc: "Piece it together", tone: "from-[#2E6F40] to-[#4A6CFE]", live: false },
-  { id: "detective", name: "Bible Detective", desc: "Solve the mystery", tone: "from-[#FF4D2D] to-[#8A56E2]", live: false },
+  { id: "trivia", name: "Quiz biblique", desc: "Testez vos connaissances", tone: "from-[#4A6CFE] to-[#8A56E2]", live: true },
+  { id: "emoji", name: "Émojis bibliques", desc: "Devinez à partir des émojis", tone: "from-[#8A56E2] to-[#FF57B2]", live: false },
+  { id: "scramble", name: "Mots mélangés", desc: "Reconstituez les noms", tone: "from-[#FF57B2] to-[#FF4D2D]", live: false },
+  { id: "puzzle", name: "Puzzle biblique", desc: "Reconstituez l'image", tone: "from-[#2E6F40] to-[#4A6CFE]", live: false },
+  { id: "detective", name: "Enquête biblique", desc: "Résolvez l'énigme", tone: "from-[#FF4D2D] to-[#8A56E2]", live: false },
 ];
 
 const QUESTIONS = [
-  { q: "Who built the ark to survive the flood?", options: ["Moses", "Noah", "Abraham", "David"], answer: 1, explain: "Noah built the ark at God's command (Genesis 6)." },
-  { q: "How many days did Jesus fast in the desert?", options: ["7", "20", "40", "100"], answer: 2, explain: "Jesus fasted 40 days and nights (Matthew 4:2)." },
-  { q: "Who led the Israelites out of Egypt?", options: ["Moses", "Joshua", "Aaron", "Samuel"], answer: 0, explain: "Moses led the people out of Egypt (Exodus 12)." },
-  { q: "What is the first book of the Bible?", options: ["Exodus", "Psalms", "Genesis", "Matthew"], answer: 2, explain: "Genesis is the first book of the Bible." },
-  { q: "Who denied Jesus three times?", options: ["John", "Peter", "Judas", "James"], answer: 1, explain: "Peter denied Jesus three times before the rooster crowed (Luke 22)." },
+  { q: "Qui a construit l'arche pour survivre au déluge ?", options: ["Moïse", "Noé", "Abraham", "David"], answer: 1, explain: "Noé a construit l'arche sur l'ordre de Dieu (Genèse 6)." },
+  { q: "Combien de jours Jésus a-t-il jeûné dans le désert ?", options: ["7", "20", "40", "100"], answer: 2, explain: "Jésus a jeûné quarante jours et quarante nuits (Matthieu 4:2)." },
+  { q: "Qui a conduit les Israélites hors d'Égypte ?", options: ["Moïse", "Josué", "Aaron", "Samuel"], answer: 0, explain: "Moïse a conduit le peuple hors d'Égypte (Exode 12)." },
+  { q: "Quel est le premier livre de la Bible ?", options: ["Exode", "Psaumes", "Genèse", "Matthieu"], answer: 2, explain: "La Genèse est le premier livre de la Bible." },
+  { q: "Qui a renié Jésus trois fois ?", options: ["Jean", "Pierre", "Judas", "Jacques"], answer: 1, explain: "Pierre a renié Jésus trois fois avant le chant du coq (Luc 22)." },
 ];
 
 export default function Games() {
@@ -70,7 +70,7 @@ export default function Games() {
             }}
             className="text-sm font-bold text-foreground/60 hover:text-foreground"
           >
-            ← Back
+            ← Retour
           </button>
           <div className="flex items-center gap-3">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-sm font-bold"><Trophy className="h-4 w-4 text-primary" /> {score}/{QUESTIONS.length}</span>
@@ -80,7 +80,7 @@ export default function Games() {
 
         {!done ? (
           <div className="rounded-[2rem] border border-border bg-card p-8 md:p-10">
-            <div className="text-xs font-bold text-primary uppercase tracking-wide mb-3">Question {qIdx + 1} of {QUESTIONS.length}</div>
+            <div className="text-xs font-bold text-primary uppercase tracking-wide mb-3">Question {qIdx + 1} sur {QUESTIONS.length}</div>
             <h2 className="font-display font-extrabold text-2xl md:text-3xl leading-snug">{q.q}</h2>
             <div className="mt-6 grid gap-3">
               {q.options.map((opt, i) => {
@@ -108,10 +108,10 @@ export default function Games() {
             </div>
             {picked !== null && (
               <div className="mt-5 rounded-2xl bg-background border border-border p-4">
-                <div className="text-sm font-semibold text-foreground/60 mb-1">Explanation</div>
+                <div className="text-sm font-semibold text-foreground/60 mb-1">Explication</div>
                 <p className="text-foreground/85">{q.explain}</p>
                 <button onClick={next} className="mt-4 inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-6 py-3 font-bold hover:scale-105 transition">
-                  {qIdx + 1 < QUESTIONS.length ? "Next question" : "See results"} <ArrowRight className="h-4 w-4" />
+                  {qIdx + 1 < QUESTIONS.length ? "Question suivante" : "Voir les résultats"} <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
             )}
@@ -120,9 +120,9 @@ export default function Games() {
           <div className="rounded-[2rem] brand-gradient p-10 text-white text-center glow-primary">
             <Trophy className="h-16 w-16 mx-auto mb-4" />
             <h2 className="font-display font-extrabold text-4xl">{score}/{QUESTIONS.length}</h2>
-            <p className="text-white/80 mt-2">You scored {Math.round((score / QUESTIONS.length) * 100)}% — great job!</p>
+            <p className="text-white/80 mt-2">Votre score : {Math.round((score / QUESTIONS.length) * 100)} %. Bravo !</p>
             <button onClick={startTrivia} className="mt-6 inline-flex items-center gap-2 rounded-full bg-white text-foreground px-7 py-3 font-bold hover:scale-105 transition">
-              <RefreshCw className="h-4 w-4" /> Play again
+              <RefreshCw className="h-4 w-4" /> Rejouer
             </button>
           </div>
         )}
@@ -133,8 +133,8 @@ export default function Games() {
   return (
     <div className="mx-auto max-w-6xl px-6 md:px-8 py-8 md:py-12">
       <header className="mb-8">
-        <h1 className="display-fluid">Bible <span className="brand-gradient-text">Games</span></h1>
-        <p className="mt-3 text-lg text-foreground/60">Learn the Word while you play.</p>
+        <h1 className="display-fluid">Jeux <span className="brand-gradient-text">bibliques</span></h1>
+        <p className="mt-3 text-lg text-foreground/60">Découvrez la Parole en vous amusant.</p>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -145,16 +145,16 @@ export default function Games() {
             </div>
             <div className="flex items-center gap-2 mb-1">
               <h3 className="font-display font-bold text-xl">{g.name}</h3>
-              {g.live && <span className="rounded-full bg-secondary/10 text-secondary text-xs font-bold px-2 py-0.5">Live</span>}
+              {g.live && <span className="rounded-full bg-secondary/10 text-secondary text-xs font-bold px-2 py-0.5">Disponible</span>}
             </div>
             <p className="text-sm text-foreground/55">{g.desc}</p>
             {g.live ? (
               <button onClick={startTrivia} className="mt-5 w-full rounded-full bg-primary text-primary-foreground px-5 py-3 font-bold hover:scale-[1.02] transition">
-                Play now
+                Jouer
               </button>
             ) : (
               <button disabled className="mt-5 w-full rounded-full border border-border text-foreground/40 px-5 py-3 font-bold cursor-not-allowed">
-                Coming soon
+                Bientôt disponible
               </button>
             )}
           </div>
