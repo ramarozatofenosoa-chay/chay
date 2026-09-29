@@ -188,8 +188,11 @@ export function AudioPlayerProvider({ children }) {
     []
   );
 
+  const isBibleTrack = currentTrack?.mediaType === "bible";
   const hasPrevious = currentTrack?.hasPrevious ?? (
-    orderIndex > 0 || currentTime > 3 || (loop === "all" && order.length > 0)
+    isBibleTrack
+      ? orderIndex > 0 || currentTime > 3 || (loop === "all" && order.length > 0)
+      : Boolean(currentTrack)
   );
   const hasNext = currentTrack?.hasNext ?? (orderIndex < order.length - 1 || loop === "all");
 

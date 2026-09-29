@@ -1,14 +1,27 @@
 import { useEffect, useRef } from "react";
 import { syncMediaSessionActions } from "@/lib/mediaSession";
+import {
+  clearAndroidMediaNotification,
+  isAndroidApp,
+  requestAndroidMediaNotificationPermission,
+  subscribeAndroidMediaActions,
+  updateAndroidMediaNotification,
+} from "@/lib/androidMediaNotification";
+import {
+  createMediaNotificationState,
+  dispatchMediaNotificationAction,
+} from "@/lib/mediaNotificationState";
 
 /**
  * Synchronise le média actif avec les contrôles système Android/iOS.
  */
 export function useMediaSessionSync(control) {
   const controlRef = useRef(control);
+  const permissionRequestedRef = useRef(false);
   controlRef.current = control;
 
   useEffect(() => {
+    if (isAndroidApp()) return;
     if (typeof navigator === "undefined" || !navigator.mediaSession) return;
     const session = navigator.mediaSession;
     if (!control) {
@@ -56,6 +69,63 @@ export function useMediaSessionSync(control) {
   ]);
 
   useEffect(() => {
+    if (!isAndroidApp()) return undefined;
+    let handle;
+    subscribeAndroidMediaActions(({ action, position }) => {
+      dispatchMediaNotificationAction(controlRef.current, action, { position });
+    }).then((subscription) => {
+      handle = subscription;
+    }).catch((error) => {
+      console.error("[MediaNotification] Unable to subscribe to native media actions.", error);
+    });
+    return () => handle?.remove();
+  }, []);
+
+  useEffect(() => {
+    if (!isAndroidApp()) return;
+    if (!control) {
+      clearAndroidMediaNotification().catch((error) => {
+        console.error("[MediaNotification] Unable to clear native media notification.", error);
+      });
+      return;
+    }
+
+    const media = createMediaNotificationState(control);
+    const update = () => updateAndroidMediaNotification(media).catch((error) => {
+      console.error("[MediaNotification] Unable to update native media notification.", error);
+    });
+    if (!permissionRequestedRef.current) {
+      permissionRequestedRef.current = true;
+      requestAndroidMediaNotificationPermission()
+        .catch((error) => {
+          console.warn("[MediaNotification] Notification permission request failed.", error);
+        })
+        .finally(() => {
+          const current = controlRef.current;
+          if (current) {
+            updateAndroidMediaNotification(createMediaNotificationState(current)).catch((error) => {
+              console.error("[MediaNotification] Unable to update native media notification.", error);
+            });
+          }
+        });
+      return;
+    }
+    update();
+  }, [
+    control?.id,
+    control?.title,
+    control?.subtitle,
+    control?.artwork,
+    control?.isPlaying,
+    control?.isLive,
+    control?.currentTime,
+    control?.duration,
+    Boolean(control?.previous),
+    Boolean(control?.next),
+  ]);
+
+  useEffect(() => {
+    if (isAndroidApp()) return;
     if (typeof navigator === "undefined" || !navigator.mediaSession) return;
     syncMediaSessionActions(navigator.mediaSession, controlRef);
   }, [
