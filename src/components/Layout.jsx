@@ -39,12 +39,12 @@ const ROOT_TABS = NAV.map((n) => n.to);
 
 export default function Layout() {
   const { user, isAuthenticated } = useAuth();
-  const audioPlayer = useAudioPlayer();
-  const radio = useRadio();
-  const audioStopRef = useRef(audioPlayer.stop);
-  const radioStopRef = useRef(radio.stop);
-  audioStopRef.current = audioPlayer.stop;
-  radioStopRef.current = radio.stop;
+  const audioPlayer = useAudioPlayer() || {};
+  const radio = useRadio() || {};
+  const audioStopRef = useRef(() => {});
+  const radioStopRef = useRef(() => {});
+  audioStopRef.current = audioPlayer.stop || (() => {});
+  radioStopRef.current = radio.stop || (() => {});
   usePresenceHeartbeat(user);
   const unread = useUnreadMessages(user);
   const notifUnread = useUnreadNotifications(user);
