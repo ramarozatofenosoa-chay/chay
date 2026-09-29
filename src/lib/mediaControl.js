@@ -24,6 +24,11 @@ export function subscribeMediaPlaybackRequests(listener) {
   return () => playbackRequestListeners.delete(listener);
 }
 
+export function getMediaControlKey(control) {
+  if (!control) return null;
+  return `${String(control.id)}:${String(control.source || "")}`;
+}
+
 export function registerMediaControl(control) {
   const id = Symbol(control.type);
   if (control.isPlaying) stopPreviousControl(id);
