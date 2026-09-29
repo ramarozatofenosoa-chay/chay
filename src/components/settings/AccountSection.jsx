@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { base44 } from "@/api/base44Client";
+import { uploadToBase44 } from "@/lib/upload";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -37,9 +38,9 @@ export default function AccountSection() {
     if (!file) return;
     setUploading(true);
     try {
-      const res = await base44.integrations.Core.UploadPublicFile({ file });
-      set("profile_photo_url", res.file_url);
-      await base44.auth.updateMe({ profile_photo_url: res.file_url });
+      const photoUrl = await uploadToBase44(file);
+      set("profile_photo_url", photoUrl);
+      await base44.auth.updateMe({ profile_photo_url: photoUrl });
       toast({ title: "Photo mise à jour" });
     } catch (e) {
       toast({ title: "Erreur", description: e.message, variant: "destructive" });

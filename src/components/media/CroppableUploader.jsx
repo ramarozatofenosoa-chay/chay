@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Upload, X, Loader2, ImagePlus } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { uploadToBase44 } from "@/lib/upload";
 import { useToast } from "@/components/ui/use-toast";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
@@ -34,8 +34,8 @@ export default function CroppableUploader({
   const upload = async (blob) => {
     setUploading(true);
     try {
-      const res = await base44.integrations.Core.UploadPublicFile({ file: blob });
-      onChange?.(res.file_url);
+      const url = await uploadToBase44(blob);
+      onChange?.(url);
       setCropOpen(false);
       setFile(null);
     } catch (e) {

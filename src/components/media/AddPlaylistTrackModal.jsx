@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { base44 } from "@/api/base44Client";
+import { uploadToBase44 } from "@/lib/upload";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Upload, Music, Film } from "lucide-react";
 
@@ -46,11 +47,10 @@ export default function AddPlaylistTrackModal({
     }
     setLoading(true);
     try {
-      const media = await base44.integrations.Core.UploadPublicFile({ file: mediaFile });
+      const mediaUrl = await uploadToBase44(mediaFile);
       let coverUrl = "";
       if (coverFile) {
-        const cover = await base44.integrations.Core.UploadPublicFile({ file: coverFile });
-        coverUrl = cover.file_url;
+        coverUrl = await uploadToBase44(coverFile);
       }
       const track_id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
       await base44.entities.PlaylistTrack.create({
@@ -58,8 +58,8 @@ export default function AddPlaylistTrackModal({
         track_id,
         title: title.trim(),
         artist: artist.trim() || null,
-        audio_url: isVideo ? null : media.file_url,
-        video_url: isVideo ? media.file_url : null,
+        audio_url: isVideo ? null : mediaUrl,
+        video_url: isVideo ? mediaUrl : null,
         cover_url: coverUrl || null,
         kind: isVideo ? "video" : "audio",
         order: Date.now(),

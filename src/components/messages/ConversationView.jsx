@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { base44 } from "@/api/base44Client";
+import { uploadToBase44 } from "@/lib/upload";
 import { useToast } from "@/components/ui/use-toast";
 import {
   ChevronLeft,
@@ -214,14 +215,14 @@ export default function ConversationView({
     if (!file || !conversation) return;
     setSending(true);
     try {
-      const res = await base44.integrations.Core.UploadPublicFile({ file });
+      const uploadedUrl = await uploadToBase44(file);
       await base44.entities.Message.create({
         conversation_id: conversation.id,
         participant_ids: conversation.participant_ids,
         sender_id: user.id,
         sender_name: myName,
         text: "",
-        image_url: res.file_url,
+        image_url: uploadedUrl,
         read_by: [user.id],
       });
       await base44.entities.Conversation.update(conversation.id, {

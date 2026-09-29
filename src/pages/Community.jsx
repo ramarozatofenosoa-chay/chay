@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { uploadToBase44 } from "@/lib/upload";
 import { ImagePlus, Send, Loader2, X, Users } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import { useToast } from "@/components/ui/use-toast";
@@ -79,8 +80,7 @@ export default function Community() {
     try {
       let image_url = null;
       if (imageFile) {
-        const res = await base44.integrations.Core.UploadPublicFile({ file: imageFile });
-        image_url = res.file_url;
+        image_url = await uploadToBase44(imageFile);
       }
       const name =
         user?.full_name ||

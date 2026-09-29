@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { uploadToBase44 } from "@/lib/upload";
 import { X, Loader2, Upload, Music2, Mic, Film } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,38 +28,78 @@ export default function MediaUploader({ onClose, onSaved }) {
     if (!form.title.trim()) { toast({ title: "Le titre est requis.", variant: "destructive" }); return; }
     setLoading(true);
     try {
-      // UploadPublicFile : endpoint valide du SDK. UploadFile renvoie un objet
-      // sans file_url → audio_url vide → le fichier paraît « jamais importé ».
-      const media = await base44.integrations.Core.UploadPublicFile({ file: mediaFile });
+      // Core.UploadFile = seule API d'upload officielle du SDK Base44
+      // (UploadPublicFile est un endpoint inexistant → uploads lents/échoués).
+      const mediaUrl = await uploadToBase44(mediaFile);
       let coverUrl = "";
       if (coverFile) {
-        const cover = await base44.integrations.Core.UploadPublicFile({ file: coverFile });
-        coverUrl = cover.file_url;
+        coverUrl = await uploadToBase44(coverFile);
       }
 
+      // Durée du fichier audio (utile au lecteur), lue localement avant l'envoi.
+      let durationSeconds = null;
+      if (type !== "video") {
+        durationSeconds = await new Promise((resolve) => {
+          const url = URL.createObjectURL(mediaFile);
+          const probe = new Audio();
+          probe.preload = "metadata";
+          probe.onloadedmetadata = () => { URL.revokeObjectURL(url); resolve(Number.isFinite(probe.duration) ? Math.round(probe.duration) : null); };
+          probe.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+          probe.src = url;
+          setTimeout(() => { URL.revokeObjectURL(url); resolve(null); }, 5000);
+        });
+      }
+
+      let created = null;
       if (type === "music") {
-        await base44.entities.MusicTrack.create({
+        created = await base44.entities.MusicTrack.create({
           title: form.title, artist: form.artist || "CHAY", album: "", category: form.category || "Louange",
-          cover_url: coverUrl, audio_url: media.file_url,
+          cover_url: coverUrl, audio_url: mediaUrl,
+          ...(durationSeconds ? { duration_seconds: durationSeconds } : {}),
+          // Champs requis par le schéma de l'entité : sans eux la création est
+          // rejetée (422) ou le contenu reste invisible dans l'app.
+          visibility: "non-membre", created_by_admin: true,
         });
       } else if (type === "sermon") {
-        await base44.entities.Sermon.create({
+        created = await base44.entities.Sermon.create({
           title: form.title, speaker: form.speaker || "Pasteur", category: form.category || "Prédication",
           date: form.date || new Date().toISOString().slice(0, 10),
-          cover_url: coverUrl, audio_url: media.file_url,
+          cover_url: coverUrl, audio_url: mediaUrl,
+          ...(durationSeconds ? { duration_minutes: Math.max(1, Math.round(durationSeconds / 60)) } : {}),
+          visibility: "non-membre", created_by_admin: true,
         });
       } else {
-        await base44.entities.Video.create({
+        created = await base44.entities.Video.create({
           title: form.title, description: form.description || "", category: form.category || "Enseignement",
-          cover_url: coverUrl, video_url: media.file_url,
+          cover_url: coverUrl, video_url: mediaUrl,
+          visibility: "non-membre", created_by_admin: true,
         });
+      }
+
+      // Vérification : le serveur a-t-il réellement enregistré l'URL du média ?
+      const savedUrl = type === "video" ? created?.video_url : created?.audio_url;
+      if (!savedUrl) {
+        try {
+          await (type === "music" ? base44.entities.MusicTrack : type === "sermon" ? base44.entities.Sermon : base44.entities.Video)
+            .update(created.id, type === "video" ? { video_url: mediaUrl } : { audio_url: mediaUrl });
+        } catch {
+          toast({
+            title: "Média non enregistré côté serveur",
+            description: "Le champ audio_url/video_url semble absent de l'entité. Ouvrez le dashboard Base44 → Entities → ajoutez le champ, puis Publish.",
+            variant: "destructive",
+          });
+          onSaved?.();
+          onClose?.();
+          return;
+        }
       }
 
       toast({ title: "Importé avec succès !", description: form.title });
       onSaved?.();
       onClose?.();
     } catch (err) {
-      toast({ title: "Échec de l'import", description: err.message || "Réessayez.", variant: "destructive" });
+      console.error("[MediaUploader] échec import:", err);
+      toast({ title: "Échec de l'import", description: err?.message || String(err) || "Réessayez.", variant: "destructive" });
     } finally {
       setLoading(false);
     }

@@ -36,9 +36,27 @@ export function AudioPlayerProvider({ children }) {
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !currentTrack) return;
+    if (!currentTrack.audio_url) {
+      console.warn("[AudioPlayer] piste sans audio_url :", currentTrack?.title, currentTrack?.id);
+      return;
+    }
     audio.src = currentTrack.audio_url;
-    audio.play().then(() => setIsPlaying(true)).catch(() => {});
+    audio.play().then(() => setIsPlaying(true)).catch((e) => {
+      console.warn("[AudioPlayer] lecture impossible (URL media invalide ou bloquée) :", currentTrack.audio_url, e?.name, e?.message);
+    });
   }, [currentTrack]);
+
+  // Erreur de chargement du média (404/403/format non supporté) → log explicite.
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const onError = () => {
+      const e = audio.error;
+      console.error("[AudioPlayer] erreur média:", e ? `code ${e.code} (${e.message || ""})` : "inconnue", "src:", audio.src);
+    };
+    audio.addEventListener("error", onError);
+    return () => audio.removeEventListener("error", onError);
+  }, []);
 
   // Toute autre lecture (radio, vidéo) démarrée dans l'app met la musique en pause.
   useEffect(() => {

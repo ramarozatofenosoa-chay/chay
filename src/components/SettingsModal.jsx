@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/AuthContext";
 import { base44 } from "@/api/base44Client";
+import { uploadToBase44 } from "@/lib/upload";
 import { useToast } from "@/components/ui/use-toast";
 import {
   User,
@@ -85,8 +86,7 @@ export default function SettingsModal({ open, onOpenChange }) {
     if (!file) return;
     setUploadingPhoto(true);
     try {
-      const res = await base44.integrations.Core.UploadPublicFile({ file });
-      const photo_url = res.file_url;
+      const photo_url = await uploadToBase44(file);
       setProfile((p) => ({ ...p, profile_photo_url: photo_url }));
       await base44.auth.updateMe({ profile_photo_url: photo_url });
       toast({ title: "Photo mise à jour" });

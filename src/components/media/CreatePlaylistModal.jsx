@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Image } from "@/components/ui/image";
 import { base44 } from "@/api/base44Client";
+import { uploadToBase44 } from "@/lib/upload";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Library, Upload, Music, Sparkles } from "lucide-react";
 import ImageCrop from "@/components/media/ImageCrop";
@@ -53,15 +54,8 @@ export default function CreatePlaylistModal({
     setUploading(true);
     try {
       const file = new File([blob], "icon.jpg", { type: "image/jpeg" });
-      const res = await base44.integrations.Core.UploadPublicFile({ file });
-      // L'API peut renvoyer l'URL sous des clés différentes selon la version.
-      const url =
-        typeof res === "string"
-          ? res
-          : res?.file_url || res?.url || res?.uri || res?.data?.file_url || null;
-      if (!url || !/^https?:\/\//i.test(url)) {
-        throw new Error("Réponse d'upload inattendue : " + JSON.stringify(res)?.slice(0, 120));
-      }
+      // Core.UploadFile : seule API d'upload officielle du SDK Base44.
+      const url = await uploadToBase44(file);
       setCoverUrl(url);
       setIconChosen(true);
       setRawFile(null);

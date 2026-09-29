@@ -43,7 +43,7 @@ export default function FieldInput({ field, value, onChange }) {
     if (!f) return;
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadPublicFile({ file: f });
+      const file_url = await uploadToBase44(f);
       onChange(file_url);
     } catch {
       /* ignore */

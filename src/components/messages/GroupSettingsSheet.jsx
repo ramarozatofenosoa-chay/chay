@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { uploadToBase44 } from "@/lib/upload";
 import { useToast } from "@/components/ui/use-toast";
 import {
   Drawer,
@@ -47,8 +48,7 @@ export default function GroupSettingsSheet({
     try {
       let photo_url = conversation?.photo_url;
       if (photo) {
-        const res = await base44.integrations.Core.UploadPublicFile({ file: photo });
-        photo_url = res.file_url;
+        photo_url = await uploadToBase44(photo);
       }
       await base44.entities.Conversation.update(conversation.id, {
         name: name.trim(),
