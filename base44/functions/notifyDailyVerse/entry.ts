@@ -40,17 +40,15 @@ export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
 
-    let caller = null;
-    try { caller = await base44.auth.me(); } catch { /* appel interne */ }
-    const body = await req.json().catch(() => ({}));
-    const isInternal = body.internal_secret && body.internal_secret === secrets.get("INTERNAL_INVOKE_SECRET");
-    if (!(caller && caller.role === "admin") && !isInternal) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
-    }
-
     const now = new Date();
     const appParts = localParts(now, APP_TZ);
     const dateStr = appParts.dateStr;
+    // Anti-abus : rien avant ~07:00 à Paris (l'alarme du workflow sonne à 07:00).
+const hhmm = new Intl.DateTimeFormat("fr-FR", { timeZone: APP_TZ, hour: "2-digit", minute: "2-digit" }).format(now);
+if (hhmm < "06:55") {
+return Response.json({ skipped: "too_early", date: dateStr });
+}
+
     const notifId = "verse_" + dateStr;
 
     // Verset publié pour aujourd'hui (aucun → rien à envoyer).
@@ -89,10 +87,15 @@ export default async function (req) {
         // un formatteur Intl par fuseau (mémoïsé), pas un par utilisateur.
         const tz = typeof s.tz === "string" && s.tz ? s.tz : APP_TZ;
         let parts = tzCache.get(tz);
-        if (!parts) {
-          parts = localParts(now, tz);
-          tzCache.set(tz, parts);
-        }
+ if (!parts) {
+try {
+parts = localParts(now, tz);
+} catch {
+parts = localParts(now, APP_TZ);
+}
+tzCache.set(tz, parts);
+}
+
         const day = WEEKDAYS[parts.weekday] || appParts.weekday;
         const days = Array.isArray(s.notif_verse_days) && s.notif_verse_days.length
           ? s.notif_verse_days
