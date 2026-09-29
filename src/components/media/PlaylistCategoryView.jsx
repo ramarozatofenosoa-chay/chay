@@ -258,6 +258,14 @@ export default function PlaylistCategoryView({
 
   if (open) {
     const audioTracks = tracks.filter((t) => !isVideo && t.audio_url);
+    const videoQueue = tracks
+      .filter((track) => track.video_url)
+      .map((track) => ({
+        id: track.id,
+        src: track.video_url,
+        title: track.title,
+        poster: track.cover_url,
+      }));
     return (
       <div>
         <div className="flex items-center gap-3 mb-5">
@@ -298,6 +306,8 @@ export default function PlaylistCategoryView({
                       src={t.video_url}
                       poster={t.cover_url}
                       title={t.title}
+                      queue={videoQueue}
+                      currentIndex={videoQueue.findIndex((item) => item.id === t.id)}
                       className="w-full max-h-72"
                     />
                   ) : (
@@ -350,6 +360,7 @@ export default function PlaylistCategoryView({
                             artist: a.artist,
                             audio_url: a.audio_url,
                             cover_url: a.cover_url,
+                            mediaType: category === "sermons" ? "sermons" : "music",
                           })),
                           i
                         );

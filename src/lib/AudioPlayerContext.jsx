@@ -1,6 +1,7 @@
 import { useMediaSessionSync } from "@/hooks/useMediaSessionSync";
 import React, { createContext, useContext, useRef, useState, useEffect, useCallback } from "react";
 import { useMediaPlayerState } from "@/hooks/useMediaPlayerState";
+import { clearMediaControl, publishMediaControl } from "@/lib/mediaControl";
 
 const AudioPlayerContext = createContext();
 
@@ -25,6 +26,7 @@ export function AudioPlayerProvider({ children }) {
   const [duration, setDuration] = useState(0);
   const [shuffle, setShuffle] = useState(false);
   const [loop, setLoop] = useState("off"); // "off" | "all" | "one"
+  const mediaControlIdRef = useRef(null);
 
   const stateRef = useRef({});
   stateRef.current = { queue, order, orderIndex, loop, shuffle, currentTrack, currentTime };
@@ -40,6 +42,9 @@ export function AudioPlayerProvider({ children }) {
       console.warn("[AudioPlayer] piste sans audio_url :", currentTrack?.title, currentTrack?.id);
       return;
     }
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
     audio.src = currentTrack.audio_url;
     audio.play().then(() => setIsPlaying(true)).catch((e) => {
       console.warn("[AudioPlayer] lecture impossible (URL media invalide ou bloquée) :", currentTrack.audio_url, e?.name, e?.message);
@@ -136,6 +141,7 @@ export function AudioPlayerProvider({ children }) {
 
   const stop = () => {
     const audio = audioRef.current;
+    currentTrack?.onStop?.(currentTime);
     if (audio) {
       audio.pause();
       audio.removeAttribute("src");
@@ -185,8 +191,70 @@ export function AudioPlayerProvider({ children }) {
     []
   );
 
+  const hasPrevious = orderIndex > 0 || currentTime > 3;
+  const hasNext = orderIndex < order.length - 1 || loop === "all";
+
+  useEffect(() => {
+    if (!currentTrack) {
+      if (mediaControlIdRef.current) {
+        clearMediaControl(mediaControlIdRef.current);
+        mediaControlIdRef.current = null;
+      }
+      return;
+    }
+    mediaControlIdRef.current = publishMediaControl({
+      type: currentTrack.mediaType || currentTrack.category || currentTrack.kind || "audio",
+      engine: "audio",
+      title: currentTrack.title || "Média",
+      subtitle: currentTrack.artist || currentTrack.speaker || currentTrack.subtitle || "",
+      artwork: currentTrack.cover_url || currentTrack.artwork || null,
+      source: currentTrack.audio_url,
+      isPlaying,
+      currentTime,
+      duration,
+      bufferedRatio,
+      isLive: false,
+      hasPrevious,
+      hasNext,
+      queue: order.map((index) => queue[index]),
+      queueIndex: orderIndex,
+      toggle,
+      previous: currentTrack.previousAction || (hasPrevious ? prev : null),
+      next: currentTrack.nextAction || (hasNext ? next : null),
+      seek,
+      stop,
+      isBuffering: playerState === "connecting" || playerState === "buffering",
+      open: () => {},
+    });
+  }, [
+    currentTrack,
+    isPlaying,
+    currentTime,
+    duration,
+    bufferedRatio,
+    hasPrevious,
+    hasNext,
+    order,
+    orderIndex,
+    queue,
+    playerState,
+    toggle,
+    prev,
+    next,
+    seek,
+    stop,
+  ]);
+
+  useEffect(() => () => {
+    if (mediaControlIdRef.current) clearMediaControl(mediaControlIdRef.current);
+  }, []);
+
   const handleEnded = () => {
     const { loop, order, orderIndex } = stateRef.current;
+    if (typeof stateRef.current.currentTrack?.onEnded === "function") {
+      stateRef.current.currentTrack.onEnded();
+      return;
+    }
     if (loop === "one") {
       const audio = audioRef.current;
       if (audio) {
@@ -228,6 +296,8 @@ export function AudioPlayerProvider({ children }) {
         toggleLoop,
         playerState,
         bufferedRatio,
+        hasPrevious,
+        hasNext,
       }}
     >
       <audio
@@ -236,7 +306,12 @@ export function AudioPlayerProvider({ children }) {
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
         onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
-        onLoadedMetadata={(e) => setDuration(e.target.duration)}
+        onLoadedMetadata={(e) => {
+          const audio = e.currentTarget;
+          const initialTime = Math.max(0, Number(currentTrack?.initialTime) || 0);
+          if (initialTime > 0 && initialTime < audio.duration) audio.currentTime = initialTime;
+          setDuration(audio.duration);
+        }}
         onEnded={handleEnded}
       />
       {children}

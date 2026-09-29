@@ -5,6 +5,7 @@ import { Home, Users, BookOpen, PlayCircle, Gamepad2, Bell, User, ChevronLeft, S
 import ThemeToggle from "@/components/ThemeToggle";
 import AnimatedOutlet from "@/components/AnimatedOutlet";
 import MiniPlayer from "@/components/MiniPlayer";
+import UniversalMediaSurface from "@/components/UniversalMediaSurface";
 import LocationGate from "@/components/LocationGate";
 import { Image } from "@/components/ui/image";
 import { useAuth } from "@/lib/AuthContext";
@@ -22,7 +23,6 @@ import { hasOpenOverlay } from "@/hooks/useBackHandler";
 import { useAudioPlayer } from "@/lib/AudioPlayerContext";
 import { useRadio } from "@/lib/RadioContext";
 import { stopActiveMediaControl } from "@/lib/mediaControl";
-import GlobalMediaControl from "@/components/GlobalMediaControl";
 
 const LOGO_URL =
   "https://media.base44.com/images/public/6aa138d0e963d9e5f59d838c/c26279d55_logo.png";
@@ -75,16 +75,6 @@ export default function Layout() {
   };
   const stopAllPlaybackRef = useRef(stopAllPlayback);
   stopAllPlaybackRef.current = stopAllPlayback;
-  const previousLocationRef = useRef(`${location.pathname}${location.search}`);
-
-  useEffect(() => {
-    const currentLocation = `${location.pathname}${location.search}`;
-    if (previousLocationRef.current !== currentLocation) {
-      previousLocationRef.current = currentLocation;
-      stopAllPlaybackRef.current();
-    }
-  }, [location.pathname, location.search]);
-
   useEffect(() => {
     const stopWhenHidden = () => {
       if (document.visibilityState === "hidden") stopAllPlaybackRef.current();
@@ -319,7 +309,7 @@ export default function Layout() {
       </nav>
 
       <MiniPlayer />
-      <GlobalMediaControl />
+      <UniversalMediaSurface />
     </div>
     </LocationGate>
   );

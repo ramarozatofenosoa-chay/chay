@@ -31,6 +31,22 @@ export default function SeekBar({ currentTime, duration, onSeek, bufferedRatio =
     if (e.buttons !== 1) return;
     seekFromEvent(e.clientX);
   };
+  const onKeyDown = (event) => {
+    const step = event.shiftKey ? 10 : 5;
+    if (event.key === "ArrowRight" || event.key === "ArrowUp") {
+      event.preventDefault();
+      onSeek(Math.min(duration, currentTime + step));
+    } else if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
+      event.preventDefault();
+      onSeek(Math.max(0, currentTime - step));
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      onSeek(0);
+    } else if (event.key === "End") {
+      event.preventDefault();
+      onSeek(duration);
+    }
+  };
 
   return (
     <div className="flex items-center gap-2 w-full">
@@ -41,7 +57,15 @@ export default function SeekBar({ currentTime, duration, onSeek, bufferedRatio =
         ref={barRef}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
-        className="relative flex-1 h-5 flex items-center cursor-pointer touch-none"
+        onKeyDown={onKeyDown}
+        role="slider"
+        aria-label="Progression de lecture"
+        aria-valuemin={0}
+        aria-valuemax={Math.round(duration)}
+        aria-valuenow={Math.round(currentTime)}
+        aria-valuetext={`${formatTime(currentTime)} sur ${formatTime(duration)}`}
+        tabIndex={0}
+        className="relative flex-1 h-5 flex items-center cursor-pointer touch-none rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
         <div className="absolute inset-x-0 h-1.5 rounded-full bg-border overflow-hidden">
           <div className="h-full bg-foreground/15" style={{ width: `${bufPct}%` }} />

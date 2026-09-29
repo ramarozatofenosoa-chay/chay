@@ -142,6 +142,7 @@ export default function Media() {
       artist: item.artist,
       audio_url: item.audio_url,
       cover_url: item.cover_url,
+      mediaType: item.category === "sermons" ? "sermons" : "music",
     });
   };
 
