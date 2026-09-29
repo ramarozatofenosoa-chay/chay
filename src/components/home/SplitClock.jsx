@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Sparkles, History, ChevronLeft, ChevronRight } from "lucide-react"; // Ajout des chevrons, suppression d'ArrowRight si inutilisé ailleurs
+import { useNavigate } from "react-router-dom";
 import ContentDetailDialog from "./ContentDetailDialog";
+import { getContentMediaPath } from "@/lib/contentLinks";
 
 function describe(c) {
   const title = c?.title || "";
@@ -10,6 +12,9 @@ function describe(c) {
   switch (c?.type) {
     case "audio": noun = "La chanson"; break;
     case "video": noun = "Le film"; break;
+    case "youtube": noun = "La vidéo"; break;
+    case "article": noun = "L'article"; break;
+    case "gallery": noun = "La photo"; break;
     case "predication": noun = "La prédication"; break;
     case "enseignement": noun = "L'enseignement"; break;
     case "annonce": noun = "L'annonce"; break;
@@ -24,6 +29,7 @@ function describe(c) {
  * Widget Nouveauté / Précédemment : Affichage côte à côte avec navigation par flèches.
  */
 export default function SplitClock() {
+  const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [active, setActive] = useState(null);
 
@@ -39,7 +45,9 @@ export default function SplitClock() {
 
   const open = (c) => {
     if (!c) return;
-    setActive(c);
+    const path = getContentMediaPath(c);
+    if (path) navigate(path);
+    else setActive(c);
   };
 
   // Composant interne pour un panneau (Gauche ou Droite)

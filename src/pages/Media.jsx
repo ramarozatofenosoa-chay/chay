@@ -20,6 +20,11 @@ export default function Media() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const activeCat = searchParams.get("cat");
+  const targetTrackId = searchParams.get("track");
+  const targetPlaylistId = searchParams.get("playlist");
+  const targetVideoId = searchParams.get("video");
+  const targetArticleId = searchParams.get("article");
+  const targetImageId = searchParams.get("image");
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
 
@@ -35,7 +40,10 @@ export default function Media() {
 
 
   const loadAll = async () => {
-    const [t, s, v, a, y, g, p, pl, pt] = await Promise.all([
+    const [
+      t, s, v, a, y, g, p, pl, pt,
+      targetTracks, targetVideos, targetArticles, targetImages,
+    ] = await Promise.all([
       base44.entities.MusicTrack.list("-created_date", 30).catch(() => []),
       base44.entities.Sermon.list("-date", 30).catch(() => []),
       base44.entities.Video.list("-created_date", 30).catch(() => []),
@@ -45,16 +53,43 @@ export default function Media() {
       base44.entities.PlaylistItem.list("-created_date", 50).catch(() => []),
       base44.entities.Playlist.list("-created_date", 50).catch(() => []),
       base44.entities.PlaylistTrack.list("-created_date", 200).catch(() => []),
+      targetTrackId
+        ? base44.entities.PlaylistTrack.filter({ track_id: targetTrackId }, "-created_date", 50).catch(() => [])
+        : Promise.resolve([]),
+      targetVideoId
+        ? base44.entities.YouTubeVideo.filter({ id: targetVideoId }, "-created_date", 1).catch(() => [])
+        : Promise.resolve([]),
+      targetArticleId
+        ? base44.entities.Article.filter({ id: targetArticleId }, "-created_date", 1).catch(() => [])
+        : Promise.resolve([]),
+      targetImageId
+        ? base44.entities.GalleryImage.filter({ id: targetImageId }, "-created_date", 1).catch(() => [])
+        : Promise.resolve([]),
     ]);
+    const mergeById = (list, extras) => {
+      const merged = new Map((Array.isArray(list) ? list : []).map((item) => [item.id, item]));
+      (Array.isArray(extras) ? extras : []).forEach((item) => merged.set(item.id, item));
+      return [...merged.values()];
+    };
+    const targetPlaylistIdForTrack =
+      targetPlaylistId || (Array.isArray(targetTracks) ? targetTracks[0]?.playlist_id : null);
+    const extraPlaylists =
+      targetPlaylistIdForTrack && !(Array.isArray(pl) ? pl : []).some((item) => item.id === targetPlaylistIdForTrack)
+        ? await base44.entities.Playlist.filter(
+            { id: targetPlaylistIdForTrack },
+            "-created_date",
+            1
+          ).catch(() => [])
+        : [];
     setTracks(Array.isArray(t) ? t : []);
     setSermons(Array.isArray(s) ? s : []);
     setVideos(Array.isArray(v) ? v : []);
-    setArticles(Array.isArray(a) ? a : []);
-    setYoutube(Array.isArray(y) ? y : []);
-    setGallery(filterVisible(Array.isArray(g) ? g : [], user));
+    setArticles(mergeById(a, targetArticles));
+    setYoutube(mergeById(y, targetVideos));
+    setGallery(filterVisible(mergeById(g, targetImages), user));
     setPlaylist(Array.isArray(p) ? p : []);
-    setPlaylists(Array.isArray(pl) ? pl : []);
-    setPlaylistTracks(Array.isArray(pt) ? pt : []);
+    setPlaylists(mergeById(pl, extraPlaylists));
+    setPlaylistTracks(mergeById(pt, targetTracks));
   };
 
   useEffect(() => {

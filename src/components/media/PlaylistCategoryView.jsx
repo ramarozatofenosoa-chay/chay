@@ -1,4 +1,5 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   ChevronLeft,
   Plus,
@@ -120,11 +121,16 @@ export default function PlaylistCategoryView({
   favoriteCategory,
 }) {
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [open, setOpen] = useState(null);
+  const [targetUnavailable, setTargetUnavailable] = useState(false);
   const [playlistsLocked, setPlaylistsLocked] = useState(true);
   const [tracksLocked, setTracksLocked] = useState(true);
   const [localCats, setLocalCats] = useState(null);
   const [localTracks, setLocalTracks] = useState(null);
+  const trackNodes = useRef(new Map());
+  const targetTrackId = searchParams.get("track");
+  const targetPlaylistId = searchParams.get("playlist");
   // Création de playlist directement depuis la Médiathèque (admin).
   const [showCreate, setShowCreate] = useState(false);
 
@@ -183,6 +189,62 @@ export default function PlaylistCategoryView({
         .sort((a, b) => (a.order ?? 99999) - (b.order ?? 99999)))
     : [];
 
+  useEffect(() => {
+    if (!targetTrackId) {
+      setTargetUnavailable(false);
+      return;
+    }
+
+    const target = playlistTracks.find(
+      (track) =>
+        track.track_id === targetTrackId &&
+        (!targetPlaylistId || track.playlist_id === targetPlaylistId)
+    );
+    const targetPlaylistIdForTrack = targetPlaylistId || target?.playlist_id;
+    const targetPlaylist = playlists.find(
+      (playlist) => playlist.id === targetPlaylistIdForTrack
+    );
+
+    const mediaUrl = category === "films" ? target?.video_url : target?.audio_url;
+    if (
+      !target ||
+      !targetPlaylist ||
+      target.playlist_id !== targetPlaylist.id ||
+      (targetPlaylist.category || "music") !== category ||
+      !mediaUrl
+    ) {
+      setOpen(null);
+      setTargetUnavailable(true);
+      return;
+    }
+
+    setTargetUnavailable(false);
+    setLocalTracks(null);
+    setOpen(targetPlaylist);
+  }, [category, targetTrackId, targetPlaylistId, playlistTracks, playlists]);
+
+  useEffect(() => {
+    if (!targetTrackId || !open) return undefined;
+    const frame = window.requestAnimationFrame(() => {
+      trackNodes.current.get(targetTrackId)?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [targetTrackId, open, tracks]);
+
+  const closePlaylist = () => {
+    setOpen(null);
+    setLocalTracks(null);
+    if (targetTrackId || targetPlaylistId) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("track");
+      next.delete("playlist");
+      setSearchParams(next, { replace: true });
+    }
+  };
+
   const catDrag = useDragSort(cats, handleReorderCats);
   const trackDrag = useDragSort(tracks, handleReorderTracks);
 
@@ -202,7 +264,7 @@ export default function PlaylistCategoryView({
       <div>
         <div className="flex items-center gap-3 mb-5">
           <button
-            onClick={() => setOpen(null)}
+            onClick={closePlaylist}
             className="h-9 w-9 grid place-items-center rounded-full border border-border hover:bg-muted"
           >
             <ChevronLeft className="h-5 w-5" />
@@ -222,7 +284,17 @@ export default function PlaylistCategoryView({
           <div ref={trackDrag.listRef} className="space-y-3">
             {tracks.map((t, idx) =>
               isVideo ? (
-                <div key={t.id} className="rounded-2xl border border-border bg-card overflow-hidden">
+                <div
+                  key={t.id}
+                  ref={(node) => {
+                    if (node) trackNodes.current.set(t.track_id, node);
+                    else trackNodes.current.delete(t.track_id);
+                  }}
+                  data-track-id={t.track_id}
+                  className={`rounded-2xl border border-border bg-card overflow-hidden ${
+                    targetTrackId === t.track_id ? "ring-2 ring-primary" : ""
+                  }`}
+                >
                   {t.video_url ? (
                     <VideoPlayer
                       src={t.video_url}
@@ -248,7 +320,14 @@ export default function PlaylistCategoryView({
               ) : (
                 <div
                   key={t.id}
-                  className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 transition-transform duration-150 select-none"
+                  ref={(node) => {
+                    if (node) trackNodes.current.set(t.track_id, node);
+                    else trackNodes.current.delete(t.track_id);
+                  }}
+                  data-track-id={t.track_id}
+                  className={`flex items-center gap-3 rounded-2xl border border-border bg-card p-3 transition-transform duration-150 select-none ${
+                    targetTrackId === t.track_id ? "ring-2 ring-primary" : ""
+                  }`}
                 >
                   {isAdmin && !tracksLocked && (
                     <div
@@ -313,6 +392,11 @@ export default function PlaylistCategoryView({
 
   return (
     <div>
+      {targetUnavailable && (
+        <p role="status" className="mb-4 text-sm text-foreground/60">
+          Ce contenu n'est plus disponible dans cette playlist.
+        </p>
+      )}
       <div className="flex items-center justify-between mb-5 gap-3">
         <p className="text-sm text-foreground/55">Les contenus sont organisés en playlists.</p>
         {isAdmin && (

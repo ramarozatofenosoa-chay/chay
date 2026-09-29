@@ -1,18 +1,41 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Plus } from "lucide-react";
 import YouTubeCard from "@/components/media/YouTubeCard";
 import AddYouTubeLinkModal from "@/components/media/AddYouTubeLinkModal";
 import YouTubeViewer from "@/components/media/YouTubeViewer";
 
-export default function YouTubeCategoryView({ section, youtube = [], isAdmin, onSaved }) {
+export default function YouTubeCategoryView({
+  section,
+  youtube = [],
+  isAdmin,
+  onSaved,
+  targetVideoId,
+}) {
   const [addOpen, setAddOpen] = useState(false);
   const [playingIndex, setPlayingIndex] = useState(null);
+  const [searchParams, setSearchParams] = useSearchParams();
   const items = youtube.filter((y) => (y.section || "culte") === section);
   const sectionLabels = { culte: "Culte", louange: "Louange", celebration: "Célébration" };
+
+  useEffect(() => {
+    if (!targetVideoId) return;
+    const targetIndex = items.findIndex((video) => video.id === targetVideoId);
+    setPlayingIndex(targetIndex >= 0 ? targetIndex : null);
+  }, [targetVideoId, section, youtube]);
 
   const handleVideoEnd = () => {
     if (playingIndex !== null && playingIndex < items.length - 1) {
       setPlayingIndex(playingIndex + 1);
+    }
+  };
+
+  const closeVideo = () => {
+    setPlayingIndex(null);
+    if (searchParams.has("video")) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("video");
+      setSearchParams(next, { replace: true });
     }
   };
 
@@ -47,6 +70,11 @@ export default function YouTubeCategoryView({ section, youtube = [], isAdmin, on
       ) : (
         <p className="text-foreground/50 text-sm">Aucune vidéo pour le moment.</p>
       )}
+      {targetVideoId && !items.some((video) => video.id === targetVideoId) && (
+        <p role="status" className="mt-4 text-sm text-foreground/60">
+          Cette vidéo n'est plus disponible dans cette section.
+        </p>
+      )}
 
       <AddYouTubeLinkModal open={addOpen} onOpenChange={setAddOpen} section={section} onSaved={onSaved} />
 
@@ -56,7 +84,7 @@ export default function YouTubeCategoryView({ section, youtube = [], isAdmin, on
           videos={items}
           currentIndex={playingIndex}
           open={playingIndex !== null}
-          onClose={() => setPlayingIndex(null)}
+          onClose={closeVideo}
           onEnded={handleVideoEnd}
         />
       )}

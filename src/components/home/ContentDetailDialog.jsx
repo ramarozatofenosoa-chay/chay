@@ -13,6 +13,9 @@ import ReactMarkdown from "react-markdown";
 const TYPE_LABELS = {
   audio: "Audio",
   video: "Vidéo",
+  youtube: "Vidéo YouTube",
+  article: "Article",
+  gallery: "Photo",
   predication: "Prédication",
   enseignement: "Enseignement",
   annonce: "Annonce",
