@@ -81,30 +81,36 @@ test("uses the playlist selected in the form as the authoritative submitted valu
 
 test("saves the selected playlist relation directly without a lookup", async () => {
   const calls = [];
-  const entity = {
-    async create(record) {
-      calls.push(["create", record]);
-      return { ...record, id: "playlist-track-1" };
-    },
-    async get(id) {
-      assert.equal(id, "playlist-track-1");
-      return { ...record, id };
-    },
-    async update() {
-      calls.push(["update"]);
-      throw new Error("No update should be needed");
-    },
-  };
   const record = {
     playlist_id: "playlist-1",
     track_id: "track-1",
     title: "Song",
     audio_url: "https://cdn.example/song.mp3",
   };
+  let saved = null;
+  const entity = {
+    async filter(query) {
+      assert.deepEqual(query, {
+        track_id: record.track_id,
+        playlist_id: record.playlist_id,
+      });
+      return saved ? [saved] : [];
+    },
+    async create(payload) {
+      assert.deepEqual(payload, record);
+      calls.push(["create", record]);
+      saved = { ...record, id: "playlist-track-1" };
+      return saved;
+    },
+    async update() {
+      calls.push(["update"]);
+      throw new Error("No update should be needed");
+    },
+  };
 
-  const saved = await savePlaylistTrack(entity, record, "audio_url");
+  const result = await savePlaylistTrack(entity, record, "audio_url");
 
-  assert.equal(saved.id, "playlist-track-1");
+  assert.equal(result.id, "playlist-track-1");
   assert.deepEqual(calls, [["create", record]]);
 });
 
@@ -117,14 +123,22 @@ test("repairs fields omitted from create response and confirms persistence", asy
     video_url: "https://cdn.example/video.mp4",
   };
   let reads = 0;
+  let persistedRecord = { id: updatedRecord.id };
   const entity = {
+    async filter(query) {
+      assert.deepEqual(query, {
+        track_id: updatedRecord.track_id,
+        playlist_id: updatedRecord.playlist_id,
+      });
+      reads += 1;
+      return reads === 1 ? [] : [persistedRecord];
+    },
     async create() {
       return { id: updatedRecord.id };
     },
     async get(id) {
       assert.equal(id, updatedRecord.id);
-      reads += 1;
-      return reads === 1 ? { id } : updatedRecord;
+      return persistedRecord;
     },
     async update(id, fields) {
       assert.equal(id, updatedRecord.id);
@@ -134,9 +148,72 @@ test("repairs fields omitted from create response and confirms persistence", asy
         title: updatedRecord.title,
         video_url: updatedRecord.video_url,
       });
+      persistedRecord = updatedRecord;
       return updatedRecord;
     },
   };
 
   assert.deepEqual(await savePlaylistTrack(entity, updatedRecord, "video_url"), updatedRecord);
+});
+
+test("reuses an already-persisted relation instead of creating a duplicate on retry", async () => {
+  const record = {
+    playlist_id: "playlist-5",
+    track_id: "track-5",
+    title: "Song",
+    audio_url: "https://cdn.example/song.mp3",
+  };
+  const persisted = { ...record, id: "relation-5" };
+  let creates = 0;
+  const entity = {
+    async filter() {
+      return [persisted];
+    },
+    async create() {
+      creates += 1;
+      return persisted;
+    },
+    async update() {
+      throw new Error("No repair should be needed");
+    },
+  };
+
+  assert.equal(
+    await savePlaylistTrack(entity, record, "audio_url", {
+      checkExisting: true,
+    }),
+    persisted
+  );
+  assert.equal(creates, 0);
+});
+
+test("waits for a newly-created relation to become visible before retrying", async () => {
+  const record = {
+    playlist_id: "playlist-6",
+    track_id: "track-6",
+    title: "Song",
+    audio_url: "https://cdn.example/song.mp3",
+  };
+  let reads = 0;
+  let creates = 0;
+  const persisted = { ...record, id: "relation-6" };
+  const entity = {
+    async filter() {
+      reads += 1;
+      return reads < 3 ? [] : [persisted];
+    },
+    async create() {
+      creates += 1;
+    },
+    async update() {
+      throw new Error("No repair should be needed");
+    },
+  };
+
+  assert.equal(
+    await savePlaylistTrack(entity, record, "audio_url"),
+    persisted
+  );
+  assert.equal(creates, 1);
+  assert.equal(reads, 4);
 });

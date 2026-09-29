@@ -4,6 +4,7 @@ import { BookMarked, BookOpen, Search } from "lucide-react";
 import BibleReader from "@/components/bible/BibleReader";
 import BibleDictionary from "@/components/bible/BibleDictionary";
 import BibleFullTextSearch from "@/components/bible/BibleFullTextSearch";
+import { hasNavigationOrigin } from "@/lib/backNavigation";
 
 // Les sous-écrans sont décrits dans l'URL (?view=reader|dictionary|search) et
 // non dans un useState : chaque module pousse donc une entrée d'historique et
@@ -23,27 +24,38 @@ export default function Bible() {
       ? "reader"
       : "home";
 
-  // Retour : on dépile l'entrée qu'on vient de pousser. Si on est arrivé
-  // directement sur ?ref= (aucune entrée propre), on remplace par le menu.
+  // Only pop when this view was opened from inside the app; direct links return
+  // to the Bible module menu instead of leaving the app.
   const goBack = () => {
-    if (viewParam) navigate(-1);
+    const openedInApp =
+      hasNavigationOrigin(window.history.state, "chayBibleView") ||
+      hasNavigationOrigin(window.history.state, "chayBibleVerse");
+    if (viewParam && openedInApp) {
+      navigate(-1);
+    }
     else setSearchParams({}, { replace: true });
   };
 
   const openView = (v) => {
     if (view === v) return;
-    navigate(`/bible?view=${v}`, { replace: false });
+    navigate(`/bible?view=${v}`, {
+      replace: false,
+      state: { chayBibleView: true },
+    });
   };
 
   // Navigation depuis un résultat de recherche vers le lecteur.
   const openVerse = (r) => {
     const readerVersion = r.translation === "malagasy" ? "MG1865" : "fra_lsg";
-    setSearchParams({
-      view: "reader",
-      translation: readerVersion,
-      ref: `${r.book} ${r.chapter}`,
-      verse: String(r.verse),
-    });
+    setSearchParams(
+      {
+        view: "reader",
+        translation: readerVersion,
+        ref: `${r.book} ${r.chapter}`,
+        verse: String(r.verse),
+      },
+      { state: { chayBibleVerse: true } }
+    );
   };
 
   if (view === "reader") return <BibleReader onBack={goBack} />;

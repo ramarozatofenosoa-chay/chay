@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 import { base44 } from "@/api/base44Client";
 import { usePresenceHeartbeat, useProfiles } from "@/hooks/usePresence";
 import { usePreferences } from "@/lib/PreferencesContext";
 import { setActiveChat } from "@/lib/activeChat";
+import { hasNavigationOrigin } from "@/lib/backNavigation";
 import { MessageCircle } from "lucide-react";
 import ConversationList from "@/components/messages/ConversationList";
 import ConversationView from "@/components/messages/ConversationView";
@@ -106,10 +107,11 @@ export default function Messages() {
     }
   }, [activeConv?.id, user?.id, profiles]);
 
-  const openConversation = (id) => setSearchParams({ c: id });
+  const openConversation = (id) =>
+    setSearchParams({ c: id }, { state: { chayConversation: true } });
   const goBack = () => {
-    if (window.history.length > 1) navigate(-1);
-    else setSearchParams({});
+    if (hasNavigationOrigin(window.history.state, "chayConversation")) navigate(-1);
+    else setSearchParams({}, { replace: true });
   };
 
   return (

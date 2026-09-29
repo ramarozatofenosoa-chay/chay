@@ -272,7 +272,12 @@ export default function EntityCrud({
   const itemDrag = useDragSort(items, handleReorderItems);
 
   /* ── Attach / detach playlist ── */
-  const attachToPlaylist = async (createdItem, playlistId, submittedData) => {
+  const attachToPlaylist = async (
+    createdItem,
+    playlistId,
+    submittedData,
+    isRetry = false
+  ) => {
     if (!playlistId) return;
     const record = buildPlaylistTrackRecord({
       entity,
@@ -287,7 +292,8 @@ export default function EntityCrud({
     await savePlaylistTrack(
       base44.entities.PlaylistTrack,
       record,
-      entity === "Video" ? "video_url" : "audio_url"
+      entity === "Video" ? "video_url" : "audio_url",
+      { checkExisting: isRetry }
     );
   };
 
@@ -327,9 +333,23 @@ export default function EntityCrud({
         submittedPlaylistId
       );
 
+      if (showPlaylist && !editing && !playlist_id) {
+        toast({
+          title: "Playlist obligatoire",
+          description: "Choisissez la playlist avant d'enregistrer le contenu.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       if (pendingPlaylistAttachmentRef.current) {
         const pending = pendingPlaylistAttachmentRef.current;
-        await attachToPlaylist(pending.item, pending.playlistId, pending.data);
+        await attachToPlaylist(
+          pending.item,
+          pending.playlistId,
+          pending.data,
+          true
+        );
         pendingPlaylistAttachmentRef.current = null;
         setRetryingPlaylistAttachment(false);
         if (!editing) notifyPlaylistUpload(pending.item, pending.playlistId);

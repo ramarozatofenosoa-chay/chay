@@ -3,7 +3,7 @@ import { Loader2, Upload, CheckCircle2, AlertCircle, RefreshCw } from "lucide-re
 import { base44 } from "@/api/base44Client";
 import { uploadToBase44 } from "@/lib/upload";
 
-function PlaylistSelect({ value, onChange, cls }) {
+function PlaylistSelect({ field, value, onChange, cls }) {
   const [playlists, setPlaylists] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -23,8 +23,15 @@ function PlaylistSelect({ value, onChange, cls }) {
   }
 
   return (
-    <select value={value || ""} onChange={(e) => onChange(e.target.value || null)} className={cls}>
-      <option value="">— Aucune playlist —</option>
+    <select
+      value={value || ""}
+      onChange={(e) => onChange(e.target.value || null)}
+      className={cls}
+      required={field.required}
+    >
+      <option value="" disabled={field.required}>
+        {field.required ? "— Choisir une playlist —" : "— Aucune playlist —"}
+      </option>
       {playlists.map((p) => (
         <option key={p.id} value={p.id}>
           {p.name}
@@ -173,8 +180,11 @@ export default function FieldInput({ field, value, onChange, onUploadingChange }
           value={value || ""}
           onChange={(e) => onChange(e.target.value)}
           className={cls}
+          required={field.required}
         >
-          {!field.required && <option value="">—</option>}
+          <option value="" disabled={field.required}>
+            {field.required ? "— Choisir une option —" : "—"}
+          </option>
           {field.options?.map((o) => (
             <option key={o.value} value={o.value}>
               {o.label}
@@ -183,7 +193,14 @@ export default function FieldInput({ field, value, onChange, onUploadingChange }
         </select>
       );
     case "playlist":
-      return <PlaylistSelect value={value} onChange={onChange} cls={cls} />;
+      return (
+        <PlaylistSelect
+          field={field}
+          value={value}
+          onChange={onChange}
+          cls={cls}
+        />
+      );
     case "file":
       return (
         <FileUploadField
