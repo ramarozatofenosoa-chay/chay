@@ -5,7 +5,6 @@ import { ImagePlus, Send, Loader2, X, Users } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import { useToast } from "@/components/ui/use-toast";
 import PostCard from "@/components/community/PostCard";
-import PullToRefresh from "@/components/PullToRefresh";
 
 export default function Community() {
   const { toast } = useToast();
@@ -25,7 +24,9 @@ export default function Community() {
       .list("-created_date", 50)
       .catch(() => []);
     setPosts(Array.isArray(p) ? p : []);
+    setLoading(false);
   };
+
 
   const loadMembers = async () => {
     setMembersLoading(true);
@@ -82,16 +83,11 @@ export default function Community() {
       if (imageFile) {
         image_url = await uploadToBase44(imageFile);
       }
-      const name =
-        user?.full_name ||
-        [user?.first_name, user?.last_name].filter(Boolean).join(" ") ||
-        "Membre";
-      await base44.entities.CommunityPost.create({
-        text: draft.trim(),
-        image_url,
-        author_name: name,
-        likes: 0,
-      });
+    await base44.functions.invoke("createCommunityPost", {
+text: draft.trim(),
+image_url,
+});
+
       setDraft("");
       setImageFile(null);
       setImagePreview(null);

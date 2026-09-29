@@ -10,7 +10,7 @@ import { useRadio } from "@/lib/RadioContext";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/lib/AuthContext";
 import { filterVisible } from "@/lib/mediaConstants";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 export default function Media() {
   const { toast } = useToast();

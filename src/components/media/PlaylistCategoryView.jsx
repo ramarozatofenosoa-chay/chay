@@ -2,7 +2,6 @@ import React, { useState, useRef, useCallback } from "react";
 import {
   ChevronLeft,
   Plus,
-  Trash2,
   Music,
   Film,
   Play,
@@ -134,13 +133,46 @@ export default function PlaylistCategoryView({
 
   const handleReorderCats = useCallback(async (next) => {
     setLocalCats(next);
-    await Promise.all(next.map((p, i) => base44.entities.Playlist.update(p.id, { order: i }).catch(() => {})));
-  }, []);
+    // Ne plus avaler l'erreur : Base44 rejette silencieusement un champ absent
+    // de l'entité déployée, et l'ordre réapparaissait à sa place au rechargement.
+    const results = await Promise.all(
+      next.map((p, i) =>
+        base44.entities.Playlist.update(p.id, { order: i }).then(
+          () => true,
+          () => false
+        )
+      )
+    );
+    if (results.includes(false)) {
+      setLocalCats(null);
+      toast({
+        title: "Réorganisation non enregistrée",
+        description:
+          "Le champ « order » semble absent de l'entité Playlist côté Base44. Ajoutez-le (type nombre) dans Entities → Playlist, puis Publish.",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
 
   const handleReorderTracks = useCallback(async (next) => {
     setLocalTracks(next);
-    await Promise.all(next.map((t, i) => base44.entities.PlaylistTrack.update(t.id, { order: i }).catch(() => {})));
-  }, []);
+    const results = await Promise.all(
+      next.map((t, i) =>
+        base44.entities.PlaylistTrack.update(t.id, { order: i }).then(
+          () => true,
+          () => false
+        )
+      )
+    );
+    if (results.includes(false)) {
+      setLocalTracks(null);
+      toast({
+        title: "Réorganisation non enregistrée",
+        description: "Vérifiez le champ « order » de l'entité PlaylistTrack.",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
 
   const cats = (localCats ?? playlists
     .filter((p) => (p.category || "music") === category)

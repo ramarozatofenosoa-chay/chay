@@ -30,7 +30,6 @@ import {
   Loader2,
   Send,
   Newspaper,
-  ShieldCheck,
 } from "lucide-react";
 import { GALLERY_SECTIONS } from "@/lib/mediaConstants";
 

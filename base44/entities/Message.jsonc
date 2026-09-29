@@ -52,20 +52,9 @@
       ]
     },
     "create": {
-      "$or": [
-        {
-          "data.participant_ids": {
-            "$in": [
-              "{{user.id}}"
-            ]
-          }
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      ]
+      "user_condition": {
+        "role": "admin"
+      }
     },
     "update": {
       "$or": [

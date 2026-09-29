@@ -68,6 +68,7 @@ export default function MediaCategory({
   const [ytSection, setYtSection] = useState(null);
   const [gallerySection, setGallerySection] = useState(null);
   const [galleryIdx, setGalleryIdx] = useState(null);
+  const [orphanIdx, setOrphanIdx] = useState(null);
 
   // Retour imbriqué : depuis une section (Église/Mindset, Culte/Louange),
   // le retour va d'abord à la liste des sections, puis quitte la catégorie —
@@ -89,6 +90,7 @@ export default function MediaCategory({
   // ordonnée par ouverture, donc le retour ferme d'abord la photo, puis la
   // section — sans garde.
   useBackHandler(Boolean(gallerySection), backFromSection);
+  useBackHandler(Boolean(orphanIdx), () => setOrphanIdx(null));
   useBackHandler(Boolean(ytSection), () => setYtSection(null));
 
   const handleBack = () => {
@@ -102,9 +104,12 @@ export default function MediaCategory({
 
   // Une photo n'apparaît que dans SA section : celles dont le champ
   // `category` est vide (les photos publiées avant l'ajout des sections)
-  // ne sont donc visibles nulle part.
+  // étaient donc visibles nulle part — on les regroupe sous « Non classées ».
   const sectionImages = gallery.filter(
     (g) => normalizeSection(g.category) === gallerySection
+  );
+  const uncategorizedImages = gallery.filter(
+    (g) => !normalizeSection(g.category)
   );
 
   return (
@@ -154,7 +159,7 @@ export default function MediaCategory({
       {cat === "youtube" && (
         <div>
           {!ytSection ? (
-            <div className="grid grid-cols-4 gap-4 md:gap-6 max-w-md">
+            <div className="grid grid-cols-3 gap-4 md:gap-6 max-w-sm">
               {YOUTUBE_SECTIONS.map((s) => (
                 <SectionTile key={s.id} item={s} onClick={() => setYtSection(s.id)} />
               ))}
@@ -189,18 +194,56 @@ export default function MediaCategory({
       {cat === "gallery" && (
         <div>
           {!gallerySection ? (
-            <div className="grid grid-cols-4 gap-4 md:gap-6 max-w-md">
-              {GALLERY_SECTIONS.map((s) => (
-                <SectionTile
-                  key={s.id}
-                  item={s}
-                  onClick={() => {
-                    setGallerySection(s.id);
-                    setGalleryIdx(null);
-                  }}
-                />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-2 gap-4 md:gap-6 max-w-[13rem]">
+                {GALLERY_SECTIONS.map((s) => (
+                  <SectionTile
+                    key={s.id}
+                    item={s}
+                    onClick={() => {
+                      setGallerySection(s.id);
+                      setGalleryIdx(null);
+                    }}
+                  />
+                ))}
+              </div>
+
+              {/* Photos publiées avant l'existence des sections : sans ce
+                  bloc, elles n'étaient visibles dans AUCUNE section. */}
+              {uncategorizedImages.length > 0 && (
+                <div className="mt-8">
+                  <div className="flex items-baseline justify-between gap-3 mb-3">
+                    <h3 className="font-display font-extrabold text-lg">
+                      Non classées
+                    </h3>
+                    <span className="text-xs text-foreground/50">
+                      {uncategorizedImages.length} photo
+                      {uncategorizedImages.length > 1 ? "s" : ""}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {uncategorizedImages.map((g, i) => (
+                      <button
+                        key={g.id}
+                        onClick={() => setOrphanIdx(i)}
+                        className="block aspect-square overflow-hidden bg-muted group rounded-xl"
+                      >
+                        <Image
+                          src={g.image_url}
+                          fittingType="fill"
+                          className="w-full h-full object-cover md:group-hover:scale-105 transition-transform"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                  <GalleryViewer
+                    items={uncategorizedImages}
+                    index={orphanIdx}
+                    onClose={() => setOrphanIdx(null)}
+                  />
+                </div>
+              )}
+            </>
           ) : (
             <>
               <button

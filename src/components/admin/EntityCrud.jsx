@@ -227,12 +227,26 @@ export default function EntityCrud({
   /* ── Sauvegarde ordre playlists ── */
   const handleReorderPlaylists = useCallback(async (next) => {
     setPlaylists(next);
-    await Promise.all(
+    // Ne plus avaler l'échec : Base44 rejette silencieusement l'écriture d'un
+    // champ absent de l'entité déployée, et l'ordre réapparaissait à sa place.
+    const results = await Promise.all(
       next.map((p, i) =>
-        base44.entities.Playlist.update(p.id, { order: i }).catch(() => {})
+        base44.entities.Playlist.update(p.id, { order: i }).then(
+          () => true,
+          () => false
+        )
       )
     );
-  }, []);
+    if (results.includes(false)) {
+      await loadPlaylists();
+      toast({
+        title: "Réorganisation non enregistrée",
+        description:
+          "Le champ « order » semble absent de l'entité Playlist côté Base44. Ajoutez-le (type nombre) dans Entities → Playlist, puis Publish.",
+        variant: "destructive",
+      });
+    }
+  }, [loadPlaylists, toast]);
 
   /* ── Sauvegarde ordre musiques ── */
   const handleReorderItems = useCallback(async (next) => {
@@ -302,13 +316,11 @@ export default function EntityCrud({
       let createdItem;
       if (editing) {
         createdItem = await base44.entities[entity].update(editing.id, rest);
-        toast({ title: "Mis à jour" });
         await detachFromPlaylists(editing.id);
         await attachToPlaylist(createdItem, playlist_id);
       } else {
         rest.created_by_admin = true;
         createdItem = await base44.entities[entity].create(rest);
-        toast({ title: "Créé" });
         await attachToPlaylist(createdItem, playlist_id);
         // Notification automatique après upload admin
         const playlistName = playlist_id
@@ -326,6 +338,43 @@ export default function EntityCrud({
           });
         }
       }
+
+      // Base44 accepts a write and silently drops fields the deployed entity
+      // does not declare — the upload succeeds, the row saves, and the image
+      // simply never appears. Detect that and repair it instead of reporting
+      // a success the user can see is false.
+      const dropped = Object.keys(rest).filter(
+        (k) =>
+          typeof rest[k] === "string" &&
+          /^https?:\/\//i.test(rest[k]) &&
+          createdItem &&
+          createdItem[k] !== rest[k]
+      );
+      if (dropped.length && createdItem?.id) {
+        try {
+          const patch = Object.fromEntries(dropped.map((k) => [k, rest[k]]));
+          const repaired = await base44.entities[entity].update(createdItem.id, patch);
+          if (repaired) createdItem = repaired;
+        } catch {
+          /* fall through to the warning below */
+        }
+        const stillDropped = dropped.filter(
+          (k) => !createdItem || createdItem[k] !== rest[k]
+        );
+        if (stillDropped.length) {
+          toast({
+            title: "Enregistré, mais un champ image est manquant",
+            description: `Le champ « ${stillDropped.join(", ")} » semble absent de l'entité ${entity} côté Base44. Ajoutez-le (type texte) dans Entities → ${entity}, puis Publish.`,
+            variant: "destructive",
+          });
+          setOpen(false);
+          await load();
+          await loadPlaylists();
+          return;
+        }
+      }
+
+      toast({ title: editing ? "Mis à jour" : "Créé" });
       setOpen(false);
       await load();
       await loadPlaylists();

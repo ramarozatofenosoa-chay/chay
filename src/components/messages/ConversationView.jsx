@@ -188,15 +188,12 @@ export default function ConversationView({
     isTypingSent.current = false;
     setTypingState(false);
     try {
-      await base44.entities.Message.create({
-        conversation_id: conversation.id,
-        participant_ids: conversation.participant_ids,
-        sender_id: user.id,
-        sender_name: myName,
-        text,
-        read_by: [user.id],
-        reply_to_id: replyTo?.id || null,
-      });
+     await base44.functions.invoke("createMessage", {
+conversation_id: conversation.id,
+text,
+reply_to_id: replyTo?.id || null,
+});
+
       await base44.entities.Conversation.update(conversation.id, {
         last_message_text: text,
         last_message_at: new Date().toISOString(),
@@ -216,15 +213,12 @@ export default function ConversationView({
     setSending(true);
     try {
       const uploadedUrl = await uploadToBase44(file);
-      await base44.entities.Message.create({
-        conversation_id: conversation.id,
-        participant_ids: conversation.participant_ids,
-        sender_id: user.id,
-        sender_name: myName,
-        text: "",
-        image_url: uploadedUrl,
-        read_by: [user.id],
-      });
+   await base44.functions.invoke("createMessage", {
+conversation_id: conversation.id,
+text: "",
+image_url: uploadedUrl,
+});
+
       await base44.entities.Conversation.update(conversation.id, {
         last_message_text: "📷 Photo",
         last_message_at: new Date().toISOString(),

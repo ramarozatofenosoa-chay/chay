@@ -61,6 +61,17 @@ export default async function(req) {
     }
 
     if (action === 'like') {
+      // Preuve d'une vraie interaction : un like (PostReaction) doit exister
+      // pour (post_id, acteur) avant de notifier l'auteur — évite qu'un
+      // utilisateur déclenche des notifications « X a aimé votre publication »
+      // sans avoir réellement liké le post.
+      const reaction = await svc.entities.PostReaction.filter({
+        post_id: postId,
+        user_id: actorId,
+      }).catch(() => []);
+      if (!Array.isArray(reaction) || reaction.length === 0) {
+        return Response.json({ error: 'like not found' }, { status: 404 });
+      }
       // Regroupe les likes rapprochés non lus sur le même post.
       const existing = await svc.entities.UserNotification.filter({
         user_id: authorId,
