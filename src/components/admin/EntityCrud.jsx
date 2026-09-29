@@ -13,6 +13,7 @@ import { Plus, Pencil, Trash2, Loader2, Music, Lock, Unlock, GripVertical } from
 import { Image } from "@/components/ui/image";
 import EntityForm from "@/components/admin/EntityForm";
 import CreatePlaylistModal from "@/components/media/CreatePlaylistModal";
+import { buildPlaylistTrackRecord } from "@/lib/playlistAttachment";
 
 const PLAYLIST_CATEGORY = {
   MusicTrack: "music",
@@ -262,39 +263,40 @@ export default function EntityCrud({
   const itemDrag = useDragSort(items, handleReorderItems);
 
   /* ── Attach / detach playlist ── */
-  const attachToPlaylist = async (createdItem, playlistId) => {
-    if (!createdItem?.id || !playlistId) return;
-    try {
-      const existing = await base44.entities.PlaylistTrack.list(
-        `-playlist_id eq "${playlistId}"`, 200
-      ).catch(() => []);
-      const already = (Array.isArray(existing) ? existing : []).find(
-        (pt) => pt.track_id === createdItem.id && pt.playlist_id === playlistId
+  const attachToPlaylist = async (createdItem, playlistId, submittedData) => {
+    if (!playlistId) return;
+    const record = buildPlaylistTrackRecord({
+      entity,
+      playlistId,
+      item: createdItem,
+      submittedData,
+      coverField: playlistField,
+    });
+    const existing = await base44.entities.PlaylistTrack.filter(
+      { playlist_id: playlistId, track_id: createdItem.id },
+      "-created_date",
+      1
+    );
+    const attached = Array.isArray(existing) && existing[0]?.id
+      ? await base44.entities.PlaylistTrack.update(existing[0].id, record)
+      : await base44.entities.PlaylistTrack.create(record);
+    if (!attached?.id) {
+      throw new Error("Base44 n'a pas confirmé l'ajout du contenu à la playlist.");
+    }
+
+    const requiredFields = ["playlist_id", "track_id", "title", entity === "Video" ? "video_url" : "audio_url"];
+    const dropped = requiredFields.filter((field) => attached[field] !== record[field]);
+    if (dropped.length) {
+      const repaired = await base44.entities.PlaylistTrack.update(
+        attached.id,
+        Object.fromEntries(dropped.map((field) => [field, record[field]]))
       );
-      if (already) {
-        if (editing)
-          await base44.entities.PlaylistTrack.update(already.id, {
-            title: createdItem.title,
-            artist: createdItem.artist || createdItem.speaker || null,
-            audio_url: createdItem.audio_url || null,
-            video_url: createdItem.video_url || null,
-            cover_url: createdItem[playlistField] || createdItem.cover_url || null,
-          });
-        return;
+      const stillDropped = dropped.filter((field) => repaired?.[field] !== record[field]);
+      if (stillDropped.length) {
+        throw new Error(
+          `Base44 n'a pas enregistré le lien playlist (${stillDropped.join(", ")}). Vérifiez les champs de l'entité PlaylistTrack, puis publiez.`
+        );
       }
-      await base44.entities.PlaylistTrack.create({
-        playlist_id: playlistId,
-        track_id: createdItem.id,
-        title: createdItem.title,
-        artist: createdItem.artist || createdItem.speaker || null,
-        audio_url: createdItem.audio_url || null,
-        video_url: createdItem.video_url || null,
-        cover_url: createdItem[playlistField] || createdItem.cover_url || null,
-        kind: entity === "Video" ? "video" : "audio",
-        order: Date.now(),
-      });
-    } catch {
-      toast({ title: "Attention", description: "Contenu enregistré mais n'a pas pu être ajouté à la playlist." });
     }
   };
 
@@ -317,27 +319,9 @@ export default function EntityCrud({
       if (editing) {
         createdItem = await base44.entities[entity].update(editing.id, rest);
         await detachFromPlaylists(editing.id);
-        await attachToPlaylist(createdItem, playlist_id);
       } else {
         rest.created_by_admin = true;
         createdItem = await base44.entities[entity].create(rest);
-        await attachToPlaylist(createdItem, playlist_id);
-        // Notification automatique après upload admin
-        const playlistName = playlist_id
-          ? playlists.find((p) => p.id === playlist_id)?.name
-          : null;
-        const kindMap = { MusicTrack: "music", Sermon: "sermon", Video: "film" };
-        const kind = kindMap[entity];
-        if (kind) {
-          notifyAdminUpload({
-            kind,
-            title: createdItem.title,
-            artist: createdItem.artist,
-            playlist: playlistName,
-            playlistId: playlist_id,
-            contentId: createdItem.id,
-          });
-        }
       }
 
       // Base44 accepts a write and silently drops fields the deployed entity
@@ -375,7 +359,43 @@ export default function EntityCrud({
         }
       }
 
-      toast({ title: editing ? "Mis à jour" : "Créé" });
+      let playlistAttached = true;
+      if (playlist_id) {
+        try {
+          await attachToPlaylist(createdItem, playlist_id, rest);
+        } catch (err) {
+          playlistAttached = false;
+          toast({
+            title: "Contenu enregistré, ajout à la playlist impossible",
+            description: err?.message || String(err),
+            variant: "destructive",
+          });
+        }
+      }
+
+      if (!editing && playlistAttached) {
+        const playlistName = playlist_id
+          ? playlists.find((p) => p.id === playlist_id)?.name
+          : null;
+        const kindMap = { MusicTrack: "music", Sermon: "sermon", Video: "film" };
+        const kind = kindMap[entity];
+        if (kind) {
+          notifyAdminUpload({
+            kind,
+            title: createdItem.title,
+            artist: createdItem.artist,
+            playlist: playlistName,
+            playlistId: playlist_id,
+            contentId: createdItem.id,
+          });
+        }
+      }
+
+      if (playlistAttached) {
+        toast({
+          title: editing ? "Mis à jour" : playlist_id ? "Créé et ajouté à la playlist" : "Créé",
+        });
+      }
       setOpen(false);
       await load();
       await loadPlaylists();
