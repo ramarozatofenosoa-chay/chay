@@ -4,7 +4,6 @@ import { ImagePlus, Send, Loader2, X, Users } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import { useToast } from "@/components/ui/use-toast";
 import PostCard from "@/components/community/PostCard";
-import PullToRefresh from "@/components/PullToRefresh";
 
 export default function Community() {
   const { toast } = useToast();

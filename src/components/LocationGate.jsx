@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { MapPin, Loader2, Navigation, X } from "lucide-react";
+import { MapPin, Loader2, X } from "lucide-react";
 
 const STORAGE_KEY = "chay_location_status";
 

@@ -2,7 +2,6 @@ import React, { useState, useRef, useCallback } from "react";
 import {
   ChevronLeft,
   Plus,
-  Trash2,
   Music,
   Film,
   Play,
