@@ -76,14 +76,52 @@ export default function CreatePlaylistModal({
   const create = async () => {
     if (!name.trim()) return;
     setSaving(true);
+    // L'image doit être une URL publique http(s). Anything else (data: URL,
+    // blob:, undefined) is what the Base44 entity will silently drop.
+    const validCover =
+      typeof coverUrl === "string" && /^https?:\/\//i.test(coverUrl) ? coverUrl : null;
     try {
-      const newPlaylist = await base44.entities.Playlist.create({
+      let newPlaylist = await base44.entities.Playlist.create({
         name: name.trim(),
         description: description.trim() || null,
-        cover_url: coverUrl || null,
+        cover_url: validCover,
         category,
       });
-      toast({ title: "Playlist créée" });
+
+      // Re-read: Base44 can accept a create() and drop an unknown field
+      // without raising. If cover_url came back empty, set it explicitly.
+      if (validCover && newPlaylist?.id && !newPlaylist.cover_url) {
+        try {
+          newPlaylist =
+            (await base44.entities.Playlist.update(newPlaylist.id, {
+              cover_url: validCover,
+            })) || newPlaylist;
+        } catch {
+          /* handled by the check below */
+        }
+      }
+
+      if (coverUrl && !validCover) {
+        toast({
+          title: "Image non valide",
+          description:
+            "L'image n'a pas pu être enregistrée — réessayez ou utilisez l'icône par défaut.",
+          variant: "destructive",
+        });
+      } else if (validCover && !newPlaylist?.cover_url) {
+        // The most likely cause: the field does not exist on the DEPLOYED
+        // entity. The local base44/entities/Playlist.jsonc is only a schema
+        // file — it does not add the field to the live app.
+        toast({
+          title: "Playlist créée, mais sans icône",
+          description:
+            "Le champ « cover_url » semble absent de l'entité Playlist côté Base44. Ajoutez-le (type texte) dans Entities → Playlist, puis Publish.",
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Playlist créée" });
+      }
+
       onOpenChange(false);
       onSaved?.(newPlaylist);
     } catch (e) {
