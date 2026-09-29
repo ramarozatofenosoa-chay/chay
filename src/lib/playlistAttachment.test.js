@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildPlaylistTrackRecord, savePlaylistTrack } from "./playlistAttachment.js";
+import {
+  buildPlaylistTrackRecord,
+  resolveSelectedPlaylistId,
+  savePlaylistTrack,
+} from "./playlistAttachment.js";
 
 test("builds a playlist attachment from a saved audio item", () => {
   const record = buildPlaylistTrackRecord({
@@ -69,12 +73,22 @@ test("requires both the saved item and selected playlist", () => {
   );
 });
 
+test("uses the playlist selected in the form as the authoritative submitted value", () => {
+  assert.equal(resolveSelectedPlaylistId("selected-playlist", ""), "selected-playlist");
+  assert.equal(resolveSelectedPlaylistId(null, "submitted-playlist"), "submitted-playlist");
+  assert.equal(resolveSelectedPlaylistId("", "old-playlist"), "");
+});
+
 test("saves the selected playlist relation directly without a lookup", async () => {
   const calls = [];
   const entity = {
     async create(record) {
       calls.push(["create", record]);
       return { ...record, id: "playlist-track-1" };
+    },
+    async get(id) {
+      assert.equal(id, "playlist-track-1");
+      return { ...record, id };
     },
     async update() {
       calls.push(["update"]);
@@ -102,9 +116,15 @@ test("repairs fields omitted from create response and confirms persistence", asy
     title: "Video",
     video_url: "https://cdn.example/video.mp4",
   };
+  let reads = 0;
   const entity = {
     async create() {
       return { id: updatedRecord.id };
+    },
+    async get(id) {
+      assert.equal(id, updatedRecord.id);
+      reads += 1;
+      return reads === 1 ? { id } : updatedRecord;
     },
     async update(id, fields) {
       assert.equal(id, updatedRecord.id);

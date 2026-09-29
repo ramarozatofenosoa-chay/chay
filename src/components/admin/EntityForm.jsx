@@ -3,7 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import FieldInput from "@/components/admin/FieldInput";
 
-export default function EntityForm({ fields, initial, onSubmit, onCancel, saving }) {
+export default function EntityForm({
+  fields,
+  initial,
+  onSubmit,
+  onCancel,
+  saving,
+  onPlaylistChange,
+  retryingPlaylistAttachment,
+}) {
   const [data, setData] = useState(() => {
     const d = {};
     fields.forEach((f) => {
@@ -11,15 +19,22 @@ export default function EntityForm({ fields, initial, onSubmit, onCancel, saving
     });
     return d;
   });
+  // The save may resume from the upload-complete effect; always submit the
+  // latest values, including playlist selection made while the file uploads.
+  const dataRef = React.useRef(data);
   const [uploading, setUploading] = useState(false);
   // L'utilisateur a cliqué « Enregistrer » pendant un envoi : on enregistre dès qu'il est terminé.
   const [pending, setPending] = useState(false);
   const [missing, setMissing] = useState("");
 
-  const set = (name) => (v) => setData((d) => ({ ...d, [name]: v }));
+  const set = (name) => (v) => {
+    dataRef.current = { ...dataRef.current, [name]: v };
+    setData(dataRef.current);
+    if (name === "playlist_id") onPlaylistChange?.(v || "");
+  };
 
-  const missingFile = () =>
-    fields.find((f) => f.type === "file" && f.required && !data[f.name]);
+  const missingFile = (values) =>
+    fields.find((f) => f.type === "file" && f.required && !values[f.name]);
 
   const submit = (e) => {
     e.preventDefault();
@@ -28,23 +43,25 @@ export default function EntityForm({ fields, initial, onSubmit, onCancel, saving
       setPending(true);
       return;
     }
-    const m = missingFile();
+    const currentData = dataRef.current;
+    const m = missingFile(currentData);
     if (m) {
       setMissing(`Le champ « ${m.label} » est obligatoire.`);
       return;
     }
-    onSubmit(data);
+    onSubmit(currentData);
   };
 
   useEffect(() => {
     if (!pending || uploading) return;
     setPending(false);
-    const m = missingFile();
+    const currentData = dataRef.current;
+    const m = missingFile(currentData);
     if (m) {
       setMissing(`L'envoi de « ${m.label} » a échoué. Réessayez avant d'enregistrer.`);
       return;
     }
-    onSubmit(data);
+    onSubmit(currentData);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pending, uploading]);
 
@@ -71,6 +88,8 @@ export default function EntityForm({ fields, initial, onSubmit, onCancel, saving
             <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Enregistrement dès que le fichier est envoyé…</>
           ) : saving ? (
             <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Enregistrement…</>
+          ) : retryingPlaylistAttachment ? (
+            "Réessayer l'ajout à la playlist"
           ) : (
             "Enregistrer"
           )}
