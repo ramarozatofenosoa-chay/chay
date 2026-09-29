@@ -53,6 +53,16 @@ base44 dashboard open
 
 This repo syncs to Base44 through git, so publish from the dashboard rather than `base44 deploy` — a CLI deploy ships your local tree directly, bypassing the sync, and the deployed state silently diverges from the repo.
 
+## Android APK Now Playing controls
+
+The Android APK uses a native media session and foreground service to expose the
+active player's artwork, metadata, progress, and playback controls in Android's
+notification shade. Changes to the Android native project require rebuilding
+and reinstalling the APK; publishing the web app in the Base44 dashboard alone
+does not update an already-installed APK. Android controls notification
+visibility and output routing, so its notification permission and device
+settings can affect what is displayed.
+
 ## Docs & Support
 
 GitHub integration: [https://docs.base44.com/developers/app-code/local-development/github](https://docs.base44.com/developers/app-code/local-development/github)
