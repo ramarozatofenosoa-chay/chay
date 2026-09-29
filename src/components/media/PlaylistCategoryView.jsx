@@ -2,7 +2,6 @@ import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   ChevronLeft,
-  Plus,
   Film,
   Play,
   Pause,
@@ -131,8 +130,8 @@ export default function PlaylistCategoryView({
   const trackNodes = useRef(new Map());
   const targetTrackId = searchParams.get("track");
   const targetPlaylistId = searchParams.get("playlist");
-  // Création de playlist directement depuis la Médiathèque (admin).
-  const [showCreate, setShowCreate] = useState(false);
+  // The media library can edit existing playlists; creation stays in Admin.
+  const [showPlaylistEditor, setShowPlaylistEditor] = useState(false);
 
   const isVideo = kind === "video";
 
@@ -398,17 +397,6 @@ export default function PlaylistCategoryView({
       )}
       <div className="flex items-center justify-between mb-5 gap-3">
         <p className="text-sm text-foreground/55">Les contenus sont organisés en playlists.</p>
-        {isAdmin && (
-          <button
-            onClick={() => {
-              setPlaylistToEdit(null);
-              setShowCreate(true);
-            }}
-            className="inline-flex items-center gap-1.5 rounded-full bg-primary text-primary-foreground px-3.5 py-2 text-xs font-bold hover:scale-105 transition shrink-0"
-          >
-            <Plus className="h-3.5 w-3.5" /> Créer une playlist
-          </button>
-        )}
         {isAdmin && cats.length > 1 && (
           <LockToggle locked={playlistsLocked} onToggle={() => setPlaylistsLocked((v) => !v)} />
         )}
@@ -447,7 +435,7 @@ export default function PlaylistCategoryView({
                     <button
                       onClick={() => {
                         setPlaylistToEdit(p);
-                        setShowCreate(true);
+                        setShowPlaylistEditor(true);
                       }}
                       className="h-8 w-8 grid place-items-center rounded-full hover:bg-muted"
                       aria-label={`Modifier la playlist ${p.name}`}
@@ -482,7 +470,7 @@ export default function PlaylistCategoryView({
                     <button
                       onClick={() => {
                         setPlaylistToEdit(p);
-                        setShowCreate(true);
+                        setShowPlaylistEditor(true);
                       }}
                       className="absolute right-6 top-6 h-9 w-9 grid place-items-center rounded-full bg-background/90 text-foreground shadow hover:bg-background"
                       aria-label={`Modifier la playlist ${p.name}`}
@@ -499,16 +487,17 @@ export default function PlaylistCategoryView({
       ) : (
         <p className="text-foreground/50 text-sm">
           Aucune playlist pour le moment
-          {isAdmin ? ". Créez-en une pour ajouter des titres." : "."}
+          {isAdmin
+            ? ". Créez-en une depuis le panneau d'administration."
+            : "."}
         </p>
       )}
 
-      {/* Création de playlist depuis la Médiathèque : la photo choisie est
-          uploadée puis enregistrée dans cover_url → la tuile affiche l'image. */}
+      {/* Playlist editing stays available here; creation is only in Admin. */}
       <CreatePlaylistModal
-        open={showCreate}
+        open={showPlaylistEditor}
         onOpenChange={(nextOpen) => {
-          setShowCreate(nextOpen);
+          setShowPlaylistEditor(nextOpen);
           if (!nextOpen) setPlaylistToEdit(null);
         }}
         category={category}
