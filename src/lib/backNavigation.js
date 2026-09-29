@@ -19,3 +19,16 @@ export function hasInAppHistory(state) {
 export function hasNavigationOrigin(state, originKey) {
   return state?.usr?.[originKey] === true;
 }
+
+export function getBackFallback(pathname, search = "") {
+  const params = new URLSearchParams(search);
+  if (
+    (pathname === "/media" && params.has("cat")) ||
+    (pathname === "/bible" && (params.has("view") || params.has("ref"))) ||
+    (pathname === "/messages" && params.has("c")) ||
+    (pathname === "/games" && params.has("game"))
+  ) {
+    return pathname;
+  }
+  return "/";
+}
