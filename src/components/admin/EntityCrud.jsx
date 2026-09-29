@@ -9,10 +9,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Loader2, Music, Lock, Unlock, GripVertical } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Lock, Unlock, GripVertical } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import EntityForm from "@/components/admin/EntityForm";
 import CreatePlaylistModal from "@/components/media/CreatePlaylistModal";
+import PlaylistCover from "@/components/media/PlaylistCover";
 import {
   buildPlaylistTrackRecord,
   resolveSelectedPlaylistId,
@@ -184,6 +185,7 @@ export default function EntityCrud({
   const [saving, setSaving] = useState(false);
   const [playlists, setPlaylists] = useState([]);
   const [showCreatePlaylist, setShowCreatePlaylist] = useState(false);
+  const [editingPlaylist, setEditingPlaylist] = useState(null);
   const [retryingPlaylistAttachment, setRetryingPlaylistAttachment] = useState(false);
   const [formKey, setFormKey] = useState("new");
   const pendingSelectRef = useRef(null);
@@ -476,7 +478,10 @@ export default function EntityCrud({
           <div className="flex gap-2 flex-wrap justify-end">
             {showPlaylist && (
               <button
-                onClick={() => setShowCreatePlaylist(true)}
+                onClick={() => {
+                  setEditingPlaylist(null);
+                  setShowCreatePlaylist(true);
+                }}
                 className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-bold hover:bg-muted transition"
               >
                 <Plus className="h-4 w-4" /> Créer une nouvelle playlist
@@ -532,13 +537,10 @@ export default function EntityCrud({
                     </div>
                   )}
 
-                  <div className="h-10 w-10 shrink-0 overflow-hidden rounded-[10px] bg-muted ring-1 ring-border grid place-items-center brand-gradient">
-                    {p.cover_url ? (
-                      <Image src={p.cover_url} fittingType="fill" className="w-full h-full" />
-                    ) : (
-                      <Music className="h-4 w-4 text-white/90" />
-                    )}
-                  </div>
+                  <PlaylistCover
+                    playlist={p}
+                    className="h-10 w-10 shrink-0 rounded-[10px] ring-1 ring-border"
+                  />
 
                   <div className="flex-1 min-w-0">
                     <div className="font-bold text-sm truncate">{p.name}</div>
@@ -548,9 +550,21 @@ export default function EntityCrud({
                   </div>
 
                   <button
+                    onClick={() => {
+                      setEditingPlaylist(p);
+                      setShowCreatePlaylist(true);
+                    }}
+                    className="h-8 w-8 grid place-items-center rounded-full hover:bg-muted shrink-0"
+                    title="Modifier la playlist"
+                    aria-label={`Modifier la playlist ${p.name}`}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button
                     onClick={() => removePlaylist(p)}
                     className="h-8 w-8 grid place-items-center rounded-full hover:bg-muted text-destructive shrink-0"
                     title="Supprimer la playlist et ses contenus"
+                    aria-label={`Supprimer la playlist ${p.name}`}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -673,8 +687,16 @@ export default function EntityCrud({
       <CreatePlaylistModal
         open={showCreatePlaylist}
         onOpenChange={(v) => setShowCreatePlaylist(v)}
-        onSaved={(newPlaylist) => { handlePlaylistCreated(newPlaylist); }}
+        onSaved={(savedPlaylist) => {
+          if (editingPlaylist) {
+            setEditingPlaylist(null);
+            loadPlaylists();
+          } else {
+            handlePlaylistCreated(savedPlaylist);
+          }
+        }}
         category={PLAYLIST_CATEGORY[entity] || "other"}
+        playlist={editingPlaylist}
       />
     </div>
   );

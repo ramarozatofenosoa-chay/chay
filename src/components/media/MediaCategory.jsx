@@ -386,6 +386,7 @@ export default function MediaCategory({
           removeFromPlaylist={removeFromPlaylist}
           playlists={playlists}
           onDeletePlaylist={onDeletePlaylist}
+          onSaved={onSaved}
           isAdmin={isAdmin}
         />
       )}
