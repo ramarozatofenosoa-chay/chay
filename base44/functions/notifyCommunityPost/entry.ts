@@ -36,7 +36,8 @@ export default async function(req) {
     const excerpt = (post.text || '').slice(0, 80);
     const title = `${authorName} a publié dans la communauté`;
     const notifId = `community_${post.id}`;
-    const authorId = post.created_by_id;
+    const authorId = post.created_by_id || body.author_id;
+
 
     // Idempotence : si les notifications pour ce post ont déjà été créées
     // (par le workflow à la création), on sort immédiatement. Cela neutralise
