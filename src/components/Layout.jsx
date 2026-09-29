@@ -5,6 +5,7 @@ import { Home, Users, BookOpen, PlayCircle, Gamepad2, Bell, User, ChevronLeft, S
 import ThemeToggle from "@/components/ThemeToggle";
 import AnimatedOutlet from "@/components/AnimatedOutlet";
 import MiniPlayer from "@/components/MiniPlayer";
+import PullDownMediaBar from "@/components/PullDownMediaBar";
 import UniversalMediaSurface from "@/components/UniversalMediaSurface";
 import LocationGate from "@/components/LocationGate";
 import { Image } from "@/components/ui/image";
@@ -277,6 +278,7 @@ export default function Layout() {
         </div>
       </nav>
 
+      <PullDownMediaBar />
       <MiniPlayer />
       <UniversalMediaSurface />
     </div>
