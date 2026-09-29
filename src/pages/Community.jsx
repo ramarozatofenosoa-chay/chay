@@ -17,7 +17,8 @@ export default function Community() {
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState("actualites"); // "actualites" | "membres"
   const [members, setMembers] = useState([]);
-  const [membersLoading, setMembersLoading] = useState(false);
+  const [membersLoading, setMembersLoading] = useState(true);
+  const [membersError, setMembersError] = useState(false);
 
   const loadPosts = async () => {
     const p = await base44.entities.CommunityPost
@@ -30,11 +31,15 @@ export default function Community() {
 
   const loadMembers = async () => {
     setMembersLoading(true);
+    setMembersError(false);
     try {
-      const list = await base44.entities.User.list("-created_date", 100).catch(() => []);
+      const list = await base44.entities.User.list("-created_date", 100);
       setMembers(Array.isArray(list) ? list : []);
-    } catch {}
-    setMembersLoading(false);
+    } catch {
+      setMembersError(true);
+    } finally {
+      setMembersLoading(false);
+    }
   };
 
   const toggleMembre = async (targetUser, currentlyMembre) => {
@@ -58,15 +63,9 @@ export default function Community() {
     (async () => {
       const me = await base44.auth.me().catch(() => null);
       setUser(me);
-      await loadPosts();
+      await Promise.all([loadPosts(), loadMembers()]);
     })();
   }, []);
-
-  useEffect(() => {
-    if (activeTab === "membres") {
-      loadMembers();
-    }
-  }, [activeTab]);
 
   const handleImagePick = (e) => {
     const file = e.target.files?.[0];
@@ -134,7 +133,8 @@ image_url,
               : "text-foreground/60"
           }`}
         >
-          <Users className="h-4 w-4 mr-1.5" /> Membres ({members.length})
+          <Users className="h-4 w-4 mr-1.5" /> Membres (
+          {membersLoading ? "…" : membersError ? "—" : members.length})
         </button>
       </div>
 
@@ -230,6 +230,17 @@ image_url,
             <div className="flex justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
+          ) : membersError ? (
+            <p className="text-center text-foreground/50 py-12">
+              Impossible de charger les membres. Réessayez en ouvrant cet onglet.
+              <button
+                type="button"
+                onClick={loadMembers}
+                className="ml-1 text-primary underline underline-offset-2"
+              >
+                Réessayer
+              </button>
+            </p>
           ) : members.length === 0 ? (
             <p className="text-center text-foreground/50 py-12">Aucun membre trouvé.</p>
           ) : (
