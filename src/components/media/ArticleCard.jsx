@@ -8,7 +8,6 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Image } from "@/components/ui/image";
-import DOMPurify from "dompurify";
 import ReactMarkdown from "react-markdown";
 import DOMPurify from "dompurify";
 
