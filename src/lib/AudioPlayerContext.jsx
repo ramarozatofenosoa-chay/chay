@@ -1,4 +1,3 @@
-import { useMediaSessionSync } from "@/hooks/useMediaSessionSync";
 import React, { createContext, useContext, useRef, useState, useEffect, useCallback } from "react";
 import { useMediaPlayerState } from "@/hooks/useMediaPlayerState";
 import { clearMediaControl, publishMediaControl } from "@/lib/mediaControl";
@@ -125,15 +124,23 @@ export function AudioPlayerProvider({ children }) {
     }
   };
 
-  const next = useCallback(() => playAt(stateRef.current.orderIndex + 1), [playAt]);
+  const next = useCallback(() => {
+    const { order, orderIndex, loop } = stateRef.current;
+    if (orderIndex + 1 < order.length) playAt(orderIndex + 1);
+    else if (loop === "all" && order.length > 0) playAt(0);
+  }, [playAt]);
   const prev = useCallback(() => {
     const audio = audioRef.current;
-    const { currentTime, orderIndex } = stateRef.current;
+    const { currentTime, order, orderIndex, loop } = stateRef.current;
+    if (orderIndex > 0) {
+      playAt(orderIndex - 1);
+      return;
+    }
     if (audio && currentTime > 3) {
       audio.currentTime = 0;
       return;
     }
-    if (orderIndex > 0) playAt(orderIndex - 1);
+    if (loop === "all" && order.length > 0) playAt(order.length - 1);
     else if (audio) audio.currentTime = 0;
   }, [playAt]);
 
@@ -156,16 +163,6 @@ export function AudioPlayerProvider({ children }) {
     setDuration(0);
   };
 
-     // --- SYNCHRONISATION MEDIA SESSION ANDROID ---
-   useMediaSessionSync({
-     isPlaying,
-     currentTrack,
-     onPlayPause: toggle, // Passe la fonction toggle existante
-     onNext: next,        // Passe la fonction next existante
-     onPrev: prev,        // Passe la fonction prev existante
-     onStop: stop         // Passe la fonction stop existante
-   });
-  
   const toggleShuffle = useCallback(() => {
     setShuffle((s) => {
       const ns = !s;
@@ -191,8 +188,10 @@ export function AudioPlayerProvider({ children }) {
     []
   );
 
-  const hasPrevious = orderIndex > 0 || currentTime > 3;
-  const hasNext = orderIndex < order.length - 1 || loop === "all";
+  const hasPrevious = currentTrack?.hasPrevious ?? (
+    orderIndex > 0 || currentTime > 3 || (loop === "all" && order.length > 0)
+  );
+  const hasNext = currentTrack?.hasNext ?? (orderIndex < order.length - 1 || loop === "all");
 
   useEffect(() => {
     if (!currentTrack) {
@@ -219,6 +218,8 @@ export function AudioPlayerProvider({ children }) {
       queue: order.map((index) => queue[index]),
       queueIndex: orderIndex,
       toggle,
+      play: () => audioRef.current?.play().catch(() => {}),
+      pause: () => audioRef.current?.pause(),
       previous: currentTrack.previousAction || (hasPrevious ? prev : null),
       next: currentTrack.nextAction || (hasNext ? next : null),
       seek,

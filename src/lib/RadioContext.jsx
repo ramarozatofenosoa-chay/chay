@@ -72,19 +72,6 @@ export function RadioPlayerProvider({ children }) {
     }
   };
 
-  const updateMediaSession = (playing) => {
-    if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
-    try {
-      navigator.mediaSession.metadata = new window.MediaMetadata({
-        title: "Radio Chay",
-        artist: "ÉGLISE CHAY",
-        album: "En direct",
-        artwork: [{ src: RADIO_LOGO, sizes: "512x512", type: "image/png" }],
-      });
-      navigator.mediaSession.playbackState = playing ? "playing" : "paused";
-    } catch {}
-  };
-
   const stopStream = () => {
     const s = streamRef.current;
     if (!s) return;
@@ -173,7 +160,6 @@ export function RadioPlayerProvider({ children }) {
     }
     attemptsRef.current = 0;
     setRetries(0);
-    updateMediaSession(false);
   };
 
   const toggle = () => (isPlaying || isLoading || preparing ? stop() : play());
@@ -215,10 +201,6 @@ export function RadioPlayerProvider({ children }) {
   }, [state]);
 
   useEffect(() => {
-    updateMediaSession(isPlaying);
-  }, [isPlaying]);
-
-  useEffect(() => {
     if (isPlaying || isLoading || preparing) {
       mediaControlIdRef.current = publishMediaControl(
         {
@@ -236,6 +218,8 @@ export function RadioPlayerProvider({ children }) {
           queue: [],
           queueIndex: 0,
           toggle: stop,
+          play,
+          pause: stop,
           stop,
           previous: null,
           next: null,
@@ -260,14 +244,6 @@ export function RadioPlayerProvider({ children }) {
       if (el.tagName === "AUDIO" || el.tagName === "VIDEO") stop();
     };
     document.addEventListener("play", onAnyMediaPlay, true);
-
-    if ("mediaSession" in navigator) {
-      try {
-        navigator.mediaSession.setActionHandler("play", () => play());
-        navigator.mediaSession.setActionHandler("pause", () => stop());
-        navigator.mediaSession.setActionHandler("stop", () => stop());
-      } catch {}
-    }
 
     return () => {
       document.removeEventListener("play", onAnyMediaPlay, true);
