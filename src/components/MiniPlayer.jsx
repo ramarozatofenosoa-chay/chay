@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import {
   subscribeMediaControl,
-  stopActiveMediaControl,
 } from "@/lib/mediaControl";
 import { Image } from "@/components/ui/image";
 import SeekBar from "@/components/player/SeekBar";
@@ -48,12 +47,17 @@ function getMediaIcon(type) {
 export default function MiniPlayer() {
   const [control, setControl] = useState(null);
   const [audioExpanded, setAudioExpanded] = useState(false);
+  const [dismissedMediaKey, setDismissedMediaKey] = useState(null);
   const audioPlayer = useAudioPlayer();
+  const mediaKey = control ? `${String(control.id)}:${control.source || ""}` : null;
 
   useEffect(() => subscribeMediaControl(setControl), []);
-  useEffect(() => setAudioExpanded(false), [control?.id]);
+  useEffect(() => {
+    setAudioExpanded(false);
+    setDismissedMediaKey(null);
+  }, [mediaKey]);
 
-  if (!control) return null;
+  if (!control || dismissedMediaKey === mediaKey) return null;
   const Icon = getMediaIcon(control.type);
   const isRadio = control.isLive || control.type === "radio";
   const isBuffering = control.isBuffering;
@@ -150,9 +154,13 @@ export default function MiniPlayer() {
                 )}
                 <button
                   type="button"
-                  onClick={stopActiveMediaControl}
-                  aria-label="Arrêter et fermer le lecteur"
-                  title="Arrêter"
+                  onClick={() => {
+                    setAudioExpanded(false);
+                    control.minimize?.();
+                    setDismissedMediaKey(mediaKey);
+                  }}
+                  aria-label="Masquer le lecteur, continuer la lecture"
+                  title="Masquer le lecteur"
                   className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-foreground/55 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   <X className="h-4 w-4" aria-hidden="true" />

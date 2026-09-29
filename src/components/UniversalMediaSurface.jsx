@@ -143,6 +143,7 @@ export default function UniversalMediaSurface() {
     updateMediaControl(id, {
       toggle,
       stop,
+      minimize: () => setExpanded(false),
       open: () => setExpanded(true),
       seek: currentControl.type === "video" || currentControl.type === "youtube" ? seek : null,
     });
@@ -316,7 +317,7 @@ export default function UniversalMediaSurface() {
             {control.next && (
               <button type="button" onClick={control.next} aria-label="Suivant" className="grid h-12 w-12 place-items-center rounded-full hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"><SkipForward /></button>
             )}
-            <button type="button" onClick={control.stop} aria-label="Arrêter et fermer le lecteur" className="grid h-12 w-12 place-items-center rounded-full text-white/70 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"><X /></button>
+            <button type="button" onClick={() => setExpanded(false)} aria-label="Réduire le lecteur et continuer la lecture" className="grid h-12 w-12 place-items-center rounded-full text-white/70 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"><X /></button>
           </div>
         </>
       )}
