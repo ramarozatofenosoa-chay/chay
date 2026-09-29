@@ -13,7 +13,7 @@ import { Plus, Pencil, Trash2, Loader2, Music, Lock, Unlock, GripVertical } from
 import { Image } from "@/components/ui/image";
 import EntityForm from "@/components/admin/EntityForm";
 import CreatePlaylistModal from "@/components/media/CreatePlaylistModal";
-import { buildPlaylistTrackRecord } from "@/lib/playlistAttachment";
+import { buildPlaylistTrackRecord, savePlaylistTrack } from "@/lib/playlistAttachment";
 
 const PLAYLIST_CATEGORY = {
   MusicTrack: "music",
@@ -272,43 +272,27 @@ export default function EntityCrud({
       submittedData,
       coverField: playlistField,
     });
-    const existing = await base44.entities.PlaylistTrack.filter(
-      { playlist_id: playlistId, track_id: createdItem.id },
-      "-created_date",
-      1
+    // A new upload gets a new track ID, so there cannot already be a link for
+    // it. Create the playlist relation directly instead of blocking the save
+    // on an extra lookup request.
+    await savePlaylistTrack(
+      base44.entities.PlaylistTrack,
+      record,
+      entity === "Video" ? "video_url" : "audio_url"
     );
-    const attached = Array.isArray(existing) && existing[0]?.id
-      ? await base44.entities.PlaylistTrack.update(existing[0].id, record)
-      : await base44.entities.PlaylistTrack.create(record);
-    if (!attached?.id) {
-      throw new Error("Base44 n'a pas confirmé l'ajout du contenu à la playlist.");
-    }
-
-    const requiredFields = ["playlist_id", "track_id", "title", entity === "Video" ? "video_url" : "audio_url"];
-    const dropped = requiredFields.filter((field) => attached[field] !== record[field]);
-    if (dropped.length) {
-      const repaired = await base44.entities.PlaylistTrack.update(
-        attached.id,
-        Object.fromEntries(dropped.map((field) => [field, record[field]]))
-      );
-      const stillDropped = dropped.filter((field) => repaired?.[field] !== record[field]);
-      if (stillDropped.length) {
-        throw new Error(
-          `Base44 n'a pas enregistré le lien playlist (${stillDropped.join(", ")}). Vérifiez les champs de l'entité PlaylistTrack, puis publiez.`
-        );
-      }
-    }
   };
 
   const detachFromPlaylists = async (itemId) => {
-    try {
-      const pts = await base44.entities.PlaylistTrack.list("-created_date", 200);
-      const arr = Array.isArray(pts) ? pts : [];
-      await Promise.all(
-        arr.filter((pt) => pt.track_id === itemId)
-           .map((pt) => base44.entities.PlaylistTrack.delete(pt.id).catch(() => {}))
-      );
-    } catch {}
+    const tracks = await base44.entities.PlaylistTrack.filter(
+      { track_id: itemId },
+      "-created_date",
+      5000
+    );
+    await Promise.all(
+      (Array.isArray(tracks) ? tracks : []).map((track) =>
+        base44.entities.PlaylistTrack.delete(track.id)
+      )
+    );
   };
 
   const submit = async (data) => {

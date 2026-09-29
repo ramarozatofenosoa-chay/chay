@@ -26,3 +26,26 @@ export function buildPlaylistTrackRecord({
     order: Date.now(),
   };
 }
+
+export async function savePlaylistTrack(entity, record, mediaField) {
+  const created = await entity.create(record);
+  if (!created?.id) {
+    throw new Error("Base44 n'a pas confirmé l'ajout du contenu à la playlist.");
+  }
+
+  const requiredFields = ["playlist_id", "track_id", "title", mediaField];
+  const missingFields = requiredFields.filter((field) => created[field] !== record[field]);
+  if (!missingFields.length) return created;
+
+  const updated = await entity.update(
+    created.id,
+    Object.fromEntries(missingFields.map((field) => [field, record[field]]))
+  );
+  const stillMissing = missingFields.filter((field) => updated?.[field] !== record[field]);
+  if (stillMissing.length) {
+    throw new Error(
+      `Base44 n'a pas enregistré le lien playlist (${stillMissing.join(", ")}). Vérifiez les champs de l'entité PlaylistTrack, puis publiez.`
+    );
+  }
+  return updated;
+}
