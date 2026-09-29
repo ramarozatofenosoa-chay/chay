@@ -24,7 +24,9 @@ export default function Community() {
       .list("-created_date", 50)
       .catch(() => []);
     setPosts(Array.isArray(p) ? p : []);
+    setLoading(false);
   };
+
 
   const loadMembers = async () => {
     setMembersLoading(true);
