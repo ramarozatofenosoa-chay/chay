@@ -31,7 +31,8 @@
     }
   },
   "required": [
-    "name"
+    "name",
+    "cover_url"
   ],
   "rls": {
     "create": {

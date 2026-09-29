@@ -3,19 +3,18 @@ import { useSearchParams } from "react-router-dom";
 import {
   ChevronLeft,
   Plus,
-  Music,
   Film,
   Play,
   Pause,
-  Headphones,
   Star,
   Lock,
   Unlock,
   GripVertical,
+  Pencil,
 } from "lucide-react";
-import { Image } from "@/components/ui/image";
 import VideoPlayer from "@/components/player/VideoPlayer";
 import CreatePlaylistModal from "@/components/media/CreatePlaylistModal";
+import PlaylistCover from "@/components/media/PlaylistCover";
 import { base44 } from "@/api/base44Client";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -124,6 +123,7 @@ export default function PlaylistCategoryView({
   const [searchParams, setSearchParams] = useSearchParams();
   const [open, setOpen] = useState(null);
   const [targetUnavailable, setTargetUnavailable] = useState(false);
+  const [playlistToEdit, setPlaylistToEdit] = useState(null);
   const [playlistsLocked, setPlaylistsLocked] = useState(true);
   const [tracksLocked, setTracksLocked] = useState(true);
   const [localCats, setLocalCats] = useState(null);
@@ -135,7 +135,6 @@ export default function PlaylistCategoryView({
   const [showCreate, setShowCreate] = useState(false);
 
   const isVideo = kind === "video";
-  const Icon = isVideo ? Film : category === "sermons" ? Headphones : Music;
 
   const handleReorderCats = useCallback(async (next) => {
     setLocalCats(next);
@@ -401,7 +400,10 @@ export default function PlaylistCategoryView({
         <p className="text-sm text-foreground/55">Les contenus sont organisés en playlists.</p>
         {isAdmin && (
           <button
-            onClick={() => setShowCreate(true)}
+            onClick={() => {
+              setPlaylistToEdit(null);
+              setShowCreate(true);
+            }}
             className="inline-flex items-center gap-1.5 rounded-full bg-primary text-primary-foreground px-3.5 py-2 text-xs font-bold hover:scale-105 transition shrink-0"
           >
             <Plus className="h-3.5 w-3.5" /> Créer une playlist
@@ -430,13 +432,7 @@ export default function PlaylistCategoryView({
                   >
                     <GripVertical className="h-5 w-5" />
                   </div>
-                  <div className="h-12 w-12 shrink-0 rounded-xl overflow-hidden grid place-items-center brand-gradient">
-                    {p.cover_url ? (
-                      <Image src={p.cover_url} fittingType="fill" className="w-full h-full" />
-                    ) : (
-                      <Icon className="h-6 w-6 text-white/90" />
-                    )}
-                  </div>
+                  <PlaylistCover playlist={p} className="h-12 w-12 shrink-0 rounded-xl" />
                   <div className="flex-1 min-w-0">
                     <div className="font-bold text-sm truncate">{p.name}</div>
                     <div className="text-xs text-foreground/55">{count} titre(s)</div>
@@ -447,6 +443,19 @@ export default function PlaylistCategoryView({
                   >
                     Ouvrir
                   </button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => {
+                        setPlaylistToEdit(p);
+                        setShowCreate(true);
+                      }}
+                      className="h-8 w-8 grid place-items-center rounded-full hover:bg-muted"
+                      aria-label={`Modifier la playlist ${p.name}`}
+                      title="Modifier la playlist"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -457,23 +466,32 @@ export default function PlaylistCategoryView({
             {cats.map((p) => {
               const count = playlistTracks.filter((pt) => pt.playlist_id === p.id).length;
               return (
-                <button
-                  key={p.id}
-                  onClick={() => { setLocalTracks(null); setOpen(p); }}
-                  className="group rounded-[1.5rem] border border-border bg-card p-4 text-left hover:-translate-y-1 hover:shadow-lg transition-all"
-                >
-                  {p.cover_url ? (
-                    <div className="aspect-square rounded-2xl overflow-hidden mb-3">
-                      <Image src={p.cover_url} fittingType="fill" className="w-full h-full" />
-                    </div>
-                  ) : (
-                    <div className="aspect-square rounded-2xl mb-3 grid place-items-center brand-gradient">
-                      <Icon className="h-8 w-8 text-white/90" />
-                    </div>
+                <div key={p.id} className="relative">
+                  <button
+                    onClick={() => { setLocalTracks(null); setOpen(p); }}
+                    className="group w-full rounded-[1.5rem] border border-border bg-card p-4 text-left hover:-translate-y-1 hover:shadow-lg transition-all"
+                  >
+                    <PlaylistCover
+                      playlist={p}
+                      className="aspect-square rounded-2xl mb-3"
+                    />
+                    <div className="font-bold text-sm line-clamp-1">{p.name}</div>
+                    <div className="text-xs text-foreground/55">{count} titre(s)</div>
+                  </button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => {
+                        setPlaylistToEdit(p);
+                        setShowCreate(true);
+                      }}
+                      className="absolute right-6 top-6 h-9 w-9 grid place-items-center rounded-full bg-background/90 text-foreground shadow hover:bg-background"
+                      aria-label={`Modifier la playlist ${p.name}`}
+                      title="Modifier la playlist"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
                   )}
-                  <div className="font-bold text-sm line-clamp-1">{p.name}</div>
-                  <div className="text-xs text-foreground/55">{count} titre(s)</div>
-                </button>
+                </div>
               );
             })}
           </div>
@@ -489,9 +507,16 @@ export default function PlaylistCategoryView({
           uploadée puis enregistrée dans cover_url → la tuile affiche l'image. */}
       <CreatePlaylistModal
         open={showCreate}
-        onOpenChange={setShowCreate}
+        onOpenChange={(nextOpen) => {
+          setShowCreate(nextOpen);
+          if (!nextOpen) setPlaylistToEdit(null);
+        }}
         category={category}
-        onSaved={() => onSaved?.()}
+        playlist={playlistToEdit}
+        onSaved={() => {
+          setPlaylistToEdit(null);
+          onSaved?.();
+        }}
       />
     </div>
   );
