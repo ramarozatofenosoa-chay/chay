@@ -70,6 +70,8 @@ export default function BibleAudioPlayer({ book, chapter, onPrev, onNext }) {
       mediaType: "bible",
       audio_url: url,
       initialTime: Number.isFinite(saved) && saved > 0 ? saved : 0,
+      hasPrevious: Boolean(onPrev),
+      hasNext: Boolean(onNext),
       previousAction: onPrev ? () => { autoPlayNextRef.current = true; onPrev(); } : null,
       nextAction: onNext ? () => { autoPlayNextRef.current = true; onNext(); } : null,
       onEnded: onNext ? () => { autoPlayNextRef.current = true; onNext(); } : null,

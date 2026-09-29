@@ -1,69 +1,68 @@
 import { useEffect, useRef } from "react";
+import { syncMediaSessionActions } from "@/lib/mediaSession";
 
 /**
- * Synchronise l'état de lecture avec l'API MediaSession d'Android/iOS.
- * Utilise des refs pour éviter les problèmes de closure stale.
+ * Synchronise le média actif avec les contrôles système Android/iOS.
  */
-export function useMediaSessionSync({ 
-  isPlaying, 
-  currentTrack, 
-  onPlayPause, 
-  onNext, 
-  onPrev,
-  onStop 
-}) {
-  // On garde les callbacks dans des refs pour qu'ils soient toujours frais
-  const callbacksRef = useRef({ onPlayPause, onNext, onPrev, onStop });
-  
-  useEffect(() => {
-    callbacksRef.current = { onPlayPause, onNext, onPrev, onStop };
-  }, [onPlayPause, onNext, onPrev, onStop]);
+export function useMediaSessionSync(control) {
+  const controlRef = useRef(control);
+  controlRef.current = control;
 
   useEffect(() => {
-    if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
-
-    // 1. METTRE À JOUR LES MÉTADONNÉES (Titre, Artiste, Image)
-    if (currentTrack) {
-      try {
-        navigator.mediaSession.metadata = new window.MediaMetadata({
-          title: currentTrack.title || "Musique",
-          artist: currentTrack.artist || currentTrack.speaker || "CHAY",
-          album: "Playlist CHAY",
-          artwork: [
-            { src: currentTrack.cover_url || "/logo.png", sizes: "512x512", type: "image/png" }
-          ],
-        });
-      } catch (e) {
-        console.warn("MediaMetadata error:", e);
-      }
-    } else {
-      navigator.mediaSession.metadata = null;
+    if (typeof navigator === "undefined" || !navigator.mediaSession) return;
+    const session = navigator.mediaSession;
+    if (!control) {
+      session.metadata = null;
+      session.playbackState = "none";
+      try { session.setPositionState(); } catch {}
+      return;
     }
 
-    // 2. DÉFINIR L'ÉTAT DE PLAYBACK
-    navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
+    if (typeof window.MediaMetadata === "function") {
+      try {
+        session.metadata = new window.MediaMetadata({
+          title: control.title || "Média",
+          artist: control.subtitle || "CHAY",
+          album: control.isLive ? "En direct" : "ÉGLISE CHAY",
+          artwork: control.artwork ? [{ src: control.artwork, sizes: "512x512" }] : [],
+        });
+      } catch (error) {
+        console.warn("[MediaSession] Unable to update media metadata.", error);
+      }
+    }
+    session.playbackState = control.isPlaying ? "playing" : "paused";
+    try {
+      if (control.duration > 0 && Number.isFinite(control.duration)) {
+        session.setPositionState({
+          duration: control.duration,
+          playbackRate: 1,
+          position: Math.max(0, Math.min(control.currentTime || 0, control.duration)),
+        });
+      } else {
+        session.setPositionState();
+      }
+    } catch {
+      // Live streams and some embedded players do not expose a seekable timeline.
+    }
+  }, [
+    control?.id,
+    control?.title,
+    control?.subtitle,
+    control?.artwork,
+    control?.isLive,
+    control?.isPlaying,
+    control?.currentTime,
+    control?.duration,
+  ]);
 
-    // 3. CONNECTER LES BOUTONS PHYSIQUES/SYSTÈME
-    // On utilise des wrappers qui appellent la ref fraîche
-    
-    const safeCall = (fnName) => (...args) => {
-      const fn = callbacksRef.current[fnName];
-      if (fn) fn(...args);
-    };
-
-    navigator.mediaSession.setActionHandler("play", () => safeCall("onPlayPause")());
-    navigator.mediaSession.setActionHandler("pause", () => safeCall("onPlayPause")());
-    navigator.mediaSession.setActionHandler("previoustrack", () => safeCall("onPrev")());
-    navigator.mediaSession.setActionHandler("nexttrack", () => safeCall("onNext")());
-    navigator.mediaSession.setActionHandler("stop", () => safeCall("onStop")());
-
-    // Nettoyage optionnel si besoin, mais généralement inutile tant que l'app tourne
-    return () => {
-       // Optionnel : reset handlers
-    };
-
-  }, [isPlaying, currentTrack]); // Se déclenche quand l'état change
-  
-  // Import nécessaire pour useRef
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !navigator.mediaSession) return;
+    syncMediaSessionActions(navigator.mediaSession, controlRef);
+  }, [
+    control?.id,
+    Boolean(control?.previous),
+    Boolean(control?.next),
+    Boolean(control?.seek),
+    control?.duration,
+  ]);
 }
-// Note : Il faut importer useRef en haut du fichier

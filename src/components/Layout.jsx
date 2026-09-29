@@ -15,14 +15,13 @@ import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { syncWebPush, disableWebPush, onWebPushNotificationClick } from "@/lib/webPush";
 import NotificationBanner from "@/components/NotificationBanner";
+import { useMediaSessionSync } from "@/hooks/useMediaSessionSync";
 import {
   getBackFallback,
   hasInAppHistory,
 } from "@/lib/backNavigation";
 import { hasOpenOverlay } from "@/hooks/useBackHandler";
-import { useAudioPlayer } from "@/lib/AudioPlayerContext";
-import { useRadio } from "@/lib/RadioContext";
-import { stopActiveMediaControl } from "@/lib/mediaControl";
+import { subscribeMediaControl } from "@/lib/mediaControl";
 
 const LOGO_URL =
   "https://media.base44.com/images/public/6aa138d0e963d9e5f59d838c/c26279d55_logo.png";
@@ -39,12 +38,9 @@ const ROOT_TABS = NAV.map((n) => n.to);
 
 export default function Layout() {
   const { user, isAuthenticated } = useAuth();
-  const audioPlayer = useAudioPlayer() || {};
-  const radio = useRadio() || {};
-  const audioStopRef = useRef(() => {});
-  const radioStopRef = useRef(() => {});
-  audioStopRef.current = audioPlayer.stop || (() => {});
-  radioStopRef.current = radio.stop || (() => {});
+  const [activeMedia, setActiveMedia] = useState(null);
+  useEffect(() => subscribeMediaControl(setActiveMedia), []);
+  useMediaSessionSync(activeMedia);
   usePresenceHeartbeat(user);
   const unread = useUnreadMessages(user);
   const notifUnread = useUnreadNotifications(user);
@@ -66,44 +62,6 @@ export default function Layout() {
   };
   const goBackRef = useRef(goBack);
   goBackRef.current = goBack;
-
-  const stopAllPlayback = () => {
-    stopActiveMediaControl();
-    audioStopRef.current();
-    radioStopRef.current();
-    document.querySelectorAll("audio, video").forEach((media) => media.pause());
-  };
-  const stopAllPlaybackRef = useRef(stopAllPlayback);
-  stopAllPlaybackRef.current = stopAllPlayback;
-  useEffect(() => {
-    const stopWhenHidden = () => {
-      if (document.visibilityState === "hidden") stopAllPlaybackRef.current();
-    };
-    const stopOnPageHide = () => stopAllPlaybackRef.current();
-    document.addEventListener("visibilitychange", stopWhenHidden);
-    window.addEventListener("pagehide", stopOnPageHide);
-    return () => {
-      document.removeEventListener("visibilitychange", stopWhenHidden);
-      window.removeEventListener("pagehide", stopOnPageHide);
-    };
-  }, []);
-
-  useEffect(() => {
-    let listener;
-    let cancelled = false;
-    CapacitorApp.addListener("appStateChange", ({ isActive }) => {
-      if (!isActive) stopAllPlaybackRef.current();
-    }).then((handle) => {
-      if (cancelled) handle.remove();
-      else listener = handle;
-    }).catch((error) => {
-      console.warn("[Layout] Unable to register app background playback handler.", error);
-    });
-    return () => {
-      cancelled = true;
-      listener?.remove();
-    };
-  }, []);
 
   useEffect(() => {
     let listener;
