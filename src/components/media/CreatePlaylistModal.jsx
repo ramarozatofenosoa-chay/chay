@@ -32,6 +32,9 @@ export default function CreatePlaylistModal({
   const [rawFile, setRawFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [validationAttempted, setValidationAttempted] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const [saveError, setSaveError] = useState("");
   const fileRef = useRef(null);
   const pendingPlaylistIdRef = useRef(null);
 
@@ -42,6 +45,9 @@ export default function CreatePlaylistModal({
       setCoverUrl(playlist?.cover_url || null);
       setRawFile(null);
       setUploading(false);
+      setValidationAttempted(false);
+      setUploadError("");
+      setSaveError("");
       pendingPlaylistIdRef.current = null;
     } else {
       pendingPlaylistIdRef.current = null;
@@ -51,12 +57,14 @@ export default function CreatePlaylistModal({
   const onFile = (e) => {
     const f = e.target.files?.[0];
     if (f && !f.type.startsWith("image/")) {
+      setUploadError("Le fichier choisi n'est pas une image. Sélectionnez un fichier image.");
       toast({
         title: "Fichier non valide",
         description: "Choisissez un fichier image pour la playlist.",
         variant: "destructive",
       });
     } else if (f) {
+      setUploadError("");
       setRawFile(f);
     }
     e.target.value = "";
@@ -64,21 +72,28 @@ export default function CreatePlaylistModal({
 
   const onCropConfirm = async (blob) => {
     setUploading(true);
+    setUploadError("");
     try {
       const file = new File([blob], "icon.jpg", { type: "image/jpeg" });
       // Core.UploadFile : seule API d'upload officielle du SDK Base44.
       const url = await uploadToBase44(file);
       setCoverUrl(url);
       setRawFile(null);
+      setSaveError("");
       toast({ title: "Image enregistrée" });
     } catch (err) {
-      toast({ title: "Erreur upload image", description: err.message || "Réessayez", variant: "destructive" });
+      const message = err.message || "Réessayez.";
+      setUploadError(`L'image n'a pas pu être envoyée : ${message}`);
+      toast({ title: "Erreur upload image", description: message, variant: "destructive" });
       setRawFile(null);
+    } finally {
+      setUploading(false);
     }
-    setUploading(false);
   };
 
   const save = async () => {
+    setValidationAttempted(true);
+    setSaveError("");
     if (!name.trim() || !isValidPlaylistImageUrl(coverUrl)) return;
     setSaving(true);
     try {
@@ -113,12 +128,10 @@ export default function CreatePlaylistModal({
         savedPlaylist = await base44.entities.Playlist.get(id);
       }
       if (!matchesSubmittedData(savedPlaylist)) {
-        toast({
-          title: "Playlist non enregistrée",
-          description:
-            "Le nom ou l'image n'a pas été conservé par Base44. Vérifiez les champs « name » et « cover_url » de l'entité Playlist, puis publiez.",
-          variant: "destructive",
-        });
+        const message =
+          "Base44 n'a pas conservé le nom ou l'image. Vérifiez les champs « name » et « cover_url » de l'entité Playlist, puis publiez.";
+        setSaveError(message);
+        toast({ title: "Playlist non enregistrée", description: message, variant: "destructive" });
         return;
       }
 
@@ -127,6 +140,7 @@ export default function CreatePlaylistModal({
       onOpenChange(false);
       onSaved?.(savedPlaylist);
     } catch (e) {
+      setSaveError(e.message || "Une erreur inattendue a empêché l'enregistrement.");
       toast({ title: "Erreur", description: e.message, variant: "destructive" });
     } finally {
       setSaving(false);
@@ -160,7 +174,10 @@ export default function CreatePlaylistModal({
             {rawFile ? (
               <ImageCrop
                 file={rawFile}
-                onCancel={() => setRawFile(null)}
+                onCancel={() => {
+                  setRawFile(null);
+                  setUploadError("");
+                }}
                 onConfirm={onCropConfirm}
               />
             ) : uploading ? (
@@ -192,21 +209,44 @@ export default function CreatePlaylistModal({
                 />
               </div>
             )}
-            {!isValidPlaylistImageUrl(coverUrl) && !rawFile && (
+            {validationAttempted && !isValidPlaylistImageUrl(coverUrl) && !rawFile && !uploadError && (
               <p className="text-xs text-destructive" role="alert">
-                L'ajout d'une image est obligatoire pour enregistrer la playlist.
+                Une image de playlist est obligatoire. Choisissez puis envoyez une image.
               </p>
             )}
+            {rawFile && validationAttempted && (
+              <p className="text-xs text-destructive" role="alert">
+                Confirmez le cadrage de l'image pour terminer son ajout.
+              </p>
+            )}
+            {uploading && (
+              <p className="text-xs text-foreground/60" role="status">
+                Attendez la fin du téléversement de l'image avant d'enregistrer.
+              </p>
+            )}
+            {uploadError && <p className="text-xs text-destructive" role="alert">{uploadError}</p>}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="pl-name">Nom de la playlist</Label>
+            <Label htmlFor="pl-name">
+              Nom de la playlist <span className="text-destructive">*</span>
+            </Label>
             <Input
               id="pl-name"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              required
+              aria-invalid={validationAttempted && !name.trim()}
+              onChange={(e) => {
+                setName(e.target.value);
+                setSaveError("");
+              }}
               placeholder="Ex. Louanges du dimanche"
             />
+            {validationAttempted && !name.trim() && (
+              <p className="text-xs text-destructive" role="alert">
+                Le nom de la playlist est obligatoire.
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="pl-desc">Description (optionnel)</Label>
@@ -221,12 +261,19 @@ export default function CreatePlaylistModal({
 
           <Button
             onClick={save}
-            disabled={saving || uploading || !name.trim() || !isValidPlaylistImageUrl(coverUrl)}
+            disabled={saving || uploading}
             className="w-full brand-gradient text-white border-0"
           >
-            {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-            {playlist ? "Enregistrer les modifications" : "Créer la playlist"}
+            {saving || uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+            {uploading
+              ? "Téléversement de l'image…"
+              : saving
+                ? "Enregistrement…"
+                : playlist
+                  ? "Enregistrer les modifications"
+                  : "Créer la playlist"}
           </Button>
+          {saveError && <p className="text-sm text-destructive" role="alert">{saveError}</p>}
         </div>
       </DialogContent>
     </Dialog>
