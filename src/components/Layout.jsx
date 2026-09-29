@@ -17,6 +17,7 @@ import { syncWebPush, disableWebPush, onWebPushNotificationClick } from "@/lib/w
 import NotificationBanner from "@/components/NotificationBanner";
 import { useMediaSessionSync } from "@/hooks/useMediaSessionSync";
 import {
+  getBackAction,
   getBackFallback,
   hasInAppHistory,
 } from "@/lib/backNavigation";
@@ -49,13 +50,23 @@ export default function Layout() {
   const navigate = useNavigate();
   usePushNotifications(navigate);
   const webPushSynced = useRef(false);
-  const goBack = () => {
-    if (hasOpenOverlay()) {
+  const goBack = (isNative = false) => {
+    const action = getBackAction({
+      hasOverlay: hasOpenOverlay(),
+      hasHistory: hasInAppHistory(window.history.state),
+      isNative,
+      isPlaying: Boolean(activeMedia?.isPlaying),
+    });
+    if (action === "close-overlay") {
       window.history.back();
       return;
     }
-    if (hasInAppHistory(window.history.state)) {
+    if (action === "navigate-back") {
       navigate(-1);
+    } else if (action === "minimize-app") {
+      CapacitorApp.minimizeApp().catch((error) => {
+        console.warn("[Layout] Unable to minimize while media is playing.", error);
+      });
     } else {
       navigate(getBackFallback(location.pathname, location.search), { replace: true });
     }
@@ -66,7 +77,7 @@ export default function Layout() {
   useEffect(() => {
     let listener;
     let cancelled = false;
-    CapacitorApp.addListener("backButton", () => goBackRef.current()).then((handle) => {
+    CapacitorApp.addListener("backButton", () => goBackRef.current(true)).then((handle) => {
       if (cancelled) handle.remove();
       else listener = handle;
     }).catch((error) => {

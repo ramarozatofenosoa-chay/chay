@@ -20,6 +20,13 @@ export function hasNavigationOrigin(state, originKey) {
   return state?.usr?.[originKey] === true;
 }
 
+export function getBackAction({ hasOverlay, hasHistory, isNative, isPlaying }) {
+  if (hasOverlay) return "close-overlay";
+  if (hasHistory) return "navigate-back";
+  if (isNative && isPlaying) return "minimize-app";
+  return "fallback";
+}
+
 export function getBackFallback(pathname, search = "") {
   const params = new URLSearchParams(search);
   if (
