@@ -10,6 +10,8 @@ import {
 import { Image } from "@/components/ui/image";
 import DOMPurify from "dompurify";
 import ReactMarkdown from "react-markdown";
+import DOMPurify from "dompurify";
+
 
 // Le corps d'article existe sous deux formes :
 //  - HTML, produit par l'éditeur riche de l'app Multimédia (ReactQuill)
@@ -35,10 +37,11 @@ function ArticleBody({ body }) {
 
   if (looksLikeHtml(body)) {
     return (
-      <div
-        className="article-body"
-        dangerouslySetInnerHTML={{ __html: sanitizeHtml(body) }}
-      />
+    <div
+className="article-body"
+dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(body) }}
+/>
+
     );
   }
   return (
