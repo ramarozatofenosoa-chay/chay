@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Film,
@@ -42,20 +42,24 @@ function getMediaIcon(type) {
 export default function PullDownMediaBar() {
   const [control, setControl] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
-  const [dragProgress, setDragProgress] = useState(0);
   const touchStartY = useRef(0);
   const isDragging = useRef(false);
-  const dismissedMediaKey = useRef(null);
+  const controlRef = useRef(null);
 
   const mediaKey = control ? `${String(control.id)}:${control.source || ""}` : null;
 
   useEffect(() => subscribeMediaControl(setControl), []);
 
+  // Keep ref updated for use in touch handlers
+  useEffect(() => {
+    controlRef.current = control;
+  }, [control]);
+
   // Reset visibility when media changes
   useEffect(() => {
     setIsVisible(false);
-    setDragProgress(0);
-    dismissedMediaKey.current = null;
+    touchStartY.current = 0;
+    isDragging.current = false;
   }, [mediaKey]);
 
   // Hide bar if media is paused
@@ -63,69 +67,54 @@ export default function PullDownMediaBar() {
     if (control && !control.isPlaying && isVisible) {
       setIsVisible(false);
     }
-  }, [control?.isPlaying]);
+  }, [control?.isPlaying, isVisible]);
 
-  const handleTouchStart = (e) => {
+  const handleTouchStart = useCallback((e) => {
     // Only start dragging if we're at the top of the screen
-    const touch = e.touches[0];
-    if (touch.clientY < 50) {
-      touchStartY.current = touch.clientY;
-      isDragging.current = true;
+    if (!controlRef.current?.isPlaying) return;
+    if (e.touches && e.touches.length > 0) {
+      const touch = e.touches[0];
+      if (touch.clientY < 50) {
+        touchStartY.current = touch.clientY;
+        isDragging.current = true;
+      }
     }
-  };
+  }, []);
 
-  const handleTouchMove = (e) => {
-    if (!isDragging.current || !control?.isPlaying) return;
+  const handleTouchMove = useCallback((e) => {
+    if (!isDragging.current || !controlRef.current?.isPlaying) return;
 
-    const touch = e.touches[0];
-    const deltaY = touch.clientY - touchStartY.current;
+    if (e.touches && e.touches.length > 0) {
+      const touch = e.touches[0];
+      const deltaY = touch.clientY - touchStartY.current;
 
-    if (deltaY > 0) {
-      // Dragging down - show the bar
-      const progress = Math.min(deltaY / 120, 1); // 120px is the threshold
-      setDragProgress(progress);
-      if (progress > 0) setIsVisible(true);
-    } else {
-      // Dragging up - hide the bar
-      setIsVisible(false);
-      setDragProgress(0);
+      if (deltaY > 60) {
+        setIsVisible(true);
+      } else if (deltaY < -30) {
+        setIsVisible(false);
+      }
     }
-  };
+  }, []);
 
-  const handleTouchEnd = (e) => {
-    if (!isDragging.current) return;
+  const handleTouchEnd = useCallback(() => {
     isDragging.current = false;
-
-    const touch = e.changedTouches[0];
-    const deltaY = touch.clientY - touchStartY.current;
-
-    if (deltaY > 60) {
-      // Threshold crossed - keep visible
-      setIsVisible(true);
-      setDragProgress(1);
-    } else {
-      // Threshold not crossed - hide
-      setIsVisible(false);
-      setDragProgress(0);
-    }
-  };
+  }, []);
 
   // Add touch listeners to the document
   useEffect(() => {
-    if (!control?.isPlaying) return;
-
-    document.addEventListener("touchstart", handleTouchStart);
-    document.addEventListener("touchmove", handleTouchMove, { passive: true });
-    document.addEventListener("touchend", handleTouchEnd);
+    const options = { passive: true };
+    document.addEventListener("touchstart", handleTouchStart, options);
+    document.addEventListener("touchmove", handleTouchMove, options);
+    document.addEventListener("touchend", handleTouchEnd, options);
 
     return () => {
       document.removeEventListener("touchstart", handleTouchStart);
       document.removeEventListener("touchmove", handleTouchMove);
       document.removeEventListener("touchend", handleTouchEnd);
     };
-  }, [control, isVisible]);
+  }, [handleTouchStart, handleTouchMove, handleTouchEnd]);
 
-  if (!control || !control.isPlaying || dismissedMediaKey.current === mediaKey) {
+  if (!control || !control.isPlaying) {
     return null;
   }
 
