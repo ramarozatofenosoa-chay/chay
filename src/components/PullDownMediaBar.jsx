@@ -153,13 +153,11 @@ export default function PullDownMediaBar() {
             <div className="px-4 py-3">
               {/* Header with artwork and title */}
               <div className="flex items-start gap-3 mb-3">
-                <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-muted">
-                  {control.artwork ? (
+                <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-muted flex items-center justify-center">
+                  {control.artwork && control.artwork.trim() ? (
                     <Image src={control.artwork} alt="" fittingType="fill" className="h-full w-full object-cover" />
                   ) : (
-                    <div className="h-full w-full grid place-items-center">
-                      <Icon className="h-6 w-6 text-primary" aria-hidden="true" />
-                    </div>
+                    <Icon className="h-6 w-6 text-primary" aria-hidden="true" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
