@@ -11,6 +11,10 @@
     "cover_url": {
       "type": "string"
     },
+    "order": {
+      "type": "number",
+      "description": "Position d'affichage, gérée par le glisser-déposer admin"
+    },
     "category": {
       "type": "string",
       "enum": [

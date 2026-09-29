@@ -227,12 +227,26 @@ export default function EntityCrud({
   /* ── Sauvegarde ordre playlists ── */
   const handleReorderPlaylists = useCallback(async (next) => {
     setPlaylists(next);
-    await Promise.all(
+    // Ne plus avaler l'échec : Base44 rejette silencieusement l'écriture d'un
+    // champ absent de l'entité déployée, et l'ordre réapparaissait à sa place.
+    const results = await Promise.all(
       next.map((p, i) =>
-        base44.entities.Playlist.update(p.id, { order: i }).catch(() => {})
+        base44.entities.Playlist.update(p.id, { order: i }).then(
+          () => true,
+          () => false
+        )
       )
     );
-  }, []);
+    if (results.includes(false)) {
+      await loadPlaylists();
+      toast({
+        title: "Réorganisation non enregistrée",
+        description:
+          "Le champ « order » semble absent de l'entité Playlist côté Base44. Ajoutez-le (type nombre) dans Entities → Playlist, puis Publish.",
+        variant: "destructive",
+      });
+    }
+  }, [loadPlaylists, toast]);
 
   /* ── Sauvegarde ordre musiques ── */
   const handleReorderItems = useCallback(async (next) => {
