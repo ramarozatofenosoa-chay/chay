@@ -105,6 +105,8 @@ export default async function (req) {
 
     const catalog = translation === 'lsg1910' ? await getLsgCatalog() : getMalagasyCatalog();
     const language = translation === 'lsg1910' ? 'fr' : 'mg';
+    const startedAtEnd = !resetCursor && bookOrder > 66;
+
 
     let processed = 0;
     let versesImported = 0;
@@ -113,33 +115,43 @@ export default async function (req) {
       const book = catalog.find((b) => b.order === bookOrder);
       if (!book) { bookOrder += 1; chapter = 1; continue; }
       if (chapter > book.chapters) { bookOrder += 1; chapter = 1; continue; }
-      try {
-        const verses = await fetchChapter(translation, book, chapter);
-        const rows = verses.map((v) => ({
-          translation, book: book.name, bookOrder, chapter, verse: v.number,
-          text: v.text, normalizedText: normalizeSearchText(v.text, language),
-        }));
-        if (rows.length) {
-          // Clé unique translation + bookOrder + chapter + verse : on supprime
-          // puis recrée le chapitre pour éviter tout doublon.
-          await base44.asServiceRole.entities.BibleVerse.deleteMany({ translation, bookOrder, chapter });
-          for (const g of chunk(rows, BULK_CHUNK)) {
-            await base44.asServiceRole.entities.BibleVerse.bulkCreate(g);
-          }
-          versesImported += rows.length;
-        }
-      } catch (e) {
-        errors.push(`${book.name} ${chapter}: ${e.message}`);
-      }
+ for (let attempt = 1; attempt <= 2; attempt++) {
+try {
+const verses = await fetchChapter(translation, book, chapter);
+const rows = verses.map((v) => ({
+translation, book: book.name, bookOrder, chapter, verse: v.number,
+text: v.text, normalizedText: normalizeSearchText(v.text, language),
+}));
+if (rows.length) {
+await base44.asServiceRole.entities.BibleVerse.deleteMany({ translation, bookOrder, chapter });
+for (const g of chunk(rows, BULK_CHUNK)) {
+await base44.asServiceRole.entities.BibleVerse.bulkCreate(g);
+}
+versesImported += rows.length;
+}
+break;
+} catch (e) {
+if (attempt === 2) {
+errors.push(`${book.name} ${chapter}: ${e.message}`);
+} else {
+await new Promise((r) => setTimeout(r, 1500));
+}
+}
+}
+
       chapter += 1;
       processed += 1;
     }
 
-    const done = bookOrder > 66;
-    const newCount = (resetCursor ? 0 : (record.verseCount || 0)) + versesImported;
+ const done = bookOrder > 66;
+const noOp = startedAtEnd && done;
+const newStatus = noOp
+? (record.status || 'partial')
+: (done && errors.length === 0 ? 'ready' : 'partial');
+const newCount = (resetCursor ? 0 : (record.verseCount || 0)) + versesImported;
+await base44.asServiceRole.entities.BibleTranslation.update(record.id, {
+status: newStatus,
 
-    await base44.asServiceRole.entities.BibleTranslation.update(record.id, {
-      status: done ? 'ready' : 'partial',
       verseCount: newCount,
       lastSyncedAt: new Date().toISOString(),
       syncCursorBookOrder: done ? 67 : bookOrder,
@@ -149,7 +161,8 @@ export default async function (req) {
     return Response.json({
       versesImported, booksProcessed: Math.min(bookOrder - 1, 66),
       cursor: { bookOrder: done ? 67 : bookOrder, chapter: done ? 1 : chapter },
-      done, verseCount: newCount, status: done ? 'ready' : 'partial', errors,
+     done, verseCount: newCount, status: newStatus, errors,
+
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
