@@ -9,6 +9,7 @@ import { base44 } from "@/api/base44Client";
  * @param {string} opts.title        Titre du contenu
  * @param {string} [opts.artist]     Artiste (musique)
  * @param {string} [opts.playlist]   Nom de la playlist
+ * @param {string} [opts.playlistId] Identifiant de la playlist
  * @param {string} [opts.section]    Section YouTube (culte/louange/celebration)
  * @param {string} [opts.contentId]  ID du contenu créé (pour lien direct)
  */

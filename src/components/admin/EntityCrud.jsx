@@ -209,7 +209,11 @@ export default function EntityCrud({
     try {
       const list = await base44.entities.Playlist.list("-created_date", 100);
       const arr = Array.isArray(list) ? list : [];
-      arr.sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || new Date(b.created_date || 0) - new Date(a.created_date || 0));
+      arr.sort(
+        (a, b) =>
+          (a.order ?? 0) - (b.order ?? 0) ||
+          new Date(b.created_date || 0).getTime() - new Date(a.created_date || 0).getTime()
+      );
       const cat = PLAYLIST_CATEGORY[entity];
       setPlaylists(cat ? arr.filter((p) => (p.category || "music") === cat) : arr);
     } catch {}

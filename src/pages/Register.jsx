@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { cloneElement, useId, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import PasswordInput from "@/components/PasswordInput";
 import { dialFor, formatPhoneFor } from "@/lib/countryDial";
+import { canSubmitRegistration } from "@/lib/registrationValidation";
 
 const GENDERS = [
   { label: "Homme", value: "Homme" },
@@ -47,15 +48,24 @@ const phoneStripped = (p) => "+" + (p || "").replace(/[^\d]/g, "");
 const PHONE_RE = /^\+[1-9]\d{6,14}$/;
 
 function Field({ label, icon: Icon, children, hint, required, error }) {
+  const id = useId();
+  const errorId = error ? `${id}-error` : undefined;
+  const input = React.isValidElement(children)
+    ? cloneElement(children, {
+        id: children.props.id || id,
+        "aria-invalid": error ? true : undefined,
+        "aria-describedby": errorId,
+      })
+    : children;
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs flex items-center gap-1">
-        {Icon && <Icon className="h-3 w-3" />} {label}
+      <Label htmlFor={id} className="text-xs flex items-center gap-1">
+        {Icon && <Icon className="h-3 w-3" aria-hidden="true" />} {label}
         {required && <span className="text-destructive">*</span>}
       </Label>
-      {children}
+      {input}
       {error ? (
-        <p className="text-[11px] text-destructive">{error}</p>
+        <p id={errorId} className="text-[11px] text-destructive" role="alert">{error}</p>
       ) : hint ? (
         <p className="text-[11px] text-foreground/45">{hint}</p>
       ) : null}
@@ -64,22 +74,20 @@ function Field({ label, icon: Icon, children, hint, required, error }) {
 }
 
 function ConsentRow({ checked, onChange, children }) {
+  const id = useId();
   return (
-    <label className="flex items-start gap-3 cursor-pointer">
-      <button
-        type="button"
-        onClick={() => onChange(!checked)}
-        className={`mt-0.5 h-5 w-5 rounded-md border-2 grid place-items-center shrink-0 transition ${
-          checked
-            ? "bg-[#378ADD] border-[#378ADD] text-white dark:bg-[#3B8FD9] dark:border-[#3B8FD9]"
-            : "border-border"
-        }`}
-        aria-pressed={checked}
-      >
-        {checked && <CheckIcon className="h-3.5 w-3.5" />}
-      </button>
-      <span className="text-sm text-foreground/80 selectable">{children}</span>
-    </label>
+    <div className="flex items-start gap-3">
+      <input
+        id={id}
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        className="mt-1 h-5 w-5 shrink-0 accent-[#378ADD] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+      />
+      <label htmlFor={id} className="text-sm text-foreground/80 selectable cursor-pointer">
+        {children}
+      </label>
+    </div>
   );
 }
 
@@ -116,7 +124,6 @@ export default function Register() {
 
   // consents
   const [respectConsent, setRespectConsent] = useState(false);
-  const [acceptCookies, setAcceptCookies] = useState(false);
   const [acceptCgu, setAcceptCgu] = useState(false);
   const [loc, setLoc] = useState(null);
   const [locStatus, setLocStatus] = useState("");
@@ -141,21 +148,20 @@ export default function Register() {
       ? "!border-destructive focus:!border-destructive"
       : "";
 
-  const canSubmit =
-    firstName.trim().length >= 2 &&
-    lastName.trim().length >= 2 &&
-    !!gender &&
-    emailValid &&
-    phoneValid &&
-    !!country &&
-    city.trim().length > 0 &&
-    passwordValid &&
-    passwordMatch &&
-    respectConsent &&
-    acceptCookies &&
-    acceptCgu &&
-    locStatus === "granted" &&
-    !loading;
+  const canSubmit = canSubmitRegistration({
+    firstName,
+    lastName,
+    gender,
+    emailValid,
+    phoneValid,
+    country,
+    city,
+    passwordValid,
+    passwordMatch,
+    respectConsent,
+    acceptCgu,
+    loading,
+  });
 
   const getLocation = async () => {
     if (!navigator.geolocation) {
@@ -238,7 +244,7 @@ export default function Register() {
         location_lat: loc?.lat ?? null,
         location_lng: loc?.lng ?? null,
         location_label: `${city.trim()}, ${country}`,
-        localisation_activee: true,
+        localisation_activee: Boolean(loc),
         birth_date: birthDate || null,
         birth_place: birthPlace || null,
         conversion_date: conversionDate || null,
@@ -249,7 +255,7 @@ export default function Register() {
         spiritual_journey: spiritualJourney || null,
         known_chay_since: knownChaySince || null,
         accepte_commentaires_respect: respectConsent,
-        accepte_cookies: acceptCookies,
+        accepte_cookies: false,
         accepte_cgu: acceptCgu,
         consents_accepted: true,
       });
@@ -293,7 +299,7 @@ export default function Register() {
             </p>
           </div>
           {error && (
-            <div className="mb-4 p-3 rounded-xl bg-destructive/10 text-destructive text-sm">
+            <div role="alert" className="mb-4 p-3 rounded-xl bg-destructive/10 text-destructive text-sm">
               {error}
             </div>
           )}
@@ -360,7 +366,7 @@ export default function Register() {
 
         <form onSubmit={submitForm} className="space-y-5">
           {error && (
-            <div className="p-3 rounded-xl bg-destructive/10 text-destructive text-sm">
+            <div role="alert" className="p-3 rounded-xl bg-destructive/10 text-destructive text-sm">
               {error}
             </div>
           )}
@@ -569,31 +575,30 @@ export default function Register() {
           {/* Consents + location */}
           <section className="rounded-2xl border border-border bg-card p-5 space-y-4">
             <ConsentRow checked={respectConsent} onChange={setRespectConsent}>
-              Malalaka ny fanehoan-kevitra sy commentaires amin'ny actualités
-              ato amin'ny Application Chay fa atao am-panajana tanteraka.
-            </ConsentRow>
-            <ConsentRow checked={acceptCookies} onChange={setAcceptCookies}>
-              J'accepte les cookies.
+              <span lang="mg">
+                Malalaka ny fanehoan-kevitra sy commentaires amin'ny actualités
+                ato amin'ny Application Chay fa atao am-panajana tanteraka.
+              </span>
             </ConsentRow>
             <ConsentRow checked={acceptCgu} onChange={setAcceptCgu}>
-              J'accepte les{" "}
-              <button
-                type="button"
-                onClick={() => setShowCgu(true)}
-                className="text-[#0C447C] dark:text-[#6FB3FF] font-medium hover:underline"
-              >
-                termes et conditions
-              </button>
-              .
+              J'accepte les conditions d'utilisation.
             </ConsentRow>
+            <button
+              type="button"
+              onClick={() => setShowCgu(true)}
+              className="text-sm text-[#0C447C] dark:text-[#6FB3FF] font-medium hover:underline"
+            >
+              Lire les conditions d'utilisation
+            </button>
 
             <div className="pt-2 border-t border-border space-y-3">
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-foreground/50">
                 <MapPin className="h-3.5 w-3.5" /> Localisation
               </div>
               <p className="text-xs text-foreground/50">
-                L'autorisation de localisation est obligatoire pour finaliser
-                l'inscription et afficher des annonces pertinentes.
+                Facultatif : votre position précise n'est utilisée que si vous
+                l'autorisez, pour personnaliser les informations locales. Vous
+                pouvez continuer sans l'activer.
               </p>
               <div className="flex items-center gap-3 flex-wrap">
                 <Button
@@ -613,6 +618,11 @@ export default function Register() {
                     ? "Localisation activée"
                     : "Activer ma localisation"}
                 </Button>
+                {locStatus !== "granted" && (
+                  <span className="text-xs text-foreground/50">
+                    Aucun accès à votre position n'a encore été accordé.
+                  </span>
+                )}
                 {locStatus === "denied" && (
                   <span className="text-xs text-destructive font-medium">
                     Accès refusé — réessayez
@@ -672,9 +682,14 @@ export default function Register() {
               l'esprit de la communauté chrétienne de l'Église Chay.
             </p>
             <p>
-              Vos données personnelles (nom, contact, localisation,
-              informations spirituelles) sont conservées à des fins de gestion
-              de communauté et ne sont partagées avec aucun tiers.
+              Les informations de profil et contenus que vous fournissez sont
+              traités par les services techniques utilisés pour faire
+              fonctionner l'application et ses notifications. La position
+              précise est facultative et n'est enregistrée que si vous
+              l'autorisez. N'ajoutez pas d'informations sensibles que vous ne
+              souhaitez pas partager avec les personnes autorisées à consulter
+              votre profil. Pour demander l'accès ou la suppression de vos
+              données, contactez l'équipe CHAY.
             </p>
             <p>
               La modération se réserve le droit de retirer tout contenu

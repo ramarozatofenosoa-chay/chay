@@ -33,6 +33,11 @@ Notes:
 - **The app must be published at least once for the UI to load under `base44 dev`.** The frontend boots by fetching app settings from the hosted app; before the first publish that fails and every page redirects to login. The local API works regardless.
 - Entities, functions, and auth run locally — entity data is **in-memory only**, wiped when `base44 dev` restarts. Everything else (Core integrations, OAuth login) is forwarded to your deployed app. Full breakdown: [Local development overview](https://docs.base44.com/developers/backend/overview/local-dev/local-development-overview).
 
+## Checks
+
+Run `npm run lint` to check the JavaScript/JSX application and `npm run typecheck`
+to check TypeScript source files. JavaScript/JSX is linted rather than type-checked.
+
 ## Frontend Only, Hosted Backend
 
 To work on just the frontend against your app's live hosted backend:

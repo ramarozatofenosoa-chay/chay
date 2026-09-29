@@ -242,7 +242,7 @@ export default function UniversalMediaSurface() {
             ) : (
               <Film className="mx-auto mb-5 h-24 w-24 text-white/80" aria-hidden="true" />
             )}
-            <p className="font-bold">{isRadio ? "LIVE" : "En lecture"}</p>
+            <p className="font-bold">{isRadio ? "EN DIRECT" : "En lecture"}</p>
           </div>
         </div>
       )}

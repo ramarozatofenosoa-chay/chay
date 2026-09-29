@@ -14,11 +14,12 @@ export default function DrawerSelect({
   onChange,
   placeholder = "Sélectionner…",
   title = "Sélectionner",
-  description,
+  description = undefined,
   searchable = false,
   getLabel = (o) => o.label,
   getValue = (o) => o.value,
   triggerClassName = "",
+  id = undefined,
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -40,6 +41,9 @@ export default function DrawerSelect({
   return (
     <>
       <button
+        id={id}
+        aria-haspopup="dialog"
+        aria-expanded={open}
         type="button"
         onClick={() => setOpen(true)}
         className={`inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-bold transition hover:bg-muted ${triggerClassName}`}
@@ -67,6 +71,7 @@ export default function DrawerSelect({
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Rechercher…"
+                  aria-label="Rechercher parmi les options"
                   className="bg-transparent outline-none text-sm font-medium flex-1"
                 />
               </div>
@@ -83,6 +88,7 @@ export default function DrawerSelect({
                 const isActive = v === value;
                 return (
                   <button
+                    type="button"
                     key={v ?? i}
                     onClick={() => {
                       onChange(v);
