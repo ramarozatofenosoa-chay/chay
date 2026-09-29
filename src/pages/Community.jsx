@@ -82,16 +82,11 @@ export default function Community() {
         const res = await base44.integrations.Core.UploadPublicFile({ file: imageFile });
         image_url = res.file_url;
       }
-      const name =
-        user?.full_name ||
-        [user?.first_name, user?.last_name].filter(Boolean).join(" ") ||
-        "Membre";
-      await base44.entities.CommunityPost.create({
-        text: draft.trim(),
-        image_url,
-        author_name: name,
-        likes: 0,
-      });
+    await base44.functions.invoke("createCommunityPost", {
+text: draft.trim(),
+image_url,
+});
+
       setDraft("");
       setImageFile(null);
       setImagePreview(null);
