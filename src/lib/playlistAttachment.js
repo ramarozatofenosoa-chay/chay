@@ -27,6 +27,10 @@ export function buildPlaylistTrackRecord({
   };
 }
 
+export function resolveSelectedPlaylistId(selectedPlaylistId, submittedPlaylistId) {
+  return selectedPlaylistId === null ? submittedPlaylistId : selectedPlaylistId;
+}
+
 export async function savePlaylistTrack(entity, record, mediaField) {
   const created = await entity.create(record);
   if (!created?.id) {
@@ -34,18 +38,24 @@ export async function savePlaylistTrack(entity, record, mediaField) {
   }
 
   const requiredFields = ["playlist_id", "track_id", "title", mediaField];
-  const missingFields = requiredFields.filter((field) => created[field] !== record[field]);
-  if (!missingFields.length) return created;
+  let persisted = await entity.get(created.id);
+  let missingFields = requiredFields.filter(
+    (field) => persisted?.[field] !== record[field]
+  );
+  if (!missingFields.length) return persisted;
 
   const updated = await entity.update(
-    created.id,
+    persisted?.id || created.id,
     Object.fromEntries(missingFields.map((field) => [field, record[field]]))
   );
-  const stillMissing = missingFields.filter((field) => updated?.[field] !== record[field]);
+  persisted = await entity.get(updated?.id || created.id);
+  const stillMissing = requiredFields.filter(
+    (field) => persisted?.[field] !== record[field]
+  );
   if (stillMissing.length) {
     throw new Error(
       `Base44 n'a pas enregistré le lien playlist (${stillMissing.join(", ")}). Vérifiez les champs de l'entité PlaylistTrack, puis publiez.`
     );
   }
-  return updated;
+  return persisted;
 }

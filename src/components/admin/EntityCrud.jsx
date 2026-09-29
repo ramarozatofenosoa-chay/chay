@@ -13,7 +13,11 @@ import { Plus, Pencil, Trash2, Loader2, Music, Lock, Unlock, GripVertical } from
 import { Image } from "@/components/ui/image";
 import EntityForm from "@/components/admin/EntityForm";
 import CreatePlaylistModal from "@/components/media/CreatePlaylistModal";
-import { buildPlaylistTrackRecord, savePlaylistTrack } from "@/lib/playlistAttachment";
+import {
+  buildPlaylistTrackRecord,
+  resolveSelectedPlaylistId,
+  savePlaylistTrack,
+} from "@/lib/playlistAttachment";
 
 const PLAYLIST_CATEGORY = {
   MusicTrack: "music",
@@ -180,8 +184,11 @@ export default function EntityCrud({
   const [saving, setSaving] = useState(false);
   const [playlists, setPlaylists] = useState([]);
   const [showCreatePlaylist, setShowCreatePlaylist] = useState(false);
+  const [retryingPlaylistAttachment, setRetryingPlaylistAttachment] = useState(false);
   const [formKey, setFormKey] = useState("new");
   const pendingSelectRef = useRef(null);
+  const selectedPlaylistRef = useRef(null);
+  const pendingPlaylistAttachmentRef = useRef(null);
 
   /* cadenas playlists / musiques */
   const [playlistsLocked, setPlaylistsLocked] = useState(true);
@@ -282,6 +289,20 @@ export default function EntityCrud({
     );
   };
 
+  const notifyPlaylistUpload = (item, playlistId) => {
+    const kindMap = { MusicTrack: "music", Sermon: "sermon", Video: "film" };
+    const kind = kindMap[entity];
+    if (!kind) return;
+    notifyAdminUpload({
+      kind,
+      title: item.title,
+      artist: item.artist,
+      playlist: playlists.find((p) => p.id === playlistId)?.name,
+      playlistId,
+      contentId: item.id,
+    });
+  };
+
   const detachFromPlaylists = async (itemId) => {
     const tracks = await base44.entities.PlaylistTrack.filter(
       { track_id: itemId },
@@ -298,7 +319,25 @@ export default function EntityCrud({
   const submit = async (data) => {
     setSaving(true);
     try {
-      const { playlist_id, ...rest } = data;
+      const { playlist_id: submittedPlaylistId, ...rest } = data;
+      const playlist_id = resolveSelectedPlaylistId(
+        selectedPlaylistRef.current,
+        submittedPlaylistId
+      );
+
+      if (pendingPlaylistAttachmentRef.current) {
+        const pending = pendingPlaylistAttachmentRef.current;
+        await attachToPlaylist(pending.item, pending.playlistId, pending.data);
+        pendingPlaylistAttachmentRef.current = null;
+        setRetryingPlaylistAttachment(false);
+        if (!editing) notifyPlaylistUpload(pending.item, pending.playlistId);
+        toast({ title: "Ajouté à la playlist" });
+        setOpen(false);
+        await load();
+        await loadPlaylists();
+        return;
+      }
+
       let createdItem;
       if (editing) {
         createdItem = await base44.entities[entity].update(editing.id, rest);
@@ -345,34 +384,30 @@ export default function EntityCrud({
 
       let playlistAttached = true;
       if (playlist_id) {
+        pendingPlaylistAttachmentRef.current = {
+          item: createdItem,
+          playlistId: playlist_id,
+          data: rest,
+        };
         try {
           await attachToPlaylist(createdItem, playlist_id, rest);
+          pendingPlaylistAttachmentRef.current = null;
         } catch (err) {
           playlistAttached = false;
+          setRetryingPlaylistAttachment(true);
           toast({
             title: "Contenu enregistré, ajout à la playlist impossible",
             description: err?.message || String(err),
             variant: "destructive",
           });
+          await load();
+          await loadPlaylists();
+          return;
         }
       }
 
       if (!editing && playlistAttached) {
-        const playlistName = playlist_id
-          ? playlists.find((p) => p.id === playlist_id)?.name
-          : null;
-        const kindMap = { MusicTrack: "music", Sermon: "sermon", Video: "film" };
-        const kind = kindMap[entity];
-        if (kind) {
-          notifyAdminUpload({
-            kind,
-            title: createdItem.title,
-            artist: createdItem.artist,
-            playlist: playlistName,
-            playlistId: playlist_id,
-            contentId: createdItem.id,
-          });
-        }
+        notifyPlaylistUpload(createdItem, playlist_id);
       }
 
       if (playlistAttached) {
@@ -395,6 +430,7 @@ export default function EntityCrud({
     await loadPlaylists();
     if (newPlaylist?.id && open) {
       pendingSelectRef.current = newPlaylist.id;
+      selectedPlaylistRef.current = newPlaylist.id;
       setFormKey((k) => `${k}-pl-${newPlaylist.id}`);
     }
   };
@@ -450,6 +486,9 @@ export default function EntityCrud({
               onClick={() => {
                 setEditing(null);
                 pendingSelectRef.current = null;
+                selectedPlaylistRef.current = null;
+                pendingPlaylistAttachmentRef.current = null;
+                setRetryingPlaylistAttachment(false);
                 setFormKey("new");
                 setOpen(true);
               }}
@@ -577,6 +616,9 @@ export default function EntityCrud({
                       onClick={() => {
                         setEditing(item);
                         pendingSelectRef.current = null;
+                        selectedPlaylistRef.current = null;
+                        pendingPlaylistAttachmentRef.current = null;
+                        setRetryingPlaylistAttachment(false);
                         setFormKey(`edit-${item.id}`);
                         setOpen(true);
                       }}
@@ -599,7 +641,16 @@ export default function EntityCrud({
       )}
 
       {/* ── Dialog formulaire ── */}
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog
+        open={open}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            pendingPlaylistAttachmentRef.current = null;
+            setRetryingPlaylistAttachment(false);
+          }
+          setOpen(nextOpen);
+        }}
+      >
         <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing ? "Modifier" : "Ajouter"}</DialogTitle>
@@ -609,6 +660,10 @@ export default function EntityCrud({
             fields={allFields}
             initial={{ ...(editing || {}), ...(pendingSelectRef.current ? { playlist_id: pendingSelectRef.current } : {}) }}
             onSubmit={submit}
+            onPlaylistChange={(playlistId) => {
+              selectedPlaylistRef.current = playlistId;
+            }}
+            retryingPlaylistAttachment={retryingPlaylistAttachment}
             onCancel={() => setOpen(false)}
             saving={saving}
           />
