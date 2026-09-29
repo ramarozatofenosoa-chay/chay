@@ -1,4 +1,8 @@
 import { useEffect, useRef, useLayoutEffect } from "react";
+import {
+  createOverlayHistoryState,
+  OVERLAY_HISTORY_KEY,
+} from "@/lib/backNavigation";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Gestion du bouton retour via l'History API du navigateur.
@@ -18,13 +22,12 @@ import { useEffect, useRef, useLayoutEffect } from "react";
 //     "retour" ferme la plus profonde, et on repousse l'entrée tant qu'il en
 //     reste, pour pouvoir enchaîner.
 //   - Fermeture par bouton (X) : le parent passe `open` à false ; le nettoyage
-//     de l'effet retire l'entrée synthétique restante si on était la dernière.
+//     de l'effet dépile l'entrée synthétique restante si on était la dernière.
 //   - Plus aucune superposition + retour : comportement natif (l'historique
 //     recule réellement, ou l'app se ferme à la racine — comportement WebView
 //     standard, sans plugin requis).
 // ─────────────────────────────────────────────────────────────────────────
 
-const MARKER = { chayOverlay: true };
 const closers = [];
 const POP_KEY = "__chay_popstate_installed__";
 const POP_LISTENER_KEY = "__chay_popstate_listener__";
@@ -42,7 +45,10 @@ function onPopState(event) {
   // S'il reste des superpositions ouvertes, on repousse l'entrée synthétique
   // pour que le prochain "retour" ferme la suivante au lieu de quitter la page.
   if (closers.length > 0) {
-    window.history.pushState(MARKER, "");
+    window.history.pushState(
+      createOverlayHistoryState(window.history.state),
+      ""
+    );
   }
 }
 
@@ -100,8 +106,12 @@ export function useBackHandler(open, onClose) {
 
     if (wasEmpty) {
       // Première superposition : on empile une entrée d'historique pour
-      // intercepter le prochain "retour".
-      window.history.pushState(MARKER, "");
+      // intercepter le prochain "retour". Preserve React Router's state and
+      // index so its POP handling remains consistent on mobile browsers.
+      window.history.pushState(
+        createOverlayHistoryState(window.history.state),
+        ""
+      );
     }
 
     return () => {
@@ -113,10 +123,10 @@ export function useBackHandler(open, onClose) {
       // laisser une entrée fantôme qui causerait un "retour" fantôme plus tard.
       if (closers.length === 0) {
         const st = window.history.state;
-        if (st && typeof st === "object" && st.chayOverlay) {
-          // Remplacer l'entrée orpheline sans déclencher de navigation
-          // supplémentaire (history.back() causait un double retour).
-          window.history.replaceState(null, "");
+        if (st && typeof st === "object" && st[OVERLAY_HISTORY_KEY]) {
+          // Remove the synthetic entry after a close button / Escape. When
+          // closing from popstate, the browser is already on the real entry.
+          window.history.back();
         }
       }
     };

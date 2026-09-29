@@ -13,6 +13,7 @@ import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { syncWebPush, disableWebPush, onWebPushNotificationClick } from "@/lib/webPush";
 import NotificationBanner from "@/components/NotificationBanner";
+import { hasInAppHistory } from "@/lib/backNavigation";
 
 const LOGO_URL =
   "https://media.base44.com/images/public/6aa138d0e963d9e5f59d838c/c26279d55_logo.png";
@@ -90,6 +91,14 @@ export default function Layout() {
     urlParams.get("game") ||
     urlParams.get("view"); // sous-écrans Biblette (lecteur, dictionnaire, recherche)
 
+  const goBack = () => {
+    if (hasInAppHistory(window.history.state)) {
+      navigate(-1);
+    } else {
+      navigate("/", { replace: true });
+    }
+  };
+
   return (
     <LocationGate>
     <div className="min-h-screen bg-background overflow-x-hidden">
@@ -153,7 +162,7 @@ export default function Layout() {
           <div className="flex items-center gap-2">
             {showBack ? (
               <button
-                onClick={() => navigate(-1)}
+                onClick={goBack}
                 className="h-11 w-11 grid place-items-center rounded-full border border-border hover:bg-muted transition"
                 aria-label="Retour"
               >

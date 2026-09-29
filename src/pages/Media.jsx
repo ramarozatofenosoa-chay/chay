@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 
 import PullToRefresh from "@/components/PullToRefresh";
@@ -10,6 +10,7 @@ import { useRadio } from "@/lib/RadioContext";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/lib/AuthContext";
 import { filterVisible } from "@/lib/mediaConstants";
+import { hasNavigationOrigin } from "@/lib/backNavigation";
 import { Loader2 } from "lucide-react";
 
 export default function Media() {
@@ -156,10 +157,11 @@ export default function Media() {
     }
   };
 
-  const openCat = (id) => setSearchParams({ cat: id });
+  const openCat = (id) =>
+    setSearchParams({ cat: id }, { state: { chayMediaCategory: true } });
   const back = () => {
-    if (window.history.length > 1) navigate(-1);
-    else setSearchParams({});
+    if (hasNavigationOrigin(window.history.state, "chayMediaCategory")) navigate(-1);
+    else setSearchParams({}, { replace: true });
   };
 
   return (

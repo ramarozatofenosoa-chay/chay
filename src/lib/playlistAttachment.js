@@ -31,27 +31,88 @@ export function resolveSelectedPlaylistId(selectedPlaylistId, submittedPlaylistI
   return selectedPlaylistId === null ? submittedPlaylistId : selectedPlaylistId;
 }
 
-export async function savePlaylistTrack(entity, record, mediaField) {
-  const created = await entity.create(record);
-  if (!created?.id) {
-    throw new Error("Base44 n'a pas confirmé l'ajout du contenu à la playlist.");
+const wait = (milliseconds) =>
+  new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+async function findPersistedPlaylistTrack(entity, record, attempts = 1) {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const rows = await entity.filter(
+      { track_id: record.track_id, playlist_id: record.playlist_id },
+      "-created_date",
+      100
+    );
+    const persisted = (Array.isArray(rows) ? rows : []).find(
+      (row) =>
+        row.track_id === record.track_id &&
+        row.playlist_id === record.playlist_id
+    );
+    if (persisted) return persisted;
+    if (attempt + 1 < attempts) await wait(150 * (attempt + 1));
+  }
+  return null;
+}
+
+export async function savePlaylistTrack(
+  entity,
+  record,
+  mediaField,
+  { checkExisting = false } = {}
+) {
+  const requiredFields = ["playlist_id", "track_id", "title", mediaField];
+  const missingFields = (persisted) =>
+    requiredFields.filter((field) => persisted?.[field] !== record[field]);
+  const repair = async (persisted) => {
+    const missing = missingFields(persisted);
+    if (missing.length && persisted?.id) {
+      await entity.update(
+        persisted.id,
+        Object.fromEntries(missing.map((field) => [field, record[field]]))
+      );
+    }
+  };
+
+  let persisted = checkExisting
+    ? await findPersistedPlaylistTrack(entity, record)
+    : null;
+  let createError;
+  let created;
+  let createdId;
+  let readError;
+
+  if (!persisted) {
+    try {
+      created = await entity.create(record);
+      createdId = created?.id;
+    } catch (error) {
+      createError = error;
+    }
+    if (createdId && missingFields(created).length) {
+      let createdRecord;
+      try {
+        createdRecord = await entity.get(createdId);
+      } catch (error) {
+        readError = error;
+      }
+      if (createdRecord) await repair(createdRecord);
+    }
+    if (!persisted) persisted = await findPersistedPlaylistTrack(entity, record, 4);
   }
 
-  const requiredFields = ["playlist_id", "track_id", "title", mediaField];
-  let persisted = await entity.get(created.id);
-  let missingFields = requiredFields.filter(
-    (field) => persisted?.[field] !== record[field]
-  );
-  if (!missingFields.length) return persisted;
+  if (!persisted) {
+    if (readError) {
+      throw new Error(
+        `Base44 n'a pas confirmé le lien playlist : ${readError.message || String(readError)}`
+      );
+    }
+    if (createError) throw createError;
+    throw new Error(
+      "Base44 n'a pas confirmé l'ajout du contenu à la playlist. Le contenu reste enregistré; réessayez l'ajout."
+    );
+  }
 
-  const updated = await entity.update(
-    persisted?.id || created.id,
-    Object.fromEntries(missingFields.map((field) => [field, record[field]]))
-  );
-  persisted = await entity.get(updated?.id || created.id);
-  const stillMissing = requiredFields.filter(
-    (field) => persisted?.[field] !== record[field]
-  );
+  await repair(persisted);
+  persisted = await findPersistedPlaylistTrack(entity, record, 4);
+  const stillMissing = missingFields(persisted);
   if (stillMissing.length) {
     throw new Error(
       `Base44 n'a pas enregistré le lien playlist (${stillMissing.join(", ")}). Vérifiez les champs de l'entité PlaylistTrack, puis publiez.`

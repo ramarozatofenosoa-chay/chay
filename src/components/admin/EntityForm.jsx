@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import FieldInput from "@/components/admin/FieldInput";
+import { findMissingRequiredField } from "@/lib/requiredFormField";
 
 export default function EntityForm({
   fields,
@@ -33,9 +34,6 @@ export default function EntityForm({
     if (name === "playlist_id") onPlaylistChange?.(v || "");
   };
 
-  const missingFile = (values) =>
-    fields.find((f) => f.type === "file" && f.required && !values[f.name]);
-
   const submit = (e) => {
     e.preventDefault();
     setMissing("");
@@ -44,7 +42,7 @@ export default function EntityForm({
       return;
     }
     const currentData = dataRef.current;
-    const m = missingFile(currentData);
+    const m = findMissingRequiredField(fields, currentData);
     if (m) {
       setMissing(`Le champ « ${m.label} » est obligatoire.`);
       return;
@@ -56,9 +54,13 @@ export default function EntityForm({
     if (!pending || uploading) return;
     setPending(false);
     const currentData = dataRef.current;
-    const m = missingFile(currentData);
+    const m = findMissingRequiredField(fields, currentData);
     if (m) {
-      setMissing(`L'envoi de « ${m.label} » a échoué. Réessayez avant d'enregistrer.`);
+      setMissing(
+        m.type === "file"
+          ? `L'envoi de « ${m.label} » a échoué. Réessayez avant d'enregistrer.`
+          : `Le champ « ${m.label} » est obligatoire.`
+      );
       return;
     }
     onSubmit(currentData);
