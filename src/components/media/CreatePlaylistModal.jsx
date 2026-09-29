@@ -54,14 +54,15 @@ export default function CreatePlaylistModal({
     try {
       const file = new File([blob], "icon.jpg", { type: "image/jpeg" });
       const res = await base44.integrations.Core.UploadPublicFile({ file });
-      if (!res?.file_url) throw new Error("URL non reçue");
-      setCoverUrl(res.file_url);
+      const url = res?.file_url || res?.url || res?.public_url || (typeof res === "string" ? res : null);
+      if (!url) throw new Error("Aucune URL reçue. Réessayez.");
+      setCoverUrl(url);
       setIconChosen(true);
       setRawFile(null);
       toast({ title: "Icône enregistrée ✓" });
     } catch (err) {
       toast({ title: "Erreur upload icône", description: err.message || "Réessayez", variant: "destructive" });
-      setRawFile(null); // retour à l'écran de sélection pour réessayer
+      setRawFile(null);
     }
     setUploading(false);
   };

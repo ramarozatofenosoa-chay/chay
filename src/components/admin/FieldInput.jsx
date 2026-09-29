@@ -33,27 +33,33 @@ function PlaylistSelect({ value, onChange, cls }) {
   );
 }
 
-function FileUploadField({ field, value, onChange }) {
-  const [status, setStatus] = useState("idle"); // idle | uploading | done | error
+function FileUploadField({ field, value, onChange, onUploadingChange }) {
+  const [status, setStatus] = useState(() => value ? "done" : "idle");
   const [fileName, setFileName] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [fileToRetry, setFileToRetry] = useState(null);
-  const inputRef = React.useRef(null);
 
   const doUpload = async (file) => {
     if (!file) return;
     setFileName(file.name);
     setStatus("uploading");
     setErrorMsg("");
+    onUploadingChange?.(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
-      onChange(file_url);
+      // Même méthode que AddPlaylistTrackModal qui fonctionne
+      const res = await base44.integrations.Core.UploadPublicFile({ file });
+      const url = res?.file_url || res?.url || res?.public_url || (typeof res === "string" ? res : null);
+      if (!url) throw new Error("Aucune URL reçue du serveur. Réessayez.");
+      onChange(url);
       setStatus("done");
       setFileToRetry(null);
     } catch (err) {
       setStatus("error");
       setErrorMsg(err?.message || "Erreur inconnue");
       setFileToRetry(file);
+      onChange(""); // reset pour ne pas soumettre une URL vide
+    } finally {
+      onUploadingChange?.(false);
     }
   };
 
@@ -63,18 +69,16 @@ function FileUploadField({ field, value, onChange }) {
     e.target.value = "";
   };
 
-  const retry = () => {
-    if (fileToRetry) doUpload(fileToRetry);
-  };
-
   return (
     <div className="space-y-2">
+      {/* Bouton choisir fichier — toujours visible sauf pendant upload */}
       {status !== "uploading" && (
-        <label className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-bold cursor-pointer hover:bg-muted">
-          <Upload className="h-3.5 w-3.5" />
-          {status === "done" ? "Changer" : "Importer"}
+        <label className="inline-flex items-center gap-2 rounded-xl border-2 border-dashed border-border bg-card px-4 py-3 text-sm font-semibold cursor-pointer hover:border-primary hover:bg-primary/5 transition w-full">
+          <Upload className="h-4 w-4 text-primary shrink-0" />
+          <span className="truncate text-foreground/70">
+            {status === "done" ? `✓ ${fileName || "Fichier importé"} — Changer` : "Choisir un fichier…"}
+          </span>
           <input
-            ref={inputRef}
             type="file"
             className="hidden"
             onChange={onFile}
@@ -83,36 +87,39 @@ function FileUploadField({ field, value, onChange }) {
         </label>
       )}
 
+      {/* En cours */}
       {status === "uploading" && (
-        <div className="flex items-center gap-2 rounded-xl bg-primary/10 border border-primary/20 px-3 py-2 text-sm">
-          <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
+        <div className="flex items-center gap-3 rounded-xl bg-primary/10 border border-primary/20 px-4 py-3">
+          <Loader2 className="h-5 w-5 animate-spin text-primary shrink-0" />
           <div className="flex-1 min-w-0">
-            <div className="font-bold text-primary text-xs">Envoi en cours…</div>
+            <div className="text-sm font-bold text-primary">Envoi en cours…</div>
             <div className="text-xs text-foreground/60 truncate">{fileName}</div>
           </div>
         </div>
       )}
 
+      {/* Succès */}
       {status === "done" && (
-        <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 text-sm">
-          <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+        <div className="flex items-center gap-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-4 py-3">
+          <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
           <div className="flex-1 min-w-0">
-            <div className="font-bold text-emerald-600 text-xs">Importé ✓</div>
+            <div className="text-sm font-bold text-emerald-600">Importé avec succès</div>
             <div className="text-xs text-foreground/60 truncate">{fileName}</div>
           </div>
         </div>
       )}
 
+      {/* Erreur */}
       {status === "error" && (
-        <div className="flex items-start gap-2 rounded-xl bg-destructive/10 border border-destructive/20 px-3 py-2 text-sm">
-          <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 rounded-xl bg-destructive/10 border border-destructive/20 px-4 py-3">
+          <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
-            <div className="font-bold text-destructive text-xs">Échec de l'import</div>
-            <div className="text-xs text-foreground/60 truncate mb-1">{errorMsg}</div>
+            <div className="text-sm font-bold text-destructive">Échec de l'import</div>
+            <div className="text-xs text-foreground/60 mb-2">{errorMsg}</div>
             <button
               type="button"
-              onClick={retry}
-              className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline"
+              onClick={() => fileToRetry && doUpload(fileToRetry)}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline"
             >
               <RefreshCw className="h-3 w-3" /> Réessayer
             </button>
@@ -123,7 +130,7 @@ function FileUploadField({ field, value, onChange }) {
   );
 }
 
-export default function FieldInput({ field, value, onChange }) {
+export default function FieldInput({ field, value, onChange, onUploadingChange }) {
   const cls =
     "w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20";
 
@@ -176,7 +183,14 @@ export default function FieldInput({ field, value, onChange }) {
     case "playlist":
       return <PlaylistSelect value={value} onChange={onChange} cls={cls} />;
     case "file":
-      return <FileUploadField field={field} value={value} onChange={onChange} />;
+      return (
+        <FileUploadField
+          field={field}
+          value={value}
+          onChange={onChange}
+          onUploadingChange={onUploadingChange}
+        />
+      );
     default:
       return (
         <input
