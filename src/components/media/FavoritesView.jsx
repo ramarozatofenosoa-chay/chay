@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Music, Headphones, Film, Play, Pause, Trash2, Pencil } from "lucide-react";
 import CreatePlaylistModal from "@/components/media/CreatePlaylistModal";
 import PlaylistCover from "@/components/media/PlaylistCover";
+import VideoPlayer from "@/components/player/VideoPlayer";
 
 const TABS = [
   { id: "music", label: "Musique", icon: Music },
@@ -102,13 +103,11 @@ export default function FavoritesView({
                   </button>
                 </div>
                 {item.video_url && (
-                  <video
+                  <VideoPlayer
                     src={item.video_url}
-                    controls
-                    controlsList="nodownload"
-                    disablePictureInPicture
-                    className="w-full mt-3 rounded-xl max-h-72 bg-black"
+                    title={item.title}
                     poster={item.cover_url}
+                    className="mt-3 w-full rounded-xl max-h-72"
                   />
                 )}
               </div>

@@ -59,7 +59,7 @@ export default function ContentDetailDialog({ item, open, onOpenChange }) {
         </DialogHeader>
 
         {isVideo && item.media_url && (
-          <VideoPlayer src={item.media_url} className="w-full max-h-72 rounded-xl" />
+          <VideoPlayer src={item.media_url} title={item.title} className="w-full max-h-72 rounded-xl" />
         )}
         {isAudio && item.media_url && (
           <audio controls src={item.media_url} className="w-full mt-2" />

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Maximize2 } from "lucide-react";
 import { useBackHandler } from "@/hooks/useBackHandler";
+import { registerMediaControl, updateMediaControl } from "@/lib/mediaControl";
 
 export default function YouTubeViewer({
   video,
@@ -16,8 +17,35 @@ export default function YouTubeViewer({
   const containerRef = useRef(null);
   const iframeRef = useRef(null);
   const hideTimerRef = useRef(null);
+  const youtubePlayingRef = useRef(true);
 
   useBackHandler(Boolean(open && video), onClose);
+
+  useEffect(() => {
+    if (!open || !video) return undefined;
+    youtubePlayingRef.current = true;
+    const sendCommand = (command) => {
+      iframeRef.current?.contentWindow?.postMessage(
+        JSON.stringify({ event: "command", func: command, args: [] }),
+        "https://www.youtube-nocookie.com"
+      );
+    };
+    const dispose = registerMediaControl({
+      type: "youtube",
+      title: video.title,
+      isPlaying: youtubePlayingRef.current,
+      toggle: () => {
+        youtubePlayingRef.current = !youtubePlayingRef.current;
+        sendCommand(youtubePlayingRef.current ? "playVideo" : "pauseVideo");
+        updateMediaControl(dispose.id, { isPlaying: youtubePlayingRef.current });
+      },
+      stop: () => {
+        youtubePlayingRef.current = false;
+        sendCommand("stopVideo");
+      },
+    });
+    return dispose;
+  }, [open, video?.id, video?.title]);
 
   // Cache les contrôles après inactivité
   useEffect(() => {
@@ -98,7 +126,8 @@ export default function YouTubeViewer({
               <div className={`relative bg-black overflow-hidden ${fullscreen ? "w-full h-full" : "rounded-2xl"}`}>
                 <div className={fullscreen ? "w-full h-full" : "aspect-video"}>
                   <iframe
-                    src={`https://www.youtube-nocookie.com/embed/${video.youtube_id}?autoplay=1&rel=0`}
+                    ref={iframeRef}
+                    src={`https://www.youtube-nocookie.com/embed/${video.youtube_id}?autoplay=1&rel=0&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`}
                     title={video.title}
                     className="w-full h-full"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

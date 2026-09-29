@@ -10,6 +10,7 @@ import {
   buildWordProjectAudioUrl,
   isWordProjectAudioEnabled,
 } from "@/lib/wordProjectAudio";
+import { registerMediaControl } from "@/lib/mediaControl";
 
 const STORAGE_PREFIX = "bible_audio_pos_";
 
@@ -43,6 +44,7 @@ export default function BibleAudioPlayer({ book, chapter, onPrev, onNext }) {
   const posKey = book && chapter ? `${STORAGE_PREFIX}${book.order}_${chapter}` : null;
 
   const [isPlaying, setIsPlaying] = useState(false);
+  const [mediaControlActive, setMediaControlActive] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -121,16 +123,20 @@ export default function BibleAudioPlayer({ book, chapter, onPrev, onNext }) {
 
   useEffect(() => {
     const onHide = () => saveNow();
-    document.addEventListener("visibilitychange", onHide);
-    window.addEventListener("beforeunload", onHide);
+    const pauseOnHide = () => {
+      onHide();
+      if (document.visibilityState === "hidden") audioRef.current?.pause();
+    };
+    document.addEventListener("visibilitychange", pauseOnHide);
+    window.addEventListener("pagehide", pauseOnHide);
     return () => {
-      document.removeEventListener("visibilitychange", onHide);
-      window.removeEventListener("beforeunload", onHide);
+      document.removeEventListener("visibilitychange", pauseOnHide);
+      window.removeEventListener("pagehide", pauseOnHide);
       saveNow();
     };
   }, [saveNow]);
 
-  const togglePlay = async () => {
+  const togglePlay = useCallback(async () => {
     const a = audioRef.current;
     if (!a || !url) return;
     try {
@@ -139,7 +145,23 @@ export default function BibleAudioPlayer({ book, chapter, onPrev, onNext }) {
     } catch {
       setError("Lecture bloquée par le navigateur. Appuyez à nouveau sur Lire.");
     }
-  };
+  }, [url]);
+
+  const stopPlayback = useCallback(() => {
+    audioRef.current?.pause();
+    setMediaControlActive(false);
+  }, []);
+
+  useEffect(() => {
+    if (!mediaControlActive || !url) return undefined;
+    return registerMediaControl({
+      type: "bible",
+      title: `Bible audio · ${book?.name || ""} ${chapter}`,
+      isPlaying,
+      toggle: togglePlay,
+      stop: stopPlayback,
+    });
+  }, [mediaControlActive, isPlaying, url, book?.name, chapter, togglePlay, stopPlayback]);
 
   // ➕ NOUVEAU : seek par clic / glisser sur la barre
   const seekFromClientX = useCallback((clientX) => {
@@ -185,13 +207,14 @@ export default function BibleAudioPlayer({ book, chapter, onPrev, onNext }) {
         src={url}
         preload="auto"
         onLoadedMetadata={onLoadedMetadata}
-        onPlay={() => setIsPlaying(true)}
+        onPlay={() => { setIsPlaying(true); setMediaControlActive(true); }}
         onPause={() => setIsPlaying(false)}
-        onEnded={() => { setIsPlaying(false); saveNow(); if (onNext) { autoPlayNextRef.current = true; onNext(); } }}
+        onEnded={() => { setIsPlaying(false); if (!onNext) setMediaControlActive(false); saveNow(); if (onNext) { autoPlayNextRef.current = true; onNext(); } }}
         onWaiting={() => setLoading(true)}
         onPlaying={() => { setLoading(false); setError(""); }}
         onError={() => {
           setIsPlaying(false);
+          setMediaControlActive(false);
           setLoading(false);
           setError("Fichier audio indisponible pour ce chapitre.");
         }}
