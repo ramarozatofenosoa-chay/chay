@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 
+export const MEDIA_PLAYER_BUFFERING_POLICY = Object.freeze({
+  defaultErrorTimeoutMs: 30000,
+  radioPrerollMinBufferSeconds: 6,
+  radioPrerollMaxMs: 15000,
+  radioStallMs: 40000,
+});
+
 // États partagés par tous les lecteurs (Radio, Musique, Prédications, Vidéos).
 // Une seule machine à états, sans logique dupliquée.
 //   idle        — aucune source assignée
@@ -11,7 +18,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 // errorTimeoutMs : durée au-delà de laquelle une lecture bloquée devient une
 // panne. Une micro-coupure de 3 s est fréquente et normale sur réseau mobile :
 // on attend bien plus longtemps avant d'interrompre la lecture pour si peu.
-export function useMediaPlayerState(mediaRef, { isLive = false, errorTimeoutMs = 15000 } = {}) {
+export function useMediaPlayerState(mediaRef, { isLive = false, errorTimeoutMs = MEDIA_PLAYER_BUFFERING_POLICY.defaultErrorTimeoutMs } = {}) {
   const [state, setState] = useState("idle");
   const [bufferedRatio, setBufferedRatio] = useState(0);
   const [errorCode, setErrorCode] = useState(undefined);
