@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import { RADIO_URL, RADIO_LOGO } from "@/lib/mediaConstants";
 import { isRadioMseSupported, startRadioStream } from "@/lib/radioMse";
-import { useMediaPlayerState } from "@/hooks/useMediaPlayerState";
+import { MEDIA_PLAYER_BUFFERING_POLICY, useMediaPlayerState } from "@/hooks/useMediaPlayerState";
 import { clearMediaControl, publishMediaControl } from "@/lib/mediaControl";
 
 const RadioContext = createContext(null);
@@ -15,20 +15,19 @@ export const useRadio = () => useContext(RadioContext);
 
 // Pré-roll adaptatif : on lance le son dès que le tampon contient
 // PREROLL_MIN_BUFFER_S secondes (au plus tôt après PREROLL_MIN_MS), avec un
-// plafond dur de PREROLL_MAX_MS ms. Là où l'ancien code attendait toujours
-// 8 s avant le moindre son, on lance dès que le tampon est prêt.
-const PREROLL_MAX_MS = 5000;
-const PREROLL_MIN_MS = 1200;
-// MSE : le backlog serveur arrive en bloc, 2 s de tampon sont atteintes en
-// moins d'une seconde. Repli <audio> : Chrome plafonne à ~2,2 s. Un seuil
-// supérieur à 2 s nous projeterait donc sur le plafond du repli — on garde 2 s.
-const PREROLL_MIN_BUFFER_S = 2;
+// plafond dur de PREROLL_MAX_MS ms. On augmente le tampon pour les réseaux
+// mobiles et les faibles connexions, afin que la lecture reste fluide plus longtemps.
+const PREROLL_MAX_MS = MEDIA_PLAYER_BUFFERING_POLICY.radioPrerollMaxMs;
+const PREROLL_MIN_MS = 1800;
+// MSE : le backlog serveur arrive en bloc ; on laisse plus de marge avant de
+// décider que le flux est suffisamment prêt pour démarrer la lecture.
+const PREROLL_MIN_BUFFER_S = MEDIA_PLAYER_BUFFERING_POLICY.radioPrerollMinBufferSeconds;
 // Lecture MSE disponible (Chrome/Edge et Android). Sinon : chemin <audio>.
 const USE_MSE = isRadioMseSupported();
-const RESUME_MS = 6000; // délai de reprise après une coupure réseau
-// Tolérance avant de déclarer une panne : 3 s sans données est fréquent et
-// normal sur réseau mobile, ce n'est pas une panne.
-const RADIO_STALL_MS = 25000;
+const RESUME_MS = 8000; // délai de reprise après une coupure réseau
+// Tolérance avant de déclarer une panne : une coupure courte est fréquente sur
+// réseau mobile, donc on attend plus longtemps avant de forcer une reprise.
+const RADIO_STALL_MS = MEDIA_PLAYER_BUFFERING_POLICY.radioStallMs;
 
 export const MAX_RADIO_RETRIES = 12;
 
