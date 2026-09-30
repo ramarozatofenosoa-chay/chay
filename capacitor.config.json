@@ -1,6 +1,6 @@
 {
   "appId": "io.chay.app",
-  "appName": "ÉGLISE CHAY",
+  "appName": "Église Chay",
   "bundledWebRuntime": false,
   "server": {
     "url": "https://chay.base44.app",
