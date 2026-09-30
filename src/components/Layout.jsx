@@ -9,12 +9,14 @@ import PullDownMediaBar from "@/components/PullDownMediaBar";
 import UniversalMediaSurface from "@/components/UniversalMediaSurface";
 import { Image } from "@/components/ui/image";
 import { useAuth } from "@/lib/AuthContext";
+import { usePreferences } from "@/lib/PreferencesContext";
 import { usePresenceHeartbeat } from "@/hooks/usePresence";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { syncWebPush, disableWebPush, onWebPushNotificationClick } from "@/lib/webPush";
 import NotificationBanner from "@/components/NotificationBanner";
+import FloatingChatBubble from "@/components/messages/FloatingChatBubble";
 import { useMediaSessionSync } from "@/hooks/useMediaSessionSync";
 import {
   getBackAction,
@@ -39,6 +41,7 @@ const ROOT_TABS = NAV.map((n) => n.to);
 
 export default function Layout() {
   const { user, isAuthenticated } = useAuth();
+  const { prefs } = usePreferences();
   const [activeMedia, setActiveMedia] = useState(null);
   useEffect(() => subscribeMediaControl(setActiveMedia), []);
   useMediaSessionSync(activeMedia);
@@ -92,7 +95,12 @@ export default function Layout() {
   // Push navigateur : (ré)abonne silencieusement si la permission est déjà
   // accordée ; désabonne cet appareil à la déconnexion (comme le token FCM).
   useEffect(() => {
-    if (isAuthenticated && user?.id) {
+    if (
+      isAuthenticated &&
+      user?.id &&
+      prefs.notifications_enabled !== false &&
+      prefs.notif_push !== false
+    ) {
       syncWebPush(user.id).finally(() => {
         webPushSynced.current = true;
       });
@@ -100,7 +108,7 @@ export default function Layout() {
       webPushSynced.current = false;
       disableWebPush();
     }
-  }, [isAuthenticated, user?.id]);
+  }, [isAuthenticated, prefs.notifications_enabled, prefs.notif_push, user?.id]);
 
   // Clic sur une notification push navigateur : ouvre la bonne page.
   useEffect(
@@ -144,6 +152,7 @@ export default function Layout() {
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
       <NotificationBanner />
+      <FloatingChatBubble />
       {/* Desktop floating glass rail */}
       <header className="hidden md:flex sticky top-0 z-40 px-6 pt-5">
         <div className="mx-auto w-full max-w-6xl flex items-center justify-between rounded-full border border-border bg-background/70 backdrop-blur-xl px-6 py-3 glow-soft">

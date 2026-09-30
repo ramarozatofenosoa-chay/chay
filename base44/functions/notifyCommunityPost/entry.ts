@@ -51,16 +51,18 @@ export default async function(req) {
 
     // Récupère tous les utilisateurs par pagination (cap de sécurité 5000).
     const rows = [];
+    const pushIds = [];
     let skip = 0;
     while (skip < 5000) {
       const batch = await base44.asServiceRole.entities.User
-        .list('-created_date', 500, skip)
-        .catch(() => []);
+        .list('-created_date', 500, skip);
       const arr = Array.isArray(batch) ? batch : [];
       for (const u of arr) {
         if (u.id === authorId) continue;
+        const prefs = u.settings || {};
         // Préférence générale : notifications coupées → pas de notification.
-        if (u.settings && u.settings.notifications_enabled === false) continue;
+        if (prefs.notifications_enabled === false || prefs.notif_news === false) continue;
+        if (prefs.notif_push !== false) pushIds.push(u.id);
         rows.push({
           user_id: u.id,
           notification_id: notifId,
@@ -80,15 +82,51 @@ export default async function(req) {
 
     // Création par lots de 500.
     let created = 0;
+    let createFailed = 0;
     for (let i = 0; i < rows.length; i += 500) {
       const chunk = rows.slice(i, i + 500);
       try {
         const res = await base44.asServiceRole.entities.UserNotification.bulkCreate(chunk);
         created += Array.isArray(res) ? res.length : 0;
-      } catch {}
+      } catch (error) {
+        createFailed += chunk.length;
+        console.error("[notifyCommunityPost] Création des notifications impossible.", {
+          offset: i,
+          error: error?.message || String(error),
+        });
+      }
     }
 
-    return Response.json({ recipients: rows.length, created });
+    let pushSent = 0;
+    let pushFailed = 0;
+    if (pushIds.length) {
+      try {
+        const result = await base44.asServiceRole.functions.invoke("sendFcmPush", {
+          user_ids: pushIds,
+          title,
+          body: excerpt || title,
+          target_type: "community",
+          target_id: post.id,
+          internal_secret: secrets.get("INTERNAL_INVOKE_SECRET"),
+        });
+        const data = result?.data || result;
+        pushSent = (data?.sent || 0) + (data?.webPush?.sent || 0);
+        pushFailed = (data?.failed || 0) + (data?.webPush?.failed || 0);
+        if (data?.webPush?.skipped && !(data?.sent > 0)) {
+          pushFailed = Math.max(pushFailed, pushIds.length);
+          console.error("[notifyCommunityPost] Push non disponible.", data.webPush.skipped);
+        }
+        if (data?.fcmError && !(data?.webPush?.sent > 0)) {
+          pushFailed = Math.max(pushFailed, pushIds.length);
+          console.error("[notifyCommunityPost] Configuration FCM invalide.", data.fcmError);
+        }
+      } catch (error) {
+        pushFailed = pushIds.length;
+        console.error("[notifyCommunityPost] Envoi push impossible.", error?.message || String(error));
+      }
+    }
+
+    return Response.json({ recipients: rows.length, created, createFailed, pushSent, pushFailed });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

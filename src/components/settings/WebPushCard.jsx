@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Globe, Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
+import { usePreferences } from "@/lib/PreferencesContext";
 import { useToast } from "@/components/ui/use-toast";
 import { enableWebPush, disableWebPush, webPushState } from "@/lib/webPush";
 
@@ -10,25 +11,35 @@ import { enableWebPush, disableWebPush, webPushState } from "@/lib/webPush";
 // navigateur exige une gestuelle utilisateur (surtout Safari).
 export default function WebPushCard() {
   const { user } = useAuth();
+  const { setPref } = usePreferences();
   const { toast } = useToast();
   const [state, setState] = useState({
     supported: false,
     permission: "default",
     subscribed: false,
+    registered: false,
+    registrationError: null,
   });
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     let alive = true;
-    webPushState()
-      .then((s) => {
-        if (alive) setState(s);
-      })
-      .catch(() => {});
+    const refresh = () => {
+      webPushState(user?.id)
+        .then((s) => {
+          if (alive) setState(s);
+        })
+        .catch((error) => {
+          console.error("[WebPush] Impossible de vérifier l'état.", error);
+        });
+    };
+    refresh();
+    window.addEventListener("chay-web-push-state-change", refresh);
     return () => {
       alive = false;
+      window.removeEventListener("chay-web-push-state-change", refresh);
     };
-  }, []);
+  }, [user?.id]);
 
   if (!state.supported) {
     return (
@@ -43,7 +54,10 @@ export default function WebPushCard() {
   }
 
   const denied = state.permission === "denied";
-  const active = state.subscribed && state.permission === "granted";
+  const active =
+    state.subscribed &&
+    state.registered &&
+    state.permission === "granted";
 
   const toggle = async () => {
     setBusy(true);
@@ -54,6 +68,7 @@ export default function WebPushCard() {
         toast({ title: "Notifications navigateur désactivées" });
       } else {
         await enableWebPush(user?.id);
+        setPref("notif_push", true);
         setState(await webPushState());
         toast({
           title: "Notifications navigateur activées",
@@ -83,6 +98,10 @@ export default function WebPushCard() {
             ? "Permission refusée : autorisez les notifications de ce site dans les réglages de votre navigateur."
             : active
               ? "Actives sur cet appareil : les alertes s'affichent même hors de l'onglet."
+              : state.registrationError
+                ? `Vérification impossible : ${state.registrationError}`
+                : state.subscribed
+                  ? "L'abonnement de cet appareil n'est pas enregistré sur le compte. Réactivez-le pour réparer la synchronisation."
               : "Recevez une alerte sur cet appareil (messages, nouveautés, verset du jour), même hors de l'onglet."}
         </p>
         {!denied && (
@@ -97,7 +116,11 @@ export default function WebPushCard() {
             } disabled:opacity-50`}
           >
             {busy && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin inline-block" />}
-            {active ? "Désactiver" : "Activer"}
+            {active
+              ? "Désactiver"
+              : state.subscribed
+                ? "Réparer l'abonnement"
+                : "Activer"}
           </button>
         )}
       </div>

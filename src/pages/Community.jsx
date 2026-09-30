@@ -82,16 +82,26 @@ export default function Community() {
       if (imageFile) {
         image_url = await uploadToBase44(imageFile);
       }
-    await base44.functions.invoke("createCommunityPost", {
-text: draft.trim(),
-image_url,
-});
+      const result = await base44.functions.invoke("createCommunityPost", {
+        text: draft.trim(),
+        image_url,
+      });
+      const notificationError = result?.data?.notification_error;
 
       setDraft("");
       setImageFile(null);
       setImagePreview(null);
       await loadPosts();
-      toast({ title: "Publication partagée" });
+      toast({
+        title: "Publication partagée",
+        ...(notificationError
+          ? {
+              description:
+                "Les notifications aux autres membres n'ont pas pu être envoyées.",
+              variant: "destructive",
+            }
+          : {}),
+      });
     } catch (e) {
       toast({
         title: "Erreur",

@@ -4,6 +4,7 @@ import { PushNotifications } from "@capacitor/push-notifications";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
+import { usePreferences } from "@/lib/PreferencesContext";
 
 const CHANNEL_ID = "chay-default";
 const CHANNEL_NAME = "Chay";
@@ -11,6 +12,7 @@ const CHANNEL_NAME = "Chay";
 // Émet un évènement global lu par la carte de statut push (Réglages).
 function emitStatus(detail) {
   try {
+    window.chayPushStatus = detail;
     window.dispatchEvent(new CustomEvent("chay-push-status", { detail }));
   } catch {
     /* ignore */
@@ -77,11 +79,19 @@ async function deactivateToken(token) {
 // Au premier lancement, affiche un court message FR puis demande l'autorisation.
 export function usePushNotifications(navigate) {
   const { user, isAuthenticated } = useAuth();
+  const { prefs } = usePreferences();
   const { toast } = useToast();
   const tokenRef = useRef(null);
+  const pushEnabled =
+    prefs.notifications_enabled !== false && prefs.notif_push !== false;
 
   useEffect(() => {
     if (!isNative() || !isAuthenticated || !user?.id) return;
+    if (!pushEnabled) {
+      if (tokenRef.current) deactivateToken(tokenRef.current);
+      emitStatus({ disabled: true });
+      return;
+    }
     let handles = [];
     let active = true;
     let settled = false;
@@ -91,7 +101,7 @@ export function usePushNotifications(navigate) {
         let perm = await PushNotifications.checkPermissions();
         if (perm.receive === "prompt") {
           toast({
-            title: "Notifications activées",
+            title: "Autorisation des notifications",
             description:
               "Nous vous prévenons des nouveaux messages et nouveautés, même quand l'app est fermée.",
           });
@@ -120,7 +130,11 @@ export function usePushNotifications(navigate) {
             settled = true;
             tokenRef.current = ev.value;
             try {
-              await upsertToken(ev.value, "android", user?.id);
+              await upsertToken(
+                ev.value,
+                Capacitor.getPlatform() === "ios" ? "ios" : "android",
+                user?.id
+              );
               emitStatus({ ok: true, token: ev.value });
             } catch (e) {
               emitStatus({
@@ -179,7 +193,7 @@ export function usePushNotifications(navigate) {
       handles.forEach((h) => h && typeof h.remove === "function" && h.remove());
       handles = [];
     };
-  }, [isAuthenticated, user?.id]);
+  }, [isAuthenticated, pushEnabled, user?.id]);
 
   // Déconnexion : désactiver le token de cet appareil.
   useEffect(() => {

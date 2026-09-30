@@ -10,6 +10,7 @@ import { MessageCircle } from "lucide-react";
 import ConversationList from "@/components/messages/ConversationList";
 import ConversationView from "@/components/messages/ConversationView";
 import NewChatSheet from "@/components/messages/NewChatSheet";
+import { groupMessagesByConversation } from "@/lib/messageNotifications";
 
 export default function Messages() {
   const { user } = useAuth();
@@ -31,16 +32,15 @@ export default function Messages() {
   const loadAll = async () => {
     const [convos, msgs] = await Promise.all([
       base44.entities.Conversation.list("-updated_date", 100).catch(() => []),
-      base44.entities.Message.list("created_date", 500).catch(() => []),
+      base44.entities.Message.list("-created_date", 500).catch((error) => {
+        console.error("[Messages] Impossible de charger les messages récents.", error);
+        return [];
+      }),
     ]);
     const cArr = Array.isArray(convos) ? convos : [];
     const mArr = Array.isArray(msgs) ? msgs : [];
     setConversations(cArr);
-    const grouped = {};
-    mArr.forEach((m) => {
-      (grouped[m.conversation_id] ||= []).push(m);
-    });
-    setMessagesByConv(grouped);
+    setMessagesByConv(groupMessagesByConversation(mArr));
     setLoading(false);
   };
 

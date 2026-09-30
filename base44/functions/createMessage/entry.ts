@@ -44,14 +44,37 @@ export default async function (req) {
     });
 
     // Notifications (appel interne — secret lu au runtime, jamais côté client).
+    let notificationError = null;
     try {
-      await base44.asServiceRole.functions.invoke("sendMessagePush", {
+      const result = await base44.asServiceRole.functions.invoke("sendMessagePush", {
         message_id: message.id,
         internal_secret: secrets.get("INTERNAL_INVOKE_SECRET"),
       });
-    } catch {}
+      const dispatch = result?.data || result;
+      if (dispatch?.error) {
+        notificationError = String(dispatch.error);
+      } else if (dispatch?.notifFailed > 0) {
+        notificationError = "notification_creation_failed";
+      } else if (dispatch?.pushFailed > 0) {
+        notificationError = "push_delivery_failed";
+      } else if (dispatch?.pushNoSubscriptions > 0) {
+        notificationError = "no_push_subscription";
+      } else if (dispatch?.webPushSkipped && !(dispatch?.pushSent > 0)) {
+        notificationError = String(dispatch.webPushSkipped);
+      } else if (dispatch?.fcmError && !(dispatch?.webPushSent > 0)) {
+        notificationError = String(dispatch.fcmError);
+      }
+    } catch (error) {
+      notificationError = error?.message || String(error);
+    }
+    if (notificationError) {
+      console.error("[createMessage] Message enregistré, mais notifications échouées.", {
+        messageId: message.id,
+        error: notificationError,
+      });
+    }
 
-    return Response.json({ id: message.id });
+    return Response.json({ id: message.id, notification_error: notificationError });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

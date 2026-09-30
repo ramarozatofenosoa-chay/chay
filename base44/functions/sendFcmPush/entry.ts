@@ -100,12 +100,6 @@ export default async function(req) {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
 
-    const saRaw = secrets.get("FIREBASE_SERVICE_ACCOUNT");
-    if (!saRaw) {
-      return Response.json({ error: "FIREBASE_SERVICE_ACCOUNT manquant" }, { status: 500 });
-    }
-    const sa = JSON.parse(saRaw);
-
     // Authentification : admin direct (test) OU appel interne prouvé.
     let user = null;
     try { user = await base44.auth.me(); } catch { /* appel interne */ }
@@ -126,7 +120,7 @@ export default async function(req) {
     const targetType = body.target_type || "";
     const targetId = body.target_id || "";
 
-    // Push navigateur (Web Push) — mêmes destinataires que le push natif.
+    // Push navigateur (Web Push) — indépendant de la configuration FCM.
     // Invoqué AVANT la vérification des tokens : un utilisateur sans app
     // Android reçoit quand même la notification sur son navigateur.
     let webPush = { sent: 0, failed: 0, subscriptions: 0, skipped: null };
@@ -149,19 +143,39 @@ export default async function(req) {
     } catch (e) {
       // Le push natif doit continuer même si le push navigateur échoue.
       webPush.skipped = "invoke_failed";
+      console.error("[sendFcmPush] Appel Web Push impossible.", e?.message || String(e));
+    }
+
+    const saRaw = secrets.get("FIREBASE_SERVICE_ACCOUNT");
+    let sa = null;
+    let fcmConfigError = null;
+    if (saRaw) {
+      try {
+        sa = JSON.parse(saRaw);
+      } catch (error) {
+        fcmConfigError = "FIREBASE_SERVICE_ACCOUNT invalide : " + (error?.message || String(error));
+      }
+    } else {
+      fcmConfigError = "FIREBASE_SERVICE_ACCOUNT manquant";
     }
 
     // Récupération des tokens actifs.
     const tokenRecords = [];
     for (const uid of userIds) {
       const rows = await base44.asServiceRole.entities.DeviceToken
-        .filter({ user_id: uid, is_active: true }, null, 50)
-        .catch(() => []);
+        .filter({ user_id: uid, is_active: true }, null, 50);
       for (const r of (Array.isArray(rows) ? rows : [])) tokenRecords.push(r);
     }
 
-    if (tokenRecords.length === 0) {
-      return Response.json({ sent: 0, tokensFound: 0, failed: 0, firebaseResponses: [], webPush });
+    if (!sa || tokenRecords.length === 0) {
+      return Response.json({
+        sent: 0,
+        tokensFound: tokenRecords.length,
+        failed: 0,
+        firebaseResponses: [],
+        fcmError: fcmConfigError,
+        webPush,
+      });
     }
 
     const accessToken = await getAccessToken(sa);

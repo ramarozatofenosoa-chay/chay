@@ -9,6 +9,7 @@ import React, {
 import { useAuth } from "@/lib/AuthContext";
 import { base44 } from "@/api/base44Client";
 import { useTheme } from "@/hooks/useTheme";
+import { toast } from "@/components/ui/use-toast";
 
 const LS_KEY = "chay-prefs";
 
@@ -116,20 +117,38 @@ export function PreferencesProvider({ children }) {
   }, [prefs.text_size, prefs.contrast, prefs.density, prefs.reduce_animations]);
 
   const persistToAccount = useCallback(
-    (next) => {
+    (next, previous) => {
       if (!user) return;
       setSaving(true);
       base44.auth
         .updateMe({ settings: next })
         .then(() => setSaving(false))
-        .catch(() => setSaving(false));
+        .catch((error) => {
+          setSaving(false);
+          console.error("[Preferences] Impossible d'enregistrer les préférences.", error);
+          if (prefsRef.current === next) {
+            prefsRef.current = previous;
+            setPrefs(previous);
+            try {
+              localStorage.setItem(LS_KEY, JSON.stringify(previous));
+            } catch {
+              /* ignore */
+            }
+          }
+          toast({
+            title: "Préférence non enregistrée",
+            description: "Vérifiez votre connexion puis réessayez.",
+            variant: "destructive",
+          });
+        });
     },
     [user]
   );
 
   const setPref = useCallback(
     (key, value) => {
-      const next = { ...prefsRef.current, [key]: value };
+      const previous = prefsRef.current;
+      const next = { ...previous, [key]: value };
       prefsRef.current = next;
       setPrefs(next);
       try {
@@ -144,7 +163,7 @@ export function PreferencesProvider({ children }) {
           /* ignore */
         }
       }
-      persistToAccount(next);
+      persistToAccount(next, previous);
     },
     [persistToAccount]
   );

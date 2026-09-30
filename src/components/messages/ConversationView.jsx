@@ -20,6 +20,7 @@ import GroupSettingsSheet from "@/components/messages/GroupSettingsSheet";
 import EmojiPicker from "@/components/messages/EmojiPicker";
 import MessageActionMenu from "@/components/messages/MessageActionMenu";
 import PhotoViewer from "@/components/messages/PhotoViewer";
+import ReadReceipts from "@/components/messages/ReadReceipts";
 
 function fmtTime(d) {
   if (!d) return "";
@@ -188,11 +189,18 @@ export default function ConversationView({
     isTypingSent.current = false;
     setTypingState(false);
     try {
-     await base44.functions.invoke("createMessage", {
+      const result = await base44.functions.invoke("createMessage", {
 conversation_id: conversation.id,
 text,
 reply_to_id: replyTo?.id || null,
 });
+      if (result?.data?.notification_error) {
+        toast({
+          title: "Message envoyé",
+          description: "La notification du destinataire n'a pas pu être envoyée.",
+          variant: "destructive",
+        });
+      }
 
       await base44.entities.Conversation.update(conversation.id, {
         last_message_text: text,
@@ -213,11 +221,18 @@ reply_to_id: replyTo?.id || null,
     setSending(true);
     try {
       const uploadedUrl = await uploadToBase44(file);
-   await base44.functions.invoke("createMessage", {
+      const result = await base44.functions.invoke("createMessage", {
 conversation_id: conversation.id,
 text: "",
 image_url: uploadedUrl,
 });
+      if (result?.data?.notification_error) {
+        toast({
+          title: "Photo envoyée",
+          description: "La notification du destinataire n'a pas pu être envoyée.",
+          variant: "destructive",
+        });
+      }
 
       await base44.entities.Conversation.update(conversation.id, {
         last_message_text: "📷 Photo",
@@ -444,6 +459,9 @@ image_url: uploadedUrl,
                     </div>
                   ) : null}
                 </div>
+                {mine && isLastOfGroup && (
+                  <ReadReceipts readers={readersOf(m)} allRead={readByAll(m)} />
+                )}
               </div>
             </div>
           );

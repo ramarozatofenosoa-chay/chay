@@ -71,11 +71,12 @@ return Response.json({ skipped: "too_early", date: dateStr });
     const message = (reference + (dev.verse_text ? " — " + dev.verse_text : "")).slice(0, 300);
 
     const tzCache = new Map(); // fuseau → parties locales mémoïsées
-    const targets = []; // user_ids éligibles (in-app + push)
+    const targets = []; // utilisateurs éligibles à la notification in-app
+    const pushTargets = []; // utilisateurs ayant activé le canal push
     let skip = 0;
     while (skip < 5000) {
       const batch = await base44.asServiceRole.entities.User
-        .list("-created_date", 500, skip).catch(() => []);
+        .list("-created_date", 500, skip);
       const arr = Array.isArray(batch) ? batch : [];
       for (const u of arr) {
         if (done.has(u.id)) continue;
@@ -108,6 +109,7 @@ tzCache.set(tz, parts);
         if (time > "07:00") continue; // heures non planifiées pour l'instant
 
         targets.push(u.id);
+        if (s.notif_push !== false) pushTargets.push(u.id);
       }
       if (arr.length < 500) break;
       skip += 500;
@@ -130,15 +132,20 @@ tzCache.set(tz, parts);
       try {
         const res = await base44.asServiceRole.entities.UserNotification.bulkCreate(rows);
         created += Array.isArray(res) ? res.length : 0;
-      } catch (e) { /* lot suivant */ }
+      } catch (error) {
+        console.error("[notifyDailyVerse] Création des notifications impossible.", {
+          offset: i,
+          error: error?.message || String(error),
+        });
+      }
     }
 
     // Push (sendFcmPush enchaîne sendWebPush → Android + navigateur).
     let pushSent = 0, pushFailed = 0, webPushSent = 0;
-    if (targets.length) {
+    if (pushTargets.length) {
       try {
         const res = await base44.asServiceRole.functions.invoke("sendFcmPush", {
-          user_ids: targets,
+          user_ids: pushTargets,
           title,
           body: message,
           target_type: "daily_verse",
@@ -146,11 +153,20 @@ tzCache.set(tz, parts);
           internal_secret: secrets.get("INTERNAL_INVOKE_SECRET"),
         });
         const r = (res && (res.data || res)) || {};
-        pushSent = r.sent || 0;
-        pushFailed = r.failed || 0;
+        pushSent = (r.sent || 0) + (r.webPush?.sent || 0);
+        pushFailed = (r.failed || 0) + (r.webPush?.failed || 0);
         webPushSent = (r.webPush && r.webPush.sent) || 0;
+        if (r.webPush?.skipped && !(r.sent > 0)) {
+          pushFailed = Math.max(pushFailed, pushTargets.length);
+          console.error("[notifyDailyVerse] Push non disponible.", r.webPush.skipped);
+        }
+        if (r.fcmError && !(r.webPush?.sent > 0)) {
+          pushFailed = Math.max(pushFailed, pushTargets.length);
+          console.error("[notifyDailyVerse] Configuration FCM invalide.", r.fcmError);
+        }
       } catch (e) {
-        pushFailed = targets.length;
+        pushFailed = pushTargets.length;
+        console.error("[notifyDailyVerse] Envoi push impossible.", e?.message || String(e));
       }
     }
 

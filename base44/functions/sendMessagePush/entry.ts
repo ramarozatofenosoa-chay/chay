@@ -98,16 +98,18 @@ export default async function(req) {
       ? senderName + " vous a envoyé une photo"
       : (message.text ? String(message.text).slice(0, 100) : "");
 
-    let notifCreated = 0, emailsSent = 0, emailsSkipped = 0, openSkipped = 0;
+    let notifCreated = 0, notifFailed = 0, emailsSent = 0, emailsSkipped = 0, openSkipped = 0;
     const pushTargets = []; // user_ids éligibles au push natif
 
     for (const uid of pending) {
       const recipient = await base44.asServiceRole.entities.User
         .get(uid).catch(() => null);
       const prefs = (recipient && recipient.settings) || {};
-      const inAppOn = !recipient
-        || (recipient.in_app_messages !== false && prefs.notifications_enabled !== false);
-      const emailOn = !recipient || recipient.email_messages !== false;
+      const notificationsOn = prefs.notifications_enabled !== false
+        && prefs.notif_messages !== false;
+      const inAppOn = notificationsOn && (!recipient || recipient.in_app_messages !== false);
+      const pushOn = notificationsOn && prefs.notif_push !== false;
+      const emailOn = notificationsOn && (!recipient || recipient.email_messages !== false);
 
       const profRows = await base44.asServiceRole.entities.MemberProfile
         .filter({ created_by_id: uid }, "-created_date", 1).catch(() => []);
@@ -140,9 +142,16 @@ export default async function(req) {
         });
         createdNotifId = (n && n.id) || null;
         if (inAppOn) notifCreated += 1;
-      } catch (e) {}
+      } catch (error) {
+        notifFailed += 1;
+        console.error("[sendMessagePush] Création de notification impossible.", {
+          userId: uid,
+          messageId: message.id,
+          error: error?.message || String(error),
+        });
+      }
 
-      if (inAppOn && prefs.notif_push !== false) pushTargets.push(uid);
+      if (pushOn) pushTargets.push(uid);
 
       if (emailOn && recipient && recipient.email) {
         const recent = await base44.asServiceRole.entities.UserNotification
@@ -179,7 +188,8 @@ export default async function(req) {
     }
 
     // Push natif FCM (lot unique pour tous les destinataires éligibles).
-    let pushSent = 0, pushFailed = 0;
+    let pushSent = 0, pushFailed = 0, webPushSent = 0, pushNoSubscriptions = 0;
+    let webPushSkipped = null, fcmError = null;
     if (pushTargets.length) {
       try {
         const res = await base44.asServiceRole.functions.invoke("sendFcmPush", {
@@ -191,15 +201,34 @@ export default async function(req) {
           internal_secret: secrets.get("INTERNAL_INVOKE_SECRET"),
         });
         const r = (res && (res.data || res)) || {};
-        pushSent = r.sent || 0;
-        pushFailed = r.failed || 0;
+        webPushSent = r.webPush?.sent || 0;
+        webPushSkipped = r.webPush?.skipped || null;
+        fcmError = r.fcmError || null;
+        pushSent = (r.sent || 0) + webPushSent;
+        pushFailed = (r.failed || 0) + (r.webPush?.failed || 0);
+        if (r.webPush?.skipped && (r.sent || 0) === 0) pushFailed += 1;
+        if (r.tokensFound === 0 && (r.webPush?.subscriptions || 0) === 0 && !r.webPush?.skipped) {
+          pushNoSubscriptions = pushTargets.length;
+        }
       } catch (e) {
         pushFailed = pushTargets.length;
+        console.error("[sendMessagePush] Envoi push impossible.", e?.message || String(e));
       }
     }
 
     return Response.json({
-      notifCreated, emailsSent, emailsSkipped, pushSent, pushFailed, openSkipped, total: pending.length,
+      notifCreated,
+      notifFailed,
+      emailsSent,
+      emailsSkipped,
+      pushSent,
+      pushFailed,
+      pushNoSubscriptions,
+      webPushSent,
+      webPushSkipped,
+      fcmError,
+      openSkipped,
+      total: pending.length,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
