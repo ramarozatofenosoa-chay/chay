@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Heart, MessageCircle, Send, Loader2, X, Maximize2 } from "lucide-react"; // Ajout de X et Maximize2
 import { Image } from "@/components/ui/image";
@@ -128,20 +129,41 @@ export default function PostCard({ post, currentUser }) {
       
       {/* En-tête du post */}
       <div className="flex items-center gap-3 mb-3">
-        <div className="h-11 w-11 rounded-full brand-gradient grid place-items-center text-white font-display font-bold">
-          {displayName[0]?.toUpperCase()}
-        </div>
-        <div>
-          <div className="font-semibold text-[0.9375rem]">{displayName}</div>
-          <div className="text-xs text-foreground/50">
-            {new Date(post.created_date).toLocaleDateString("fr-FR", {
-              day: "numeric",
-              month: "short",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </div>
-        </div>
+        {post.created_by_id ? (
+          <Link to={`/profile/${post.created_by_id}`} className="contents">
+            <div className="h-11 w-11 rounded-full brand-gradient grid place-items-center text-white font-display font-bold shrink-0">
+              {displayName[0]?.toUpperCase()}
+            </div>
+            <div>
+              <div className="font-semibold text-[0.9375rem] hover:underline">{displayName}</div>
+              <div className="text-xs text-foreground/50">
+                {new Date(post.created_date).toLocaleDateString("fr-FR", {
+                  day: "numeric",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </div>
+            </div>
+          </Link>
+        ) : (
+          <>
+            <div className="h-11 w-11 rounded-full brand-gradient grid place-items-center text-white font-display font-bold shrink-0">
+              {displayName[0]?.toUpperCase()}
+            </div>
+            <div>
+              <div className="font-semibold text-[0.9375rem]">{displayName}</div>
+              <div className="text-xs text-foreground/50">
+                {new Date(post.created_date).toLocaleDateString("fr-FR", {
+                  day: "numeric",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Texte du post */}

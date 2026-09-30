@@ -36,6 +36,14 @@
     "profile_photo_url": {
       "type": "string"
     },
+    "cover_photo_url": {
+      "type": "string",
+      "description": "Photo de couverture affich\u00e9e en haut de la page de profil du membre."
+    },
+    "profile_bio": {
+      "type": "string",
+      "description": "Courte biographie publique affich\u00e9e sur la page de profil du membre. Distincte de la biographie priv\u00e9e du parcours spirituel."
+    },
     "location_lat": {
       "type": "number"
     },
