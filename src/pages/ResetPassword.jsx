@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Lock, Loader2, AlertTriangle, ArrowLeft } from "lucide-react";
 import PasswordInput from "@/components/PasswordInput";
-import PasswordStrength, { evalPassword } from "@/components/PasswordStrength";
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -16,19 +15,14 @@ export default function ResetPassword() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const pwStrength = evalPassword(newPassword);
-  const passwordValid = pwStrength.level === 3;
+  const passwordValid = newPassword.length > 0;
   const match = newPassword === confirmPassword && newPassword.length > 0;
   const canSubmit = passwordValid && match && !loading;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    if (!passwordValid) {
-      setError("Le mot de passe doit atteindre le niveau Fort.");
-      return;
-    }
-    if (!match) {
+    if (!passwordValid || !match) {
       setError("Les mots de passe ne correspondent pas.");
       return;
     }
@@ -71,7 +65,7 @@ export default function ResetPassword() {
           </div>
           <h1 className="font-display font-extrabold text-2xl">Nouveau mot de passe</h1>
           <p className="text-sm text-foreground/60 mt-1">
-            Saisissez votre nouveau mot de passe.
+            Saisissez le mot de passe de votre choix.
           </p>
         </div>
 
@@ -94,9 +88,6 @@ export default function ResetPassword() {
               onChange={(e) => setNewPassword(e.target.value)}
               className="h-12"
             />
-            <div className="mt-1">
-              <PasswordStrength password={newPassword} />
-            </div>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="confirm">Confirmer le mot de passe</Label>

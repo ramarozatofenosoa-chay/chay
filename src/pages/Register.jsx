@@ -209,6 +209,10 @@ export default function Register() {
     e.preventDefault();
     setError("");
     if (!canSubmit) {
+      if (!emailValid) {
+        setError("Saisissez une adresse e-mail valide.");
+        return;
+      }
       setError("Veuillez compléter tous les champs obligatoires et accepter les conditions.");
       return;
     }
@@ -434,7 +438,12 @@ export default function Register() {
                 className={`h-11 ${borderFor(fst(phone, phoneValid))}`}
               />
             </Field>
-            <Field label="E-mail" icon={Mail} required error={email && !emailValid ? "E-mail invalide" : null}>
+            <Field
+              label="E-mail"
+              icon={Mail}
+              required
+              error={email && !emailValid ? "Adresse e-mail invalide." : null}
+            >
               <Input
                 type="email"
                 value={email}
@@ -447,7 +456,7 @@ export default function Register() {
               label="Mot de passe"
               icon={Lock}
               required
-              hint="Choisissez le mot de passe que vous aimez."
+              hint="Choisissez le mot de passe que vous souhaitez."
             >
               <PasswordInput
                 autoComplete="new-password"
