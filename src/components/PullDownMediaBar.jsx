@@ -100,7 +100,8 @@ export default function PullDownMediaBar() {
     isDragging.current = false;
   }, []);
 
-  // Add touch listeners to the document
+  // This web overlay handles gestures inside the WebView only. Android reserves
+  // status-bar swipes for the native notification shade.
   useEffect(() => {
     const options = { passive: true };
     document.addEventListener("touchstart", handleTouchStart, options);
@@ -141,7 +142,7 @@ export default function PullDownMediaBar() {
           style={{ paddingTop: "env(safe-area-inset-top)" }}
         >
           <motion.section
-            aria-label="Barre de lecture téléchargeable"
+            aria-label="Barre de commandes multimédias"
             className="mx-auto max-w-3xl overflow-hidden bg-card/95 shadow-xl backdrop-blur-xl pointer-events-auto border-b border-border"
             onClick={(e) => e.stopPropagation()}
           >

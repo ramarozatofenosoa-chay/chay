@@ -66,7 +66,12 @@ notification shade. Changes to the Android native project require rebuilding
 and reinstalling the APK; publishing the web app in the Base44 dashboard alone
 does not update an already-installed APK. Android controls notification
 visibility and output routing, so its notification permission and device
-settings can affect what is displayed.
+settings can affect what is displayed. The in-app `PullDownMediaBar` is only a
+web overlay: Android reserves the swipe from the status bar for its system
+notification shade, so that gesture cannot reveal a React component. The native
+media notification appears in the shade while playback is active, provided app
+and media-notification permissions are enabled. Android may show media controls
+in its media player/quick settings rather than as a heads-up popup.
 
 ## Docs & Support
 

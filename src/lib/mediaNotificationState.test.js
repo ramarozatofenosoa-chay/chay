@@ -3,7 +3,15 @@ import test from "node:test";
 import {
   createMediaNotificationState,
   dispatchMediaNotificationAction,
+  shouldShowMediaNotification,
 } from "./mediaNotificationState.js";
+
+test("native media notification starts only for playback and remains available while paused", () => {
+  assert.equal(shouldShowMediaNotification(null, false), false);
+  assert.equal(shouldShowMediaNotification({ isPlaying: false }, false), false);
+  assert.equal(shouldShowMediaNotification({ isPlaying: true }, false), true);
+  assert.equal(shouldShowMediaNotification({ isPlaying: false }, true), true);
+});
 
 test("native notification state exposes artwork, metadata, progress, and queue controls", () => {
   assert.deepEqual(createMediaNotificationState({
