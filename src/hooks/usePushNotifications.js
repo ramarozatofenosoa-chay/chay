@@ -99,7 +99,10 @@ export function usePushNotifications(navigate) {
     const start = async () => {
       try {
         let perm = await PushNotifications.checkPermissions();
-        if (perm.receive === "prompt") {
+        if (
+          perm.receive === "prompt" ||
+          perm.receive === "prompt-with-rationale"
+        ) {
           toast({
             title: "Autorisation des notifications",
             description:

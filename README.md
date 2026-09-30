@@ -73,6 +73,32 @@ media notification appears in the shade while playback is active, provided app
 and media-notification permissions are enabled. Android may show media controls
 in its media player/quick settings rather than as a heads-up popup.
 
+## Android push notifications
+
+Android push uses Firebase Cloud Messaging through Capacitor's
+`@capacitor/push-notifications` plugin. The Android application ID is
+`io.chay.app` in both `capacitor.config.json` and `android/app/build.gradle`.
+Register an Android app with this exact package name in the Firebase project
+whose service account is configured as the Base44 `FIREBASE_SERVICE_ACCOUNT`
+secret, then download its `google-services.json`.
+
+For a local Gradle build, put that file at
+`android/app/google-services.json`. The build checks that the file exists and
+contains a Firebase Android client for `io.chay.app`; it fails early with a
+specific error rather than producing an APK without Firebase configuration.
+When generating the Android app through Base44 Publish, enable **Add push
+notifications** and provide the same Firebase `google-services.json` when
+prompted. Rebuild and reinstall the generated APK/AAB after changing this
+configuration; publishing the web app alone does not update an installed
+Android app.
+
+On Android 13 and later, the app requests notification permission after login.
+After granting it, open **Settings → Notifications** in the app and confirm
+that Android reports the device as registered. The FCM token is stored in
+Base44's `DeviceToken` entity for the signed-in user; use the Android push
+test there to check delivery. The native app must be online for initial token
+registration, and a fresh native build must contain Firebase configuration.
+
 ## Docs & Support
 
 GitHub integration: [https://docs.base44.com/developers/app-code/local-development/github](https://docs.base44.com/developers/app-code/local-development/github)
