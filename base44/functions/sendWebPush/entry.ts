@@ -49,7 +49,7 @@ export default async function (req) {
     let skip = 0;
     while (skip < 5000) {
       const batch = await base44.asServiceRole.entities.WebPushSubscription
-        .list("-last_seen", 500, skip).catch(() => []);
+        .list("-last_seen", 500, skip);
       const arr = Array.isArray(batch) ? batch : [];
       for (const s of arr) {
         if (s.is_active !== false && wanted.has(s.user_id)) subs.push(s);

@@ -1,5 +1,10 @@
 import React from "react";
+import { Capacitor } from "@capacitor/core";
+import { PushNotifications } from "@capacitor/push-notifications";
+import { useAuth } from "@/lib/AuthContext";
 import { usePreferences } from "@/lib/PreferencesContext";
+import { useToast } from "@/components/ui/use-toast";
+import { enableWebPush, disableWebPush } from "@/lib/webPush";
 import PrefSwitch from "@/components/settings/PrefSwitch";
 import NotificationDeliveryPrefs from "@/components/settings/NotificationDeliveryPrefs";
 import PushStatusCard from "@/components/settings/PushStatusCard";
@@ -20,20 +25,34 @@ const DAYS = [
 
 export default function NotificationsSection() {
   const { prefs, setPref } = usePreferences();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const enabled = prefs.notifications_enabled;
 
   const togglePush = async (v) => {
-    setPref("notif_push", v);
-    if (
-      v &&
-      typeof Notification !== "undefined" &&
-      Notification.permission === "default"
-    ) {
-      try {
-        await Notification.requestPermission();
-      } catch {
-        /* ignore */
+    try {
+      if (v) {
+        if (Capacitor.isNativePlatform()) {
+          let permission = await PushNotifications.checkPermissions();
+          if (permission.receive === "prompt") {
+            permission = await PushNotifications.requestPermissions();
+          }
+          if (permission.receive !== "granted") {
+            throw new Error("Autorisez les notifications dans les réglages de l'appareil.");
+          }
+        } else {
+          await enableWebPush(user?.id);
+        }
+      } else if (!Capacitor.isNativePlatform()) {
+        await disableWebPush();
       }
+      setPref("notif_push", v);
+    } catch (error) {
+      toast({
+        title: v ? "Impossible d'activer les notifications push" : "Erreur",
+        description: error?.message || String(error),
+        variant: "destructive",
+      });
     }
   };
 

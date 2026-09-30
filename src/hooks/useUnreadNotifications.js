@@ -9,26 +9,48 @@ export function useUnreadNotifications(user) {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      setCount(0);
+      return;
+    }
     let alive = true;
+    let reloadTimer;
 
     const load = async () => {
       try {
-        const rows = await base44.entities.UserNotification.filter({
-          user_id: user.id,
-          is_read: false,
-        });
-        if (alive) setCount(Array.isArray(rows) ? rows.length : 0);
-      } catch {
-        if (alive) setCount(0);
+        let total = 0;
+        let skip = 0;
+        while (skip < 10000) {
+          const rows = await base44.entities.UserNotification.filter(
+            { user_id: user.id, is_read: false },
+            "-created_date",
+            500,
+            skip
+          );
+          if (!Array.isArray(rows)) {
+            throw new Error("Réponse de notifications invalide.");
+          }
+          total += rows.length;
+          if (rows.length < 500) break;
+          skip += rows.length;
+        }
+        if (alive) setCount(total);
+      } catch (error) {
+        console.error("[Notifications] Impossible de calculer les notifications non lues.", error);
       }
     };
 
+    const scheduleLoad = () => {
+      clearTimeout(reloadTimer);
+      reloadTimer = setTimeout(load, 200);
+    };
+
     load();
-    const unsub = base44.entities.UserNotification.subscribe(load);
+    const unsub = base44.entities.UserNotification.subscribe(scheduleLoad);
 
     return () => {
       alive = false;
+      clearTimeout(reloadTimer);
       if (typeof unsub === "function") unsub();
     };
   }, [user?.id]);

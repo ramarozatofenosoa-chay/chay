@@ -75,24 +75,25 @@ export default async function(req) {
     let skip = 0;
     while (skip < 5000) {
       const batch = await base44.asServiceRole.entities.User
-        .list('-created_date', 500, skip).catch(() => []);
+        .list('-created_date', 500, skip);
       const arr = Array.isArray(batch) ? batch : [];
       for (const u of arr) {
         const s = u.settings || {};
-        if (u.in_app_nouveautes === false) continue;
         if (s.notifications_enabled === false) continue;
-        if (s.notif_push !== false) pushIds.push(u.id);
-        rows.push({
-          user_id: u.id,
-          notification_id: notifId,
-          type: 'new_content',
-          content_id: content.id,
-          content_type: content.type,
-          title,
-          message: messageText,
-          thumbnail_url: content.thumbnail_url || '',
-          is_read: false,
-        });
+        if (s.notif_push !== false && s.notif_news !== false) pushIds.push(u.id);
+        if (u.in_app_nouveautes !== false) {
+          rows.push({
+            user_id: u.id,
+            notification_id: notifId,
+            type: 'new_content',
+            content_id: content.id,
+            content_type: content.type,
+            title,
+            message: messageText,
+            thumbnail_url: content.thumbnail_url || '',
+            is_read: false,
+          });
+        }
       }
       if (arr.length < 500) break;
       skip += 500;
@@ -104,7 +105,12 @@ export default async function(req) {
         const res = await base44.asServiceRole.entities.UserNotification
           .bulkCreate(rows.slice(i, i + 500));
         created += Array.isArray(res) ? res.length : 0;
-      } catch (e) {}
+      } catch (error) {
+        console.error("[notifyNewContent] Création des notifications impossible.", {
+          offset: i,
+          error: error?.message || String(error),
+        });
+      }
     }
 
     let emailsSent = 0, emailsSkipped = 0;
@@ -113,7 +119,7 @@ export default async function(req) {
       skip = 0;
       while (skip < 5000) {
         const batch = await base44.asServiceRole.entities.User
-          .list('-created_date', 500, skip).catch(() => []);
+          .list('-created_date', 500, skip);
         const arr = Array.isArray(batch) ? batch : [];
         for (const u of arr) {
           if (u.email_nouveautes === false) continue;
@@ -153,10 +159,19 @@ export default async function(req) {
           internal_secret: secrets.get("INTERNAL_INVOKE_SECRET"),
         });
         const r = (res && (res.data || res)) || {};
-        pushSent = r.sent || 0;
-        pushFailed = r.failed || 0;
+        pushSent = (r.sent || 0) + (r.webPush?.sent || 0);
+        pushFailed = (r.failed || 0) + (r.webPush?.failed || 0);
+        if (r.webPush?.skipped && !(r.sent > 0)) {
+          pushFailed = Math.max(pushFailed, pushUserIds.length);
+          console.error("[notifyNewContent] Push non disponible.", r.webPush.skipped);
+        }
+        if (r.fcmError && !(r.webPush?.sent > 0)) {
+          pushFailed = Math.max(pushFailed, pushUserIds.length);
+          console.error("[notifyNewContent] Configuration FCM invalide.", r.fcmError);
+        }
       } catch (e) {
         pushFailed = pushUserIds.length;
+        console.error("[notifyNewContent] Envoi push impossible.", e?.message || String(e));
       }
     }
 

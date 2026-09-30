@@ -17,20 +17,50 @@ export default function NotificationBanner() {
   useEffect(() => {
     if (!user?.id) return;
     let alive = true;
+    let initialized = false;
+    const queued = [];
+    const initialFetchStartedAt = Date.now();
+    lastDateRef.current = null;
     const init = async () => {
       const rows = await base44.entities.UserNotification
         .filter({ user_id: user.id }, "-created_date", 1)
-        .catch(() => []);
-      if (alive) {
-        lastDateRef.current = (rows && rows[0] && rows[0].created_date) || new Date().toISOString();
-      }
+        .catch((error) => {
+          console.error("[Notifications] Impossible de charger le dernier élément.", error);
+          return [];
+        });
+      if (!alive) return;
+      lastDateRef.current =
+        (rows && rows[0] && rows[0].created_date) ||
+        new Date(initialFetchStartedAt).toISOString();
+      initialized = true;
+      queued
+        .filter((notification) =>
+          new Date(notification.created_date || 0) > new Date(initialFetchStartedAt)
+        )
+        .sort(
+          (left, right) =>
+            new Date(left.created_date || 0).getTime() -
+            new Date(right.created_date || 0).getTime()
+        )
+        .forEach((notification) => {
+          if (
+            new Date(notification.created_date || 0) >
+            new Date(lastDateRef.current || 0)
+          ) {
+            lastDateRef.current = notification.created_date;
+          }
+          setBanner(notification);
+        });
     };
     init();
     const unsub = base44.entities.UserNotification.subscribe((event) => {
       if (!event || event.type !== "create") return;
       const n = event.data;
       if (!n || n.user_id !== user.id || n.is_read) return;
-      if (!lastDateRef.current) return;
+      if (!initialized) {
+        queued.push(n);
+        return;
+      }
       if (new Date(n.created_date) > new Date(lastDateRef.current)) {
         lastDateRef.current = n.created_date;
         setBanner(n);

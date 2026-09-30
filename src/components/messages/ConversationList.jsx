@@ -5,6 +5,7 @@ import { usePreferences } from "@/lib/PreferencesContext";
 import PullToRefresh from "@/components/PullToRefresh";
 import ConversationItem from "@/components/messages/ConversationItem";
 import ActiveMembersRow from "@/components/messages/ActiveMembersRow";
+import { countUnreadMessages } from "@/lib/messageNotifications";
 
 const FILTER_KEY = "chay_msg_filter";
 
@@ -35,9 +36,7 @@ export default function ConversationList({
     const title = isGroup ? c.name || "Groupe" : otherProfile?.display_name || "Membre";
     const avatar = isGroup ? c.photo_url : otherProfile?.avatar_url;
     const online = showPresence && !isGroup && isOnline(otherProfile?.last_seen_at);
-    const unread = msgs.filter(
-      (m) => m.sender_id !== user?.id && !(m.read_by || []).includes(user?.id)
-    ).length;
+    const unread = countUnreadMessages(msgs, user?.id);
     const preview =
       (last
         ? (last.sender_id === user?.id

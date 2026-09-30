@@ -1,4 +1,26 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
+import { secrets } from 'base44:runtime';
+
+async function sendPush(svc, userId, title, message, postId, action) {
+  try {
+    const result = await svc.functions.invoke("sendFcmPush", {
+      user_ids: [userId],
+      title,
+      body: message,
+      target_type: "community",
+      target_id: postId,
+      internal_secret: secrets.get("INTERNAL_INVOKE_SECRET"),
+    });
+    return result?.data || result;
+  } catch (error) {
+    console.error("[notifySocialInteraction] Push impossible.", {
+      userId,
+      action,
+      error: error?.message || String(error),
+    });
+    return { failed: 1 };
+  }
+}
 
 // Notifie l'auteur d'une publication qu'un like ou un commentaire a été reçu.
 // S'exécute côté serveur en mode service (passe la RLS) pour que les
@@ -106,7 +128,17 @@ export default async function(req) {
           is_read: false,
         });
       }
-      return Response.json({ ok: true, action: 'like', total });
+      const push = prefs.notif_push === false
+        ? { skipped: "push_disabled" }
+        : await sendPush(
+            svc,
+            authorId,
+            title,
+            actorName + (total > 1 ? " et d'autres ont aimé votre publication." : " a aimé votre publication."),
+            postId,
+            action,
+          );
+      return Response.json({ ok: true, action: 'like', total, push });
     }
 
     if (action === 'comment') {
@@ -142,7 +174,18 @@ export default async function(req) {
         message: excerpt,
         is_read: false,
       });
-      return Response.json({ ok: true, action: 'comment' });
+      const title = `${actorName} a commenté votre publication`;
+      const push = prefs.notif_push === false
+        ? { skipped: "push_disabled" }
+        : await sendPush(
+            svc,
+            authorId,
+            title,
+            excerpt || title,
+            postId,
+            action,
+          );
+      return Response.json({ ok: true, action: 'comment', push });
     }
 
     return Response.json({ error: 'unknown action' }, { status: 400 });

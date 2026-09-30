@@ -15,6 +15,7 @@ export default function PushStatusCard() {
     } catch {
       setNative(false);
     }
+    setStatus(window.chayPushStatus || null);
     const onStatus = (e) => setStatus(e.detail || {});
     window.addEventListener("chay-push-status", onStatus);
     return () => window.removeEventListener("chay-push-status", onStatus);
@@ -49,6 +50,10 @@ export default function PushStatusCard() {
           <p className="text-xs text-destructive flex items-start gap-1 mt-0.5 selectable">
             <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0 shrink self-start" />
             <span className="break-words">{error}</span>
+          </p>
+        ) : status?.disabled ? (
+          <p className="text-xs text-foreground/55 mt-0.5">
+            Notifications push désactivées selon vos préférences.
           </p>
         ) : ok ? (
           <div className="mt-0.5">

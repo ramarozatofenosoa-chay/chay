@@ -26,15 +26,28 @@ export default async function (req) {
       created_by_id: caller.id,
     });
 
+    let notificationError = null;
     try {
-      await base44.asServiceRole.functions.invoke("notifyCommunityPost", {
+      const result = await base44.asServiceRole.functions.invoke("notifyCommunityPost", {
         post_id: post.id,
         author_id: caller.id,
         internal_secret: secrets.get("INTERNAL_INVOKE_SECRET"),
       });
-    } catch {}
+      const notificationResult = result?.data || result;
+      if (notificationResult?.error) {
+        notificationError = String(notificationResult.error);
+      }
+    } catch (error) {
+      notificationError = error?.message || String(error);
+    }
+    if (notificationError) {
+      console.error("[createCommunityPost] Publication créée, mais notifications échouées.", {
+        postId: post.id,
+        error: notificationError,
+      });
+    }
 
-    return Response.json({ id: post.id });
+    return Response.json({ id: post.id, notification_error: notificationError });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

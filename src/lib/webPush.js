@@ -11,6 +11,10 @@ export const VAPID_PUBLIC_KEY =
 
 const SW_URL = "/sw.js";
 
+function emitWebPushStateChange() {
+  window.dispatchEvent(new Event("chay-web-push-state-change"));
+}
+
 export function isWebPushSupported() {
   return (
     typeof window !== "undefined" &&
@@ -41,8 +45,7 @@ async function saveSubscription(userId, subscription) {
     last_seen: new Date().toISOString(),
   };
   const rows = await base44.entities.WebPushSubscription
-    .filter({ endpoint: payload.endpoint }, null, 1)
-    .catch(() => []);
+    .filter({ endpoint: payload.endpoint }, null, 1);
   const existing = Array.isArray(rows) && rows[0];
   if (existing) {
     await base44.entities.WebPushSubscription.update(existing.id, payload);
@@ -73,6 +76,7 @@ export async function enableWebPush(userId) {
       applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
     }));
   await saveSubscription(userId, subscription);
+  emitWebPushStateChange();
 }
 
 // Désabonne cet appareil (le row est marqué inactif, jamais supprimé —
@@ -86,17 +90,21 @@ export async function disableWebPush() {
       : null;
     if (!subscription) return;
     const endpoint = subscription.endpoint;
-    await subscription.unsubscribe().catch(() => {});
-    const rows = await base44.entities.WebPushSubscription
-      .filter({ endpoint }, null, 1)
-      .catch(() => []);
+    await subscription.unsubscribe();
+    const rows = await base44.entities.WebPushSubscription.filter(
+      { endpoint },
+      null,
+      1
+    );
     if (Array.isArray(rows) && rows[0]) {
-      await base44.entities.WebPushSubscription
-        .update(rows[0].id, { is_active: false, last_seen: new Date().toISOString() })
-        .catch(() => {});
+      await base44.entities.WebPushSubscription.update(rows[0].id, {
+        is_active: false,
+        last_seen: new Date().toISOString(),
+      });
     }
-  } catch {
-    /* ignore */
+    emitWebPushStateChange();
+  } catch (error) {
+    console.warn("[WebPush] Désabonnement impossible.", error);
   }
 }
 
@@ -115,22 +123,38 @@ export async function syncWebPush(userId) {
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
       }));
     await saveSubscription(userId, subscription);
-  } catch {
-    /* ignore */
+    emitWebPushStateChange();
+  } catch (error) {
+    console.warn("[WebPush] Abonnement silencieux impossible.", error);
   }
 }
 
-export async function webPushState() {
+export async function webPushState(userId) {
   const supported = isWebPushSupported();
   const permission = typeof Notification !== "undefined" ? Notification.permission : "denied";
   let subscribed = false;
+  let registered = false;
+  let registrationError = null;
   try {
     const registration = await navigator.serviceWorker.getRegistration();
-    subscribed = !!(registration && (await registration.pushManager.getSubscription()));
-  } catch {
-    /* ignore */
+    const subscription = registration
+      ? await registration.pushManager.getSubscription()
+      : null;
+    subscribed = Boolean(subscription);
+    if (subscription && userId) {
+      const rows = await base44.entities.WebPushSubscription.filter(
+        { endpoint: subscription.endpoint },
+        null,
+        1
+      );
+      registered = Array.isArray(rows) && rows.some(
+        (row) => row.user_id === userId && row.is_active !== false
+      );
+    }
+  } catch (error) {
+    registrationError = error?.message || String(error);
   }
-  return { supported, permission, subscribed };
+  return { supported, permission, subscribed, registered, registrationError };
 }
 
 // Clic sur une notification push : le service worker renvoie l'URL cible.
