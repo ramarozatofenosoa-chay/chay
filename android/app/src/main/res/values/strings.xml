@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">├ëGLISE CHAY</string>
-    <string name="title_activity_main">├ëGLISE CHAY</string>
+    <string name="app_name">Église Chay</string>
+    <string name="title_activity_main">Église Chay</string>
     <string name="package_name">io.chay.app</string>
     <string name="custom_url_scheme">io.chay.app</string>
 </resources>
