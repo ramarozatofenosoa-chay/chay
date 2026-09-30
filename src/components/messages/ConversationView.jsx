@@ -21,6 +21,7 @@ import EmojiPicker from "@/components/messages/EmojiPicker";
 import MessageActionMenu from "@/components/messages/MessageActionMenu";
 import PhotoViewer from "@/components/messages/PhotoViewer";
 import ReadReceipts from "@/components/messages/ReadReceipts";
+import { isRenderableMessage } from "@/lib/messageNotifications";
 
 function fmtTime(d) {
   if (!d) return "";
@@ -355,12 +356,17 @@ image_url: uploadedUrl,
           <div className="py-16 text-center text-foreground/40 text-sm">
             Aucun message pour le moment. Écrivez le premier !
           </div>
-        ) : messages.map((m, i) => {
+        ) : messages.filter(isRenderableMessage).map((m, i, visibleMessages) => {
           const mine = m.sender_id === user.id;
           const imageOnly = !!m.image_url && !m.text;
-          const replied = m.reply_to_id ? repliedOf(m.reply_to_id) : null;
-          const prev = messages[i - 1];
-          const next = messages[i + 1];
+          const repliedMessage = m.reply_to_id
+            ? repliedOf(m.reply_to_id)
+            : null;
+          const replied = isRenderableMessage(repliedMessage)
+            ? repliedMessage
+            : null;
+          const prev = visibleMessages[i - 1];
+          const next = visibleMessages[i + 1];
           const sameSender = prev && prev.sender_id === m.sender_id;
           const gap = prev
             ? new Date(m.created_date).getTime() -

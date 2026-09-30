@@ -4,7 +4,12 @@ import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { usePreferences } from "@/lib/PreferencesContext";
 import { clearActiveChat, getActiveChat, setActiveChat } from "@/lib/activeChat";
-import { canShowMessageNotification, countUnreadMessages, isUnreadIncomingMessage } from "@/lib/messageNotifications";
+import {
+  canShowMessageNotification,
+  countUnreadMessages,
+  isRenderableMessage,
+  isUnreadIncomingMessage,
+} from "@/lib/messageNotifications";
 import { Image } from "@/components/ui/image";
 import { X } from "lucide-react";
 
@@ -90,18 +95,30 @@ export default function FloatingChatBubble() {
         ) {
           showIncoming(message);
         }
-        if (message.conversation_id === chatRef.current?.id) setLast(message);
+        if (
+          isRenderableMessage(message) &&
+          message.conversation_id === chatRef.current?.id
+        ) setLast(message);
         return;
       }
 
       if (
         event.type === "update" &&
         incomingRef.current?.id === message.id &&
-        (message.read_by || []).includes(user.id)
+        (!isRenderableMessage(message) ||
+          (message.read_by || []).includes(user.id))
       ) {
         setIncoming(null);
       }
-      if (message.conversation_id === chatRef.current?.id) {
+      if (!isRenderableMessage(message)) {
+        if (message.conversation_id === chatRef.current?.id) {
+          setLast((previous) => previous?.id === message.id ? null : previous);
+        }
+        return;
+      }
+      if (
+        message.conversation_id === chatRef.current?.id
+      ) {
         setLast((previous) =>
           new Date(message.created_date || 0) >
           new Date(previous?.created_date || 0)
@@ -129,7 +146,7 @@ export default function FloatingChatBubble() {
       .then((rows) => {
         if (cancelled) return;
         const messages = Array.isArray(rows) ? rows : [];
-        setLast(messages[0] || null);
+        setLast(messages.find(isRenderableMessage) || null);
         setUnread(countUnreadMessages(messages, user.id));
       })
       .catch((error) => {

@@ -10,7 +10,10 @@ import { MessageCircle } from "lucide-react";
 import ConversationList from "@/components/messages/ConversationList";
 import ConversationView from "@/components/messages/ConversationView";
 import NewChatSheet from "@/components/messages/NewChatSheet";
-import { groupMessagesByConversation } from "@/lib/messageNotifications";
+import {
+  groupMessagesByConversation,
+  isRenderableMessage,
+} from "@/lib/messageNotifications";
 
 export default function Messages() {
   const { user } = useAuth();
@@ -67,6 +70,16 @@ export default function Messages() {
     const unsubM = base44.entities.Message.subscribe((event) => {
       const m = event.data;
       if (!m?.conversation_id) return;
+      if (event.type !== "delete" && !isRenderableMessage(m)) {
+        setMessagesByConv((prev) => {
+          const existing = prev[m.conversation_id] || [];
+          return {
+            ...prev,
+            [m.conversation_id]: existing.filter((message) => message.id !== m.id),
+          };
+        });
+        return;
+      }
       setMessagesByConv((prev) => {
         const list = prev[m.conversation_id] ? [...prev[m.conversation_id]] : [];
         const idx = list.findIndex((x) => x.id === m.id);

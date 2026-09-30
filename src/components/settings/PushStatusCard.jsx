@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Capacitor } from "@capacitor/core";
 import { BellRing, CheckCircle2, AlertTriangle, Smartphone } from "lucide-react";
+import PushTestButton from "@/components/settings/PushTestButton";
 
 // Carte de statut des notifications push natives (Android). Affiche l'état
 // (indisponible sur web, actif ou erreur sur natif) et écoute l'évènement
@@ -66,6 +67,7 @@ export default function PushStatusCard() {
                 Token : {String(status.token).slice(0, 24)}…
               </p>
             )}
+            <PushTestButton channel="android" />
           </div>
         ) : (
           <p className="text-xs text-foreground/55 mt-0.5">

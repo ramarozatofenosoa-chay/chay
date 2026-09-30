@@ -1,10 +1,20 @@
 export function isUnreadIncomingMessage(message, userId) {
   return Boolean(
+    isRenderableMessage(message) &&
     message &&
       userId &&
       message.sender_id !== userId &&
       !(message.read_by || []).includes(userId)
   );
+}
+
+export function isRenderableMessage(message) {
+  if (!message) return false;
+  if (message.image_url) return true;
+  const text = typeof message.text === "string"
+    ? message.text.trim()
+    : String(message.text ?? "").trim();
+  return Boolean(text && text !== "0");
 }
 
 export function countUnreadMessages(messages, userId) {
@@ -16,7 +26,7 @@ export function countUnreadMessages(messages, userId) {
 export function groupMessagesByConversation(messages) {
   const grouped = {};
   for (const message of Array.isArray(messages) ? messages : []) {
-    if (!message?.conversation_id) continue;
+    if (!message?.conversation_id || !isRenderableMessage(message)) continue;
     (grouped[message.conversation_id] ||= []).push(message);
   }
   Object.values(grouped).forEach((items) =>
