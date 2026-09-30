@@ -1,8 +1,10 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { syncMediaSessionActions } from "@/lib/mediaSession";
 import {
+  checkAndroidMediaNotificationPermission,
   clearAndroidMediaNotification,
   isAndroidApp,
+  openAndroidMediaNotificationSettings,
   requestAndroidMediaNotificationPermission,
   subscribeAndroidMediaActions,
   updateAndroidMediaNotification,
@@ -10,6 +12,7 @@ import {
 import {
   createMediaNotificationState,
   dispatchMediaNotificationAction,
+  shouldShowMediaNotification,
 } from "@/lib/mediaNotificationState";
 
 /**
@@ -17,8 +20,57 @@ import {
  */
 export function useMediaSessionSync(control) {
   const controlRef = useRef(control);
+  const permissionResultRef = useRef(null);
+  const permissionCheckRef = useRef(null);
   const permissionRequestedRef = useRef(false);
+  const notificationStartedRef = useRef(false);
   controlRef.current = control;
+
+  const syncAndroidNotification = useCallback(async () => {
+    let current = controlRef.current;
+    if (!current) {
+      clearAndroidMediaNotification().catch((error) => {
+        console.error("[MediaNotification] Unable to clear native media notification.", error);
+      });
+      notificationStartedRef.current = false;
+      return;
+    }
+
+    try {
+      if (!permissionResultRef.current) {
+        if (!permissionCheckRef.current) {
+          permissionCheckRef.current = checkAndroidMediaNotificationPermission()
+            .finally(() => { permissionCheckRef.current = null; });
+        }
+        permissionResultRef.current = await permissionCheckRef.current;
+      }
+
+      if (!permissionResultRef.current.granted && current.isPlaying && !permissionRequestedRef.current) {
+        permissionRequestedRef.current = true;
+        permissionResultRef.current = await requestAndroidMediaNotificationPermission();
+      }
+
+      window.dispatchEvent(new CustomEvent("chay-media-notification-status", {
+        detail: permissionResultRef.current,
+      }));
+
+      if (!permissionResultRef.current.granted) return;
+      current = controlRef.current;
+      if (!current) return;
+      if (!shouldShowMediaNotification(current, notificationStartedRef.current)) return;
+
+      await updateAndroidMediaNotification(createMediaNotificationState(current));
+      notificationStartedRef.current = true;
+    } catch (error) {
+      console.error("[MediaNotification] Unable to synchronize native media notification.", error);
+      window.dispatchEvent(new CustomEvent("chay-media-notification-status", {
+        detail: { granted: false, error: error?.message || String(error) },
+      }));
+    }
+  }, []);
+
+  const syncAndroidNotificationRef = useRef(syncAndroidNotification);
+  syncAndroidNotificationRef.current = syncAndroidNotification;
 
   useEffect(() => {
     if (isAndroidApp()) return;
@@ -84,34 +136,14 @@ export function useMediaSessionSync(control) {
   useEffect(() => {
     if (!isAndroidApp()) return;
     if (!control) {
-      clearAndroidMediaNotification().catch((error) => {
-        console.error("[MediaNotification] Unable to clear native media notification.", error);
-      });
+      permissionResultRef.current = null;
+      syncAndroidNotification();
       return;
     }
 
-    const media = createMediaNotificationState(control);
-    const update = () => updateAndroidMediaNotification(media).catch((error) => {
-      console.error("[MediaNotification] Unable to update native media notification.", error);
-    });
-    if (!permissionRequestedRef.current) {
-      permissionRequestedRef.current = true;
-      requestAndroidMediaNotificationPermission()
-        .catch((error) => {
-          console.warn("[MediaNotification] Notification permission request failed.", error);
-        })
-        .finally(() => {
-          const current = controlRef.current;
-          if (current) {
-            updateAndroidMediaNotification(createMediaNotificationState(current)).catch((error) => {
-              console.error("[MediaNotification] Unable to update native media notification.", error);
-            });
-          }
-        });
-      return;
-    }
-    update();
+    syncAndroidNotification();
   }, [
+    syncAndroidNotification,
     control?.id,
     control?.title,
     control?.subtitle,
@@ -123,6 +155,28 @@ export function useMediaSessionSync(control) {
     Boolean(control?.previous),
     Boolean(control?.next),
   ]);
+
+  useEffect(() => {
+    if (!isAndroidApp()) return undefined;
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== "visible") return;
+      permissionResultRef.current = null;
+      syncAndroidNotificationRef.current();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, []);
+
+  useEffect(() => {
+    if (!isAndroidApp()) return undefined;
+    const onOpenSettings = () => {
+      openAndroidMediaNotificationSettings().catch((error) => {
+        console.error("[MediaNotification] Unable to open Android notification settings.", error);
+      });
+    };
+    window.addEventListener("chay-open-media-notification-settings", onOpenSettings);
+    return () => window.removeEventListener("chay-open-media-notification-settings", onOpenSettings);
+  }, []);
 
   useEffect(() => {
     if (isAndroidApp()) return;

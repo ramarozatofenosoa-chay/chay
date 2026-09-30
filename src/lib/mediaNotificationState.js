@@ -14,6 +14,10 @@ export function createMediaNotificationState(control) {
   };
 }
 
+export function shouldShowMediaNotification(control, notificationStarted) {
+  return Boolean(control && (control.isPlaying || notificationStarted));
+}
+
 export function dispatchMediaNotificationAction(control, action, details = {}) {
   if (!control) return false;
 

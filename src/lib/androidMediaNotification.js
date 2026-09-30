@@ -10,6 +10,14 @@ export async function requestAndroidMediaNotificationPermission() {
   return AndroidMediaNotification.requestNotificationPermission();
 }
 
+export async function checkAndroidMediaNotificationPermission() {
+  return AndroidMediaNotification.checkNotificationPermission();
+}
+
+export async function openAndroidMediaNotificationSettings() {
+  return AndroidMediaNotification.openNotificationSettings();
+}
+
 export async function updateAndroidMediaNotification(media) {
   return AndroidMediaNotification.update(media);
 }

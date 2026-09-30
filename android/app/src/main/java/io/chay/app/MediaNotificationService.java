@@ -33,7 +33,7 @@ public class MediaNotificationService extends Service {
     private static final String ACTION_PREVIOUS = "io.chay.app.media.PREVIOUS";
     private static final String ACTION_NEXT = "io.chay.app.media.NEXT";
     private static final String ACTION_SEEK = "io.chay.app.media.SEEK";
-    private static final String CHANNEL_ID = "chay_now_playing";
+    static final String CHANNEL_ID = "chay_now_playing";
     private static final int NOTIFICATION_ID = 7801;
 
     static final String EXTRA_TITLE = "title";

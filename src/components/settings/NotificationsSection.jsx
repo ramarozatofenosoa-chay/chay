@@ -3,6 +3,7 @@ import { usePreferences } from "@/lib/PreferencesContext";
 import PrefSwitch from "@/components/settings/PrefSwitch";
 import NotificationDeliveryPrefs from "@/components/settings/NotificationDeliveryPrefs";
 import PushStatusCard from "@/components/settings/PushStatusCard";
+import MediaNotificationStatus from "@/components/settings/MediaNotificationStatus";
 import WebPushCard from "@/components/settings/WebPushCard";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,6 +48,7 @@ export default function NotificationsSection() {
   return (
     <div className="space-y-1">
       <PushStatusCard />
+      <MediaNotificationStatus />
       <WebPushCard />
       <NotificationDeliveryPrefs />
 
