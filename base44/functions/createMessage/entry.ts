@@ -44,33 +44,47 @@ export default async function (req) {
     });
 
     // Notifications (appel interne — secret lu au runtime, jamais côté client).
+    // sendMessagePush est idempotent (dédupe via notification_id), donc un
+    // échec transitoire (réseau, cold start) peut être retenté sans risque de
+    // double notification. Sans retry, un seul échec faisait perdre la
+    // notification/push du destinataire de façon définitive et silencieuse.
+    const MAX_ATTEMPTS = 3;
     let notificationError = null;
-    try {
-      const result = await base44.asServiceRole.functions.invoke("sendMessagePush", {
-        message_id: message.id,
-        internal_secret: secrets.get("INTERNAL_INVOKE_SECRET"),
-      });
-      const dispatch = result?.data || result;
-      if (dispatch?.error) {
-        notificationError = String(dispatch.error);
-      } else if (dispatch?.notifFailed > 0) {
-        notificationError = "notification_creation_failed";
-      } else if (dispatch?.pushFailed > 0) {
-        notificationError = "push_delivery_failed";
-      } else if (dispatch?.pushNoSubscriptions > 0) {
-        notificationError = "no_push_subscription";
-      } else if (dispatch?.webPushSkipped && !(dispatch?.pushSent > 0)) {
-        notificationError = String(dispatch.webPushSkipped);
-      } else if (dispatch?.fcmError && !(dispatch?.webPushSent > 0)) {
-        notificationError = String(dispatch.fcmError);
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+      try {
+        const result = await base44.asServiceRole.functions.invoke("sendMessagePush", {
+          message_id: message.id,
+          internal_secret: secrets.get("INTERNAL_INVOKE_SECRET"),
+        });
+        const dispatch = result?.data || result;
+        if (dispatch?.error) {
+          notificationError = String(dispatch.error);
+        } else if (dispatch?.notifFailed > 0) {
+          notificationError = "notification_creation_failed";
+        } else if (dispatch?.pushFailed > 0) {
+          notificationError = "push_delivery_failed";
+        } else if (dispatch?.pushNoSubscriptions > 0) {
+          notificationError = "no_push_subscription";
+        } else if (dispatch?.webPushSkipped && !(dispatch?.pushSent > 0)) {
+          notificationError = String(dispatch.webPushSkipped);
+        } else if (dispatch?.fcmError && !(dispatch?.webPushSent > 0)) {
+          notificationError = String(dispatch.fcmError);
+        } else {
+          notificationError = null;
+        }
+      } catch (error) {
+        notificationError = error?.message || String(error);
       }
-    } catch (error) {
-      notificationError = error?.message || String(error);
+      if (!notificationError) break;
+      if (attempt < MAX_ATTEMPTS) {
+        await new Promise((resolve) => setTimeout(resolve, attempt * 400));
+      }
     }
     if (notificationError) {
-      console.error("[createMessage] Message enregistré, mais notifications échouées.", {
+      console.error("[createMessage] Message enregistré, mais notifications échouées après plusieurs tentatives.", {
         messageId: message.id,
         error: notificationError,
+        attempts: MAX_ATTEMPTS,
       });
     }
 
