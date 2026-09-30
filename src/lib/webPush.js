@@ -83,29 +83,25 @@ export async function enableWebPush(userId) {
 // on garde la trace pour le diagnostic).
 export async function disableWebPush() {
   if (!isWebPushSupported()) return;
-  try {
-    const registration = await navigator.serviceWorker.getRegistration();
-    const subscription = registration
-      ? await registration.pushManager.getSubscription()
-      : null;
-    if (!subscription) return;
-    const endpoint = subscription.endpoint;
-    await subscription.unsubscribe();
-    const rows = await base44.entities.WebPushSubscription.filter(
-      { endpoint },
-      null,
-      1
-    );
-    if (Array.isArray(rows) && rows[0]) {
-      await base44.entities.WebPushSubscription.update(rows[0].id, {
-        is_active: false,
-        last_seen: new Date().toISOString(),
-      });
-    }
-    emitWebPushStateChange();
-  } catch (error) {
-    console.warn("[WebPush] Désabonnement impossible.", error);
+  const registration = await navigator.serviceWorker.getRegistration();
+  const subscription = registration
+    ? await registration.pushManager.getSubscription()
+    : null;
+  if (!subscription) return;
+  const endpoint = subscription.endpoint;
+  await subscription.unsubscribe();
+  const rows = await base44.entities.WebPushSubscription.filter(
+    { endpoint },
+    null,
+    1
+  );
+  if (Array.isArray(rows) && rows[0]) {
+    await base44.entities.WebPushSubscription.update(rows[0].id, {
+      is_active: false,
+      last_seen: new Date().toISOString(),
+    });
   }
+  emitWebPushStateChange();
 }
 
 // À l'ouverture de l'app : si la permission est déjà accordée, (ré)abonne

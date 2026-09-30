@@ -3,9 +3,9 @@ import { secrets } from 'base44:runtime';
 
 // Envoi de notifications push natives via Firebase Cloud Messaging (API HTTP v1).
 // - Compte de service stocké dans le secret FIREBASE_SERVICE_ACCOUNT (jamais côté frontend).
-// - Auth : accepte (a) un appel direct admin (base44.auth.me() admin, bouton de test),
-//   ou (b) un appel interne d'une autre fonction prouvé par caller_email == client_email
-//   du compte de service (seul le backend connaît cette valeur).
+// - Auth : accepte (a) un test direct limité à l'utilisateur connecté,
+//   (b) un appel direct admin, ou (c) un appel interne prouvé par
+//   INTERNAL_INVOKE_SECRET (seul le backend connaît cette valeur).
 // - Récupère les tokens actifs des destinataires, envoie, et désactive les tokens
 //   invalides (UNREGISTERED / INVALID_ARGUMENT). Envoi par lots (concurrence 20).
 const CHANNEL_ID = "chay-default";
@@ -104,13 +104,15 @@ export default async function(req) {
     let user = null;
     try { user = await base44.auth.me(); } catch { /* appel interne */ }
     const internalProof = body.internal_secret && body.internal_secret === secrets.get("INTERNAL_INVOKE_SECRET");
-    if (!(user && user.role === "admin") && !internalProof) {
+    const isAdmin = user?.role === "admin";
+    const isUserTest = Boolean(user && body.test === true);
+    if (!isAdmin && !internalProof && !isUserTest) {
       return Response.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Destinataires.
     let userIds = Array.isArray(body.user_ids) ? body.user_ids.filter(Boolean) : [];
-    if (user && user.role === "admin" && body.test) userIds = [user.id];
+    if (isUserTest) userIds = [user.id];
     if (userIds.length === 0) {
       return Response.json({ sent: 0, tokensFound: 0, failed: 0, firebaseResponses: [] });
     }

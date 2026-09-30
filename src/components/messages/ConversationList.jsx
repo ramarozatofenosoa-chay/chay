@@ -5,7 +5,10 @@ import { usePreferences } from "@/lib/PreferencesContext";
 import PullToRefresh from "@/components/PullToRefresh";
 import ConversationItem from "@/components/messages/ConversationItem";
 import ActiveMembersRow from "@/components/messages/ActiveMembersRow";
-import { countUnreadMessages } from "@/lib/messageNotifications";
+import {
+  countUnreadMessages,
+  isRenderableMessage,
+} from "@/lib/messageNotifications";
 
 const FILTER_KEY = "chay_msg_filter";
 
@@ -30,7 +33,7 @@ export default function ConversationList({
   const items = conversations.map((c) => {
     const isGroup = c.type === "group";
     const msgs = messagesByConv[c.id] || [];
-    const last = msgs[msgs.length - 1];
+    const last = [...msgs].reverse().find(isRenderableMessage);
     const otherId = !isGroup ? c.participant_ids?.find((id) => id !== user?.id) : null;
     const otherProfile = profileOf(otherId);
     const title = isGroup ? c.name || "Groupe" : otherProfile?.display_name || "Membre";
@@ -45,7 +48,9 @@ export default function ConversationList({
             ? `${last.sender_name || ""} : `
             : "") + (last.text || (last.image_url ? "📷 Photo" : ""))
         : "") ||
-      c.last_message_text ||
+      (isRenderableMessage({ text: c.last_message_text })
+        ? c.last_message_text
+        : "") ||
       "Démarrez la conversation";
     const time = last?.created_date || c.last_message_at || c.updated_date;
     const pinned = (c.pinned_by || []).includes(user?.id);

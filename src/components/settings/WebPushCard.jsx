@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { usePreferences } from "@/lib/PreferencesContext";
 import { useToast } from "@/components/ui/use-toast";
 import { enableWebPush, disableWebPush, webPushState } from "@/lib/webPush";
+import PushTestButton from "@/components/settings/PushTestButton";
 
 // Carte « Notifications du navigateur » : active/désactive le push système
 // sur cet appareil (ordinateur, ou téléphone utilisé dans le navigateur).
@@ -64,6 +65,7 @@ export default function WebPushCard() {
     try {
       if (active) {
         await disableWebPush();
+        setPref("notif_push", false);
         setState(await webPushState());
         toast({ title: "Notifications navigateur désactivées" });
       } else {
@@ -123,6 +125,7 @@ export default function WebPushCard() {
                 : "Activer"}
           </button>
         )}
+        {active && <PushTestButton channel="browser" />}
       </div>
     </div>
   );
