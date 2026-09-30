@@ -199,7 +199,7 @@ public class MediaNotificationService extends Service {
             ? new Notification.Builder(this, CHANNEL_ID)
             : new Notification.Builder(this);
         builder
-            .setSmallIcon(android.R.drawable.ic_media_play)
+            .setSmallIcon(R.drawable.ic_stat_chay)
             .setContentTitle(title)
             .setContentText(artist)
             .setCategory(Notification.CATEGORY_TRANSPORT)
