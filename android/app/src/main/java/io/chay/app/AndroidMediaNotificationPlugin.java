@@ -1,6 +1,7 @@
 package io.chay.app;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.app.NotificationChannel;
@@ -54,7 +55,7 @@ public class AndroidMediaNotificationPlugin extends Plugin {
             intent = new Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
                 .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, getContext().getPackageName());
             NotificationManager manager =
-                (NotificationManager) getContext().getSystemService(NOTIFICATION_SERVICE);
+                (NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
             if (manager != null &&
                 manager.getNotificationChannel(MediaNotificationService.CHANNEL_ID) != null) {
                 intent.putExtra(
@@ -122,7 +123,7 @@ public class AndroidMediaNotificationPlugin extends Plugin {
 
     private JSObject notificationPermissionResult() {
         NotificationManager manager =
-            (NotificationManager) getContext().getSystemService(NOTIFICATION_SERVICE);
+            (NotificationManager) getContext().getSystemService(Context.NOTIFICATION_SERVICE);
         boolean appEnabled = Build.VERSION.SDK_INT < Build.VERSION_CODES.N ||
             manager == null || manager.areNotificationsEnabled();
         boolean channelEnabled = true;
