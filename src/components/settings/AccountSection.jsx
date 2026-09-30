@@ -4,10 +4,20 @@ import { base44 } from "@/api/base44Client";
 import { uploadToBase44 } from "@/lib/upload";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Image } from "@/components/ui/image";
 import { useToast } from "@/components/ui/use-toast";
 import { Camera, Loader2, Save, BadgeCheck, Mail } from "lucide-react";
+import CroppableUploader from "@/components/media/CroppableUploader";
+import ImageCrop from "@/components/media/ImageCrop";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 export default function AccountSection() {
   const { user } = useAuth();
@@ -15,6 +25,8 @@ export default function AccountSection() {
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarCropOpen, setAvatarCropOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -28,24 +40,44 @@ export default function AccountSection() {
         city: user.city || "",
         location_label: user.location_label || "",
         profile_photo_url: user.profile_photo_url || "",
+        cover_photo_url: user.cover_photo_url || "",
+        profile_bio: user.profile_bio || "",
       });
     }
   }, [user]);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
-  const uploadPhoto = async (file) => {
+  const pickAvatar = (file) => {
     if (!file) return;
+    setAvatarFile(file);
+    setAvatarCropOpen(true);
+  };
+
+  // La photo de profil est toujours recadrée en carré avant l'envoi.
+  const uploadAvatar = async (blob) => {
     setUploading(true);
     try {
-      const photoUrl = await uploadToBase44(file);
+      const photoUrl = await uploadToBase44(blob);
       set("profile_photo_url", photoUrl);
       await base44.auth.updateMe({ profile_photo_url: photoUrl });
       toast({ title: "Photo mise à jour" });
+      setAvatarCropOpen(false);
+      setAvatarFile(null);
     } catch (e) {
       toast({ title: "Erreur", description: e.message, variant: "destructive" });
     }
     setUploading(false);
+  };
+
+  const uploadCover = async (url) => {
+    set("cover_photo_url", url);
+    try {
+      await base44.auth.updateMe({ cover_photo_url: url });
+      toast({ title: "Photo de couverture mise à jour" });
+    } catch (e) {
+      toast({ title: "Erreur", description: e.message, variant: "destructive" });
+    }
   };
 
   const save = async () => {
@@ -73,6 +105,20 @@ export default function AccountSection() {
 
   return (
     <div className="space-y-4">
+      <div>
+        <Label className="text-xs">Photo de couverture</Label>
+        <div className="mt-1">
+          <CroppableUploader
+            value={form.cover_photo_url}
+            onChange={uploadCover}
+            aspect={2.5}
+            crop
+            allowOriginal
+            label="une photo de couverture"
+          />
+        </div>
+      </div>
+
       <div className="flex items-center gap-4">
         <label className="relative cursor-pointer shrink-0">
           <div className="h-16 w-16 rounded-full overflow-hidden brand-gradient grid place-items-center text-white font-bold text-xl">
@@ -97,13 +143,40 @@ export default function AccountSection() {
             type="file"
             accept="image/*"
             className="hidden"
-            onChange={(e) => uploadPhoto(e.target.files?.[0])}
+            onChange={(e) => pickAvatar(e.target.files?.[0])}
           />
         </label>
         <div className="text-sm text-foreground/60">
           Changer la photo de profil
         </div>
       </div>
+
+      <Dialog open={avatarCropOpen} onOpenChange={setAvatarCropOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Recadrer la photo de profil</DialogTitle>
+            <DialogDescription>
+              Ajustez le cadre carré, puis validez.
+            </DialogDescription>
+          </DialogHeader>
+          {avatarFile && (
+            <ImageCrop
+              file={avatarFile}
+              aspect={1}
+              onCancel={() => {
+                setAvatarCropOpen(false);
+                setAvatarFile(null);
+              }}
+              onConfirm={uploadAvatar}
+            />
+          )}
+          {uploading && (
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" /> Import…
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <div className="rounded-xl bg-muted/40 p-3 flex items-center gap-2">
         <Mail className="h-4 w-4 text-foreground/50 shrink-0" />
@@ -201,6 +274,17 @@ export default function AccountSection() {
           onChange={(e) => set("location_label", e.target.value)}
           className="mt-1 h-10"
           placeholder="Ville, Pays"
+        />
+      </div>
+
+      <div>
+        <Label className="text-xs">Biographie (visible sur mon profil)</Label>
+        <Textarea
+          value={form.profile_bio || ""}
+          onChange={(e) => set("profile_bio", e.target.value)}
+          className="mt-1"
+          rows={3}
+          placeholder="Quelques mots à propos de vous, visibles par les autres membres…"
         />
       </div>
 

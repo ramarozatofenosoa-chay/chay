@@ -1,10 +1,18 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { uploadToBase44 } from "@/lib/upload";
-import { ImagePlus, Send, Loader2, X, Users } from "lucide-react";
+import { ImagePlus, Send, Loader2, X, Users, UserMinus, AlertTriangle } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import { useToast } from "@/components/ui/use-toast";
 import PostCard from "@/components/community/PostCard";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 export default function Community() {
   const { toast } = useToast();
@@ -19,6 +27,8 @@ export default function Community() {
   const [members, setMembers] = useState([]);
   const [membersLoading, setMembersLoading] = useState(true);
   const [membersError, setMembersError] = useState(false);
+  const [ejectTarget, setEjectTarget] = useState(null);
+  const [ejecting, setEjecting] = useState(false);
 
   const loadPosts = async () => {
     const p = await base44.entities.CommunityPost
@@ -56,6 +66,23 @@ export default function Community() {
       toast({ title: currentlyMembre ? "Retiré du membre" : "Ajouté comme membre" });
     } catch (e) {
       toast({ title: "Erreur", description: e.message, variant: "destructive" });
+    }
+  };
+
+  // Éjection définitive d'un membre par un administrateur : supprime le
+  // compte (mêmes conséquences que l'auto-suppression dans « Mon compte »).
+  const confirmEject = async () => {
+    if (!ejectTarget || ejecting) return;
+    setEjecting(true);
+    try {
+      await base44.entities.User.delete(ejectTarget.id);
+      setMembers((prev) => prev.filter((m) => m.id !== ejectTarget.id));
+      toast({ title: `${ejectTarget.first_name || "Membre"} a été éjecté(e) de l'application.` });
+      setEjectTarget(null);
+    } catch (e) {
+      toast({ title: "Erreur", description: e.message, variant: "destructive" });
+    } finally {
+      setEjecting(false);
     }
   };
 
@@ -259,44 +286,96 @@ export default function Community() {
                 key={m.id}
                 className="flex items-center gap-3 rounded-xl border border-border bg-card p-3"
               >
-                <div className="h-10 w-10 rounded-full bg-muted overflow-hidden shrink-0">
-                  {m.profile_photo_url ? (
-                    <img
-                      src={m.profile_photo_url}
-                      alt={m.first_name || "Utilisateur"}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full grid place-items-center text-foreground/40 text-sm font-bold">
-                      {(m.first_name || "?")[0]}
+                <Link
+                  to={`/profile/${m.id}`}
+                  className="flex items-center gap-3 flex-1 min-w-0"
+                >
+                  <div className="h-10 w-10 rounded-full bg-muted overflow-hidden shrink-0">
+                    {m.profile_photo_url ? (
+                      <img
+                        src={m.profile_photo_url}
+                        alt={m.first_name || "Utilisateur"}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full grid place-items-center text-foreground/40 text-sm font-bold">
+                        {(m.first_name || "?")[0]}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-sm truncate hover:underline">
+                      {[m.first_name, m.last_name].filter(Boolean).join(" ") || m.email || "Utilisateur"}
                     </div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-bold text-sm truncate">
-                    {[m.first_name, m.last_name].filter(Boolean).join(" ") || m.email || "Utilisateur"}
+                    <div className="text-xs text-foreground/55">
+                      {m.role === "admin" ? "Administrateur" : "Utilisateur"}
+                    </div>
                   </div>
-                  <div className="text-xs text-foreground/55">
-                    {m.role === "admin" ? "Administrateur" : "Utilisateur"}
+                </Link>
+                {user?.role === "admin" && m.id !== user.id && (
+                  <div className="shrink-0 flex items-center gap-1.5">
+                    <button
+                      onClick={() => toggleMembre(m, m.is_membre)}
+                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition ${
+                        m.is_membre
+                          ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                          : "bg-muted text-foreground/60 hover:bg-border"
+                      }`}
+                    >
+                      {m.is_membre ? "✓ Membre" : "Non-membre"}
+                    </button>
+                    <button
+                      onClick={() => setEjectTarget(m)}
+                      title="Éjecter ce membre"
+                      className="inline-flex items-center gap-1.5 rounded-full bg-destructive/10 text-destructive hover:bg-destructive hover:text-white px-3 py-1.5 text-xs font-bold transition"
+                    >
+                      <UserMinus className="h-3.5 w-3.5" /> Éjecter
+                    </button>
                   </div>
-                </div>
-                {user?.role === "admin" && (
-                  <button
-                    onClick={() => toggleMembre(m, m.is_membre)}
-                    className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition ${
-                      m.is_membre
-                        ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                        : "bg-muted text-foreground/60 hover:bg-border"
-                    }`}
-                  >
-                    {m.is_membre ? "✓ Membre" : "Non-membre"}
-                  </button>
                 )}
               </div>
             ))
           )}
         </div>
       )}
+
+      {/* Confirmation d'éjection définitive d'un membre */}
+      <Dialog open={Boolean(ejectTarget)} onOpenChange={(v) => !v && setEjectTarget(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" /> Éjecter ce membre ?
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-foreground/75">
+            Voulez-vous vraiment éjecter{" "}
+            <strong>
+              {[ejectTarget?.first_name, ejectTarget?.last_name].filter(Boolean).join(" ") ||
+                ejectTarget?.email ||
+                "ce membre"}
+            </strong>{" "}
+            ? Cette action est irrévocable et la personne ne peut plus revenir dans
+            l'application, sauf avec une autre adresse e-mail.
+          </p>
+          <DialogFooter>
+            <button
+              onClick={() => setEjectTarget(null)}
+              disabled={ejecting}
+              className="flex-1 rounded-full border border-border py-2.5 text-sm font-bold hover:bg-muted disabled:opacity-50"
+            >
+              Non, annuler
+            </button>
+            <button
+              onClick={confirmEject}
+              disabled={ejecting}
+              className="flex-1 rounded-full bg-destructive text-white py-2.5 text-sm font-bold hover:bg-destructive/90 disabled:opacity-50 inline-flex items-center justify-center gap-2"
+            >
+              {ejecting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Oui, éjecter
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

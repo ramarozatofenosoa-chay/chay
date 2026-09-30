@@ -25,6 +25,7 @@ const Media = lazy(() => import("@/pages/Media"));
 const Games = lazy(() => import("@/pages/Games"));
 const Kids = lazy(() => import("@/pages/Kids"));
 const Community = lazy(() => import("@/pages/Community"));
+const MemberProfile = lazy(() => import("@/pages/MemberProfile"));
 const Donate = lazy(() => import("@/pages/Donate"));
 const Contact = lazy(() => import("@/pages/Contact"));
 const Admin = lazy(() => import("@/pages/Admin"));
@@ -72,6 +73,7 @@ const AuthenticatedApp = () => {
           <Route path="/games" element={<Games />} />
           <Route path="/kids" element={<Kids />} />
           <Route path="/community" element={<Community />} />
+          <Route path="/profile/:userId" element={<MemberProfile />} />
           <Route path="/donate" element={<Donate />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/admin" element={<Admin />} />
