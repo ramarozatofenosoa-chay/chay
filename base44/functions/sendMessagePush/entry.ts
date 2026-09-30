@@ -73,7 +73,11 @@ export default async function(req) {
     const participants = Array.isArray(message.participant_ids)
       ? message.participant_ids : [];
     const targets = participants.filter((id) => id && id !== senderId);
-    if (targets.length === 0) return Response.json({ sent: 0 });
+    const emptyDeliverySummary = {
+      android: { attempted: 0, succeeded: 0, failed: 0 },
+      web: { attempted: 0, succeeded: 0, failed: 0 },
+    };
+    if (targets.length === 0) return Response.json({ sent: 0, ...emptyDeliverySummary });
 
     const notifIds = targets.map((uid) => "message_" + message.id + "_" + uid);
     const existing = await base44.asServiceRole.entities.UserNotification
@@ -85,7 +89,11 @@ export default async function(req) {
       (uid) => !done.has("message_" + message.id + "_" + uid)
     );
     if (pending.length === 0) {
-      return Response.json({ sent: 0, skipped: 'already_notified' });
+      return Response.json({
+        sent: 0,
+        skipped: 'already_notified',
+        ...emptyDeliverySummary,
+      });
     }
 
     const senderName = message.sender_name || "Quelqu'un";
@@ -100,6 +108,7 @@ export default async function(req) {
 
     let notifCreated = 0, notifFailed = 0, emailsSent = 0, emailsSkipped = 0, openSkipped = 0;
     const pushTargets = []; // user_ids éligibles au push natif
+    const pushTargetIndexes = new Map();
 
     for (const uid of pending) {
       const recipient = await base44.asServiceRole.entities.User
@@ -151,7 +160,10 @@ export default async function(req) {
         });
       }
 
-      if (pushOn) pushTargets.push(uid);
+      if (pushOn) {
+        pushTargetIndexes.set(uid, pushTargets.length + 1);
+        pushTargets.push(uid);
+      }
 
       if (emailOn && recipient && recipient.email) {
         const recent = await base44.asServiceRole.entities.UserNotification
@@ -190,6 +202,8 @@ export default async function(req) {
     // Push natif FCM (lot unique pour tous les destinataires éligibles).
     let pushSent = 0, pushFailed = 0, webPushSent = 0, pushNoSubscriptions = 0;
     let webPushSkipped = null, fcmError = null;
+    let android = { attempted: 0, succeeded: 0, failed: 0 };
+    let web = { attempted: 0, succeeded: 0, failed: 0 };
     if (pushTargets.length) {
       try {
         const res = await base44.asServiceRole.functions.invoke("sendFcmPush", {
@@ -204,15 +218,84 @@ export default async function(req) {
         webPushSent = r.webPush?.sent || 0;
         webPushSkipped = r.webPush?.skipped || null;
         fcmError = r.fcmError || null;
+        android = {
+          attempted: (r.recipients || []).reduce(
+            (sum, recipient) => sum + (recipient.attempted || 0),
+            0
+          ),
+          succeeded: r.sent || 0,
+          failed: r.failed || 0,
+        };
+        web = {
+          attempted: r.webPush?.subscriptions || 0,
+          succeeded: webPushSent,
+          failed: r.webPush?.failed || 0,
+        };
         pushSent = (r.sent || 0) + webPushSent;
         pushFailed = (r.failed || 0) + (r.webPush?.failed || 0);
         if (r.webPush?.skipped && (r.sent || 0) === 0) pushFailed += 1;
         if (r.tokensFound === 0 && (r.webPush?.subscriptions || 0) === 0 && !r.webPush?.skipped) {
           pushNoSubscriptions = pushTargets.length;
         }
-      } catch (e) {
+        const androidByUser = new Map(
+          (r.recipients || []).map((recipient) => [recipient.recipientIndex, recipient])
+        );
+        const webByUser = new Map(
+          (r.webPush?.byUser || []).map((recipient) => [recipient.recipientIndex, recipient])
+        );
+        for (const uid of pushTargets) {
+          const recipientIndex = pushTargetIndexes.get(uid);
+          const androidResult = androidByUser.get(recipientIndex);
+          const webResult = webByUser.get(recipientIndex);
+          console.info("[sendMessagePush] Résultat push destinataire.", {
+            messageId: message.id,
+            recipientIndex,
+            android: {
+              tokensFound: androidResult?.tokensFound || 0,
+              attempted: androidResult?.attempted || 0,
+              succeeded: androidResult?.succeeded || 0,
+              failed: androidResult?.failed || 0,
+              deactivated: androidResult?.deactivated || 0,
+              responses: androidResult?.tokenResults || [],
+            },
+            web: {
+              attempted: webResult?.attempted || 0,
+              succeeded: webResult?.succeeded || 0,
+              failed: webResult?.failed || 0,
+              deactivated: webResult?.deactivated || 0,
+              skipped: webPushSkipped,
+            },
+          });
+        }
+      } catch {
         pushFailed = pushTargets.length;
-        console.error("[sendMessagePush] Envoi push impossible.", e?.message || String(e));
+        android = {
+          attempted: pushTargets.length,
+          succeeded: 0,
+          failed: pushTargets.length,
+        };
+        console.error("[sendMessagePush] Envoi push impossible.", {
+          messageId: message.id,
+          classification: "push_dispatch_failed",
+        });
+        for (const uid of pushTargets) {
+          console.info("[sendMessagePush] Résultat push destinataire.", {
+            messageId: message.id,
+            recipientIndex: pushTargetIndexes.get(uid),
+            android: {
+              attempted: 1,
+              succeeded: 0,
+              failed: 1,
+              classification: "push_dispatch_failed",
+            },
+            web: {
+              attempted: 0,
+              succeeded: 0,
+              failed: 0,
+              classification: "push_dispatch_failed",
+            },
+          });
+        }
       }
     }
 
@@ -223,6 +306,8 @@ export default async function(req) {
       emailsSkipped,
       pushSent,
       pushFailed,
+      android,
+      web,
       pushNoSubscriptions,
       webPushSent,
       webPushSkipped,

@@ -7,7 +7,7 @@ import { secrets } from 'base44:runtime';
 //   (b) un appel direct admin, ou (c) un appel interne prouvé par
 //   INTERNAL_INVOKE_SECRET (seul le backend connaît cette valeur).
 // - Récupère les tokens actifs des destinataires, envoie, et désactive les tokens
-//   invalides (UNREGISTERED / INVALID_ARGUMENT). Envoi par lots (concurrence 20).
+//   invalides (UNREGISTERED). Envoi par lots (concurrence 20).
 const CHANNEL_ID = "chay-default";
 
 function b64urlBytes(bytes) {
@@ -79,20 +79,49 @@ async function sendOne(projectId, accessToken, token, title, body, targetType, t
       target_id: String(targetId || ""),
     },
   };
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { Authorization: "Bearer " + accessToken, "Content-Type": "application/json" },
-    body: JSON.stringify({ message }),
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { Authorization: "Bearer " + accessToken, "Content-Type": "application/json" },
+      body: JSON.stringify({ message }),
+    });
+  } catch {
+    return {
+      ok: false,
+      invalid: false,
+      httpStatus: null,
+      errorCodes: [],
+      classification: "transport_error",
+      raw: { status: "transport_error" },
+    };
+  }
   let raw = null;
   try { raw = await res.json(); } catch { raw = { status: res.status }; }
-  if (res.ok) return { ok: true, raw };
+  if (res.ok) return { ok: true, httpStatus: res.status, raw };
   const errName =
     (raw && raw.error && raw.error.details && raw.error.details[0] && raw.error.details[0].errorCode) ||
     (raw && raw.error && raw.error.status) ||
     "";
-  const invalid = /UNREGISTERED|INVALID_ARGUMENT/.test(errName);
-  return { ok: false, invalid, raw };
+  const errorCodes = [
+    ...(Array.isArray(raw?.error?.details)
+      ? raw.error.details.map((detail) => detail?.errorCode).filter(Boolean)
+      : []),
+    raw?.error?.status,
+  ].filter(Boolean);
+  const classification = errName === "UNREGISTERED"
+    ? "unregistered_token"
+    : errName === "INVALID_ARGUMENT"
+    ? "invalid_argument_not_deactivated"
+    : errName || `http_${res.status}`;
+  return {
+    ok: false,
+    invalid: errName === "UNREGISTERED",
+    httpStatus: res.status,
+    errorCodes,
+    classification,
+    raw,
+  };
 }
 
 export default async function(req) {
@@ -125,7 +154,7 @@ export default async function(req) {
     // Push navigateur (Web Push) — indépendant de la configuration FCM.
     // Invoqué AVANT la vérification des tokens : un utilisateur sans app
     // Android reçoit quand même la notification sur son navigateur.
-    let webPush = { sent: 0, failed: 0, subscriptions: 0, skipped: null };
+    let webPush = { sent: 0, failed: 0, subscriptions: 0, deactivated: 0, skipped: null, byUser: [] };
     try {
       const res = await base44.asServiceRole.functions.invoke("sendWebPush", {
         user_ids: userIds,
@@ -140,12 +169,16 @@ export default async function(req) {
         sent: r.sent || 0,
         failed: r.failed || 0,
         subscriptions: r.subscriptions || 0,
+        deactivated: r.deactivated || 0,
         skipped: r.skipped || null,
+        byUser: Array.isArray(r.byUser) ? r.byUser : [],
       };
-    } catch (e) {
+    } catch {
       // Le push natif doit continuer même si le push navigateur échoue.
       webPush.skipped = "invoke_failed";
-      console.error("[sendFcmPush] Appel Web Push impossible.", e?.message || String(e));
+      console.error("[sendFcmPush] Appel Web Push impossible.", {
+        classification: "web_push_invoke_failed",
+      });
     }
 
     const saRaw = secrets.get("FIREBASE_SERVICE_ACCOUNT");
@@ -163,13 +196,48 @@ export default async function(req) {
 
     // Récupération des tokens actifs.
     const tokenRecords = [];
+    const recipientResults = [];
     for (const uid of userIds) {
       const rows = await base44.asServiceRole.entities.DeviceToken
         .filter({ user_id: uid, is_active: true }, null, 50);
-      for (const r of (Array.isArray(rows) ? rows : [])) tokenRecords.push(r);
+      const recipient = {
+        recipientIndex: recipientResults.length + 1,
+        tokensFound: Array.isArray(rows) ? rows.length : 0,
+        attempted: 0,
+        succeeded: 0,
+        failed: 0,
+        deactivated: 0,
+        tokenResults: [],
+      };
+      const recipientIndex = recipientResults.push(recipient) - 1;
+      for (const r of (Array.isArray(rows) ? rows : [])) {
+        tokenRecords.push({ ...r, recipientIndex });
+      }
     }
 
     if (!sa || tokenRecords.length === 0) {
+      for (let i = 0; i < recipientResults.length; i += 1) {
+        const recipient = recipientResults[i];
+        const webResult = webPush.byUser?.[i];
+        console.info("[sendFcmPush] Résultat destinataire.", {
+          recipientIndex: recipient.recipientIndex,
+          android: {
+            tokensFound: recipient.tokensFound,
+            attempted: 0,
+            succeeded: 0,
+            failed: 0,
+            deactivated: 0,
+            classification: fcmConfigError ? "configuration_error" : "no_active_tokens",
+          },
+          web: {
+            attempted: webResult?.attempted || 0,
+            succeeded: webResult?.succeeded || 0,
+            failed: webResult?.failed || 0,
+            deactivated: webResult?.deactivated || 0,
+            skipped: webPush.skipped,
+          },
+        });
+      }
       return Response.json({
         sent: 0,
         tokensFound: tokenRecords.length,
@@ -177,13 +245,42 @@ export default async function(req) {
         firebaseResponses: [],
         fcmError: fcmConfigError,
         webPush,
+        recipients: recipientResults,
       });
     }
 
-    const accessToken = await getAccessToken(sa);
+    let accessToken;
+    try {
+      accessToken = await getAccessToken(sa);
+    } catch (error) {
+      for (let i = 0; i < recipientResults.length; i += 1) {
+        const recipient = recipientResults[i];
+        const webResult = webPush.byUser?.[i];
+        console.error("[sendFcmPush] Authentification Firebase impossible.", {
+          recipientIndex: recipient.recipientIndex,
+          android: {
+            tokensFound: recipient.tokensFound,
+            attempted: 0,
+            succeeded: 0,
+            failed: 0,
+            deactivated: 0,
+            classification: "firebase_authentication_failed",
+          },
+          web: {
+            attempted: webResult?.attempted || 0,
+            succeeded: webResult?.succeeded || 0,
+            failed: webResult?.failed || 0,
+            deactivated: webResult?.deactivated || 0,
+            skipped: webPush.skipped,
+          },
+        });
+      }
+      throw error;
+    }
     const projectId = sa.project_id;
 
     let sent = 0, failed = 0;
+    let deactivated = 0;
     const invalidIds = [];
     const firebaseResponses = [];
 
@@ -194,27 +291,75 @@ export default async function(req) {
       await Promise.all(chunk.map(async (rec) => {
         const r = await sendOne(projectId, accessToken, rec.token, title, msgBody, targetType, targetId);
         firebaseResponses.push(r.raw);
-        if (r.ok) sent += 1;
+        const recipient = recipientResults[rec.recipientIndex];
+        recipient.attempted += 1;
+        const result = r.ok
+          ? {
+            httpStatus: r.httpStatus || 200,
+            classification: "accepted",
+          }
+          : {
+            httpStatus: r.httpStatus,
+            errorCodes: r.errorCodes,
+            classification: r.classification,
+          };
+        recipient.tokenResults.push(result);
+        if (r.ok) {
+          sent += 1;
+          recipient.succeeded += 1;
+        }
         else {
           failed += 1;
-          if (r.invalid) invalidIds.push(rec.id);
+          recipient.failed += 1;
+          if (r.invalid) {
+            invalidIds.push({ id: rec.id, recipientIndex: rec.recipientIndex });
+          }
         }
       }));
     }
 
     // Désactivation des tokens invalides.
-    for (const id of invalidIds) {
+    for (const invalid of invalidIds) {
       await base44.asServiceRole.entities.DeviceToken
-        .update(id, { is_active: false }).catch(() => {});
+        .update(invalid.id, { is_active: false })
+        .then(() => {
+          deactivated += 1;
+          recipientResults[invalid.recipientIndex].deactivated += 1;
+        })
+        .catch(() => {});
+    }
+
+    for (let i = 0; i < recipientResults.length; i += 1) {
+      const recipient = recipientResults[i];
+      const webResult = webPush.byUser?.[i];
+      console.info("[sendFcmPush] Résultat destinataire.", {
+        recipientIndex: recipient.recipientIndex,
+        android: {
+          tokensFound: recipient.tokensFound,
+          attempted: recipient.attempted,
+          succeeded: recipient.succeeded,
+          failed: recipient.failed,
+          deactivated: recipient.deactivated,
+          responses: recipient.tokenResults,
+        },
+        web: {
+          attempted: webResult?.attempted || 0,
+          succeeded: webResult?.succeeded || 0,
+          failed: webResult?.failed || 0,
+          deactivated: webResult?.deactivated || 0,
+          skipped: webPush.skipped,
+        },
+      });
     }
 
     return Response.json({
       sent,
       failed,
       tokensFound: tokenRecords.length,
-      invalidDeactivated: invalidIds.length,
+      invalidDeactivated: deactivated,
       firebaseResponses,
       webPush,
+      recipients: recipientResults,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

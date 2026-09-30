@@ -27,18 +27,25 @@ function isNative() {
   }
 }
 
-async function upsertToken(token, platform, userId) {
-  if (!userId) {
-    throw new Error("Utilisateur non connecté : impossible d'enregistrer le token.");
-  }
+// Empêche deux appels concurrents (même onglet/process) d'enregistrer le même
+// token en double : tant qu'un upsert est en cours pour ce token, les appels
+// suivants attendent son résultat au lieu de relancer un filter()+create().
+const upsertInFlight = new Map();
+
+async function upsertTokenInternal(token, platform, userId) {
   const now = new Date().toISOString();
+  // On récupère toutes les lignes existantes pour ce token (pas seulement la
+  // première) afin de pouvoir corriger d'éventuels doublons déjà en base
+  // (ex. créés par une ancienne course entre deux appels concurrents).
   let rows = [];
   try {
-    rows = await base44.entities.DeviceToken.filter({ token }, null, 1);
+    rows = await base44.entities.DeviceToken.filter({ token }, null, 25);
   } catch (e) {
     throw new Error("Recherche du token existant échouée : " + (e?.message || JSON.stringify(e)));
   }
-  const existing = Array.isArray(rows) && rows[0];
+  rows = Array.isArray(rows) ? rows : [];
+  const [existing, ...duplicates] = rows;
+
   if (existing) {
     try {
       await base44.entities.DeviceToken.update(existing.id, {
@@ -63,6 +70,27 @@ async function upsertToken(token, platform, userId) {
       throw new Error("Création du token échouée : " + (e?.message || JSON.stringify(e)));
     }
   }
+
+  // Auto-guérison : désactive les doublons restants pour ce même token afin
+  // qu'il ne reste qu'une seule ligne active (évite les notifications en double).
+  for (const dup of duplicates) {
+    await base44.entities.DeviceToken.update(dup.id, { is_active: false }).catch(() => {});
+  }
+}
+
+async function upsertToken(token, platform, userId) {
+  if (!userId) {
+    throw new Error("Utilisateur non connecté : impossible d'enregistrer le token.");
+  }
+  const key = token;
+  if (upsertInFlight.has(key)) {
+    return upsertInFlight.get(key);
+  }
+  const promise = upsertTokenInternal(token, platform, userId).finally(() => {
+    upsertInFlight.delete(key);
+  });
+  upsertInFlight.set(key, promise);
+  return promise;
 }
 
 async function deactivateToken(token) {
