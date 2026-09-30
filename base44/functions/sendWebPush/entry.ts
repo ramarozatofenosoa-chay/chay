@@ -14,6 +14,13 @@ import webpush from 'npm:web-push';
 const VAPID_SUBJECT = "https://chay.base44.app";
 const VAPID_PUBLIC_KEY = "BCWq_4_Qu_DqSH3SR-s0xyCt8gE29xZ4LilwMf3Hp5DyekihEmRVGkt7fwsCoago_sXoD23roB20zW5sZNnC_LE";
 
+function summarizeByUser(userIds, userResults) {
+  return userIds.map((userId, index) => {
+    const { attempted, succeeded, failed, deactivated } = userResults.get(userId);
+    return { recipientIndex: index + 1, attempted, succeeded, failed, deactivated };
+  });
+}
+
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
@@ -34,12 +41,33 @@ export default async function (req) {
     const targetType = String(body.target_type || "");
     const targetId = String(body.target_id || "");
     if (userIds.length === 0) {
-      return Response.json({ sent: 0, failed: 0, subscriptions: 0 });
+      return Response.json({ sent: 0, failed: 0, subscriptions: 0, byUser: [] });
+    }
+    const byUser = [];
+    const userResults = new Map();
+    for (const userId of userIds) {
+      if (!userResults.has(userId)) {
+        const result = {
+          user_id: userId,
+          attempted: 0,
+          succeeded: 0,
+          failed: 0,
+          deactivated: 0,
+        };
+        userResults.set(userId, result);
+        byUser.push(result);
+      }
     }
 
     const privateKey = secrets.get("VAPID_PRIVATE_KEY");
     if (!privateKey) {
-      return Response.json({ sent: 0, failed: 0, subscriptions: 0, skipped: "no_vapid_key" });
+      return Response.json({
+        sent: 0,
+        failed: 0,
+        subscriptions: 0,
+        skipped: "no_vapid_key",
+        byUser: summarizeByUser(userIds, userResults),
+      });
     }
     webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, privateKey);
 
@@ -58,7 +86,12 @@ export default async function (req) {
       skip += 500;
     }
     if (subs.length === 0) {
-      return Response.json({ sent: 0, failed: 0, subscriptions: 0 });
+      return Response.json({
+        sent: 0,
+        failed: 0,
+        subscriptions: 0,
+        byUser: summarizeByUser(userIds, userResults),
+      });
     }
 
     const payload = JSON.stringify({
@@ -74,6 +107,8 @@ export default async function (req) {
     for (let i = 0; i < subs.length; i += CHUNK) {
       const chunk = subs.slice(i, i + CHUNK);
       await Promise.all(chunk.map(async (s) => {
+        const userResult = userResults.get(s.user_id);
+        if (userResult) userResult.attempted += 1;
         try {
           await webpush.sendNotification(
             { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
@@ -81,20 +116,33 @@ export default async function (req) {
             { TTL: ttl }
           );
           sent += 1;
+          if (userResult) userResult.succeeded += 1;
         } catch (e) {
           failed += 1;
+          if (userResult) userResult.failed += 1;
           const code = e && e.statusCode;
           if (code === 404 || code === 410) {
             // Abonnement expiré ou révoqué : on le désactive.
-            await base44.asServiceRole.entities.WebPushSubscription
-              .update(s.id, { is_active: false }).catch(() => {});
-            deactivated += 1;
+            try {
+              await base44.asServiceRole.entities.WebPushSubscription
+                .update(s.id, { is_active: false });
+              deactivated += 1;
+              if (userResult) userResult.deactivated += 1;
+            } catch {
+              // Keep delivery failure separate from deactivation failure.
+            }
           }
         }
       }));
     }
 
-    return Response.json({ sent, failed, subscriptions: subs.length, deactivated });
+    return Response.json({
+      sent,
+      failed,
+      subscriptions: subs.length,
+      deactivated,
+      byUser: summarizeByUser(userIds, userResults),
+    });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
