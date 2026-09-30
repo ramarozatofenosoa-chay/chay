@@ -1,7 +1,5 @@
 import React, { useState } from "react";
-import { Music, Headphones, Film, Play, Pause, Trash2, Pencil } from "lucide-react";
-import CreatePlaylistModal from "@/components/media/CreatePlaylistModal";
-import PlaylistCover from "@/components/media/PlaylistCover";
+import { Music, Headphones, Film, Play, Pause, Trash2 } from "lucide-react";
 import VideoPlayer from "@/components/player/VideoPlayer";
 
 const TABS = [
@@ -16,13 +14,8 @@ export default function FavoritesView({
   isPlaying,
   playPlaylistItem,
   removeFromPlaylist,
-  playlists = [],
-  onDeletePlaylist,
-  onSaved,
-  isAdmin,
 }) {
   const [tab, setTab] = useState("music");
-  const [playlistToEdit, setPlaylistToEdit] = useState(null);
   const items = playlist.filter((p) => (p.category || "music") === tab);
 
   return (
@@ -45,42 +38,6 @@ export default function FavoritesView({
           );
         })}
       </div>
-
-      {/* Liste des playlists (admin) */}
-      {isAdmin && playlists.length > 0 && (
-        <div className="space-y-2 mb-6">
-          <p className="text-xs font-bold uppercase tracking-wide text-foreground/50">
-            Playlists
-          </p>
-          {playlists.map((pl) => (
-            <div key={pl.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
-              <PlaylistCover
-                playlist={pl}
-                className="h-10 w-10 rounded-xl shrink-0"
-              />
-              <div className="flex-1 min-w-0">
-                <div className="font-bold text-sm truncate">{pl.name}</div>
-              </div>
-              <button
-                onClick={() => setPlaylistToEdit(pl)}
-                className="h-9 w-9 grid place-items-center rounded-full text-foreground/50 hover:text-foreground hover:bg-muted shrink-0"
-                aria-label={`Modifier la playlist ${pl.name}`}
-              >
-                <Pencil className="h-4 w-4" />
-              </button>
-              {onDeletePlaylist && (
-                <button
-                  onClick={() => onDeletePlaylist(pl.id)}
-                  className="h-9 w-9 grid place-items-center rounded-full text-foreground/50 hover:text-destructive hover:bg-muted shrink-0"
-                  aria-label="Supprimer la playlist"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
 
       {items.length ? (
         <div className="space-y-3">
@@ -141,18 +98,6 @@ export default function FavoritesView({
           Rien ici pour l'instant. Touchez l'étoile sur un titre pour l'ajouter à votre playlist.
         </p>
       )}
-      <CreatePlaylistModal
-        open={Boolean(playlistToEdit)}
-        onOpenChange={(nextOpen) => {
-          if (!nextOpen) setPlaylistToEdit(null);
-        }}
-        playlist={playlistToEdit}
-        category={playlistToEdit?.category || "music"}
-        onSaved={() => {
-          setPlaylistToEdit(null);
-          onSaved?.();
-        }}
-      />
     </div>
   );
 }

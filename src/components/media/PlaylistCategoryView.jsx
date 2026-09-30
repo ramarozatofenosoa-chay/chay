@@ -1,106 +1,8 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import {
-  ChevronLeft,
-  Film,
-  Play,
-  Pause,
-  Star,
-  Lock,
-  Unlock,
-  GripVertical,
-  Pencil,
-} from "lucide-react";
+import { ChevronLeft, Film, Play, Pause, Star } from "lucide-react";
 import VideoPlayer from "@/components/player/VideoPlayer";
-import CreatePlaylistModal from "@/components/media/CreatePlaylistModal";
 import PlaylistCover from "@/components/media/PlaylistCover";
-import { base44 } from "@/api/base44Client";
-import { useToast } from "@/components/ui/use-toast";
-
-/* ── Hook drag & drop tactile + souris ── */
-function useDragSort(items, onReorder) {
-  const dragIdx = useRef(null);
-  const listRef = useRef(null);
-
-  const getItemEls = () =>
-    listRef.current ? Array.from(listRef.current.children) : [];
-
-  const indexFromY = (clientY) => {
-    const els = getItemEls();
-    for (let i = 0; i < els.length; i++) {
-      const r = els[i].getBoundingClientRect();
-      if (clientY < r.top + r.height / 2) return i;
-    }
-    return els.length - 1;
-  };
-
-  const onMouseDown = useCallback((idx) => (e) => {
-    e.preventDefault();
-    dragIdx.current = idx;
-    const els = getItemEls();
-    els[idx]?.classList.add("opacity-50", "scale-[0.98]");
-    const onMove = (me) => {
-      const target = indexFromY(me.clientY);
-      els.forEach((el, i) => {
-        el.style.transform = "";
-        if (i === dragIdx.current) return;
-        if (dragIdx.current < target ? i > dragIdx.current && i <= target : i < dragIdx.current && i >= target)
-          el.style.transform = dragIdx.current < target ? "translateY(-60px)" : "translateY(60px)";
-      });
-    };
-    const onUp = (me) => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-      const from = dragIdx.current;
-      dragIdx.current = null;
-      els.forEach((el) => { el.classList.remove("opacity-50", "scale-[0.98]"); el.style.transform = ""; });
-      const to = indexFromY(me.clientY);
-      if (from !== to) { const next = [...items]; const [m] = next.splice(from, 1); next.splice(to, 0, m); onReorder(next); }
-    };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-  }, [items, onReorder]);
-
-  const onTouchStart = useCallback((idx) => (e) => {
-    dragIdx.current = idx;
-    const els = getItemEls();
-    els[idx]?.classList.add("opacity-50", "scale-[0.98]");
-    const onMove = (te) => {
-      te.preventDefault();
-      const touch = te.touches[0];
-      const target = indexFromY(touch.clientY);
-      els.forEach((el, i) => {
-        el.style.transform = "";
-        if (i === dragIdx.current) return;
-        if (dragIdx.current < target ? i > dragIdx.current && i <= target : i < dragIdx.current && i >= target)
-          el.style.transform = dragIdx.current < target ? "translateY(-60px)" : "translateY(60px)";
-      });
-    };
-    const onEnd = (te) => {
-      listRef.current?.removeEventListener("touchmove", onMove);
-      listRef.current?.removeEventListener("touchend", onEnd);
-      const from = dragIdx.current;
-      dragIdx.current = null;
-      els.forEach((el) => { el.classList.remove("opacity-50", "scale-[0.98]"); el.style.transform = ""; });
-      const touch = te.changedTouches[0];
-      const to = indexFromY(touch.clientY);
-      if (from !== to) { const next = [...items]; const [m] = next.splice(from, 1); next.splice(to, 0, m); onReorder(next); }
-    };
-    listRef.current?.addEventListener("touchmove", onMove, { passive: false });
-    listRef.current?.addEventListener("touchend", onEnd);
-  }, [items, onReorder]);
-
-  return { listRef, onMouseDown, onTouchStart };
-}
-
-function LockToggle({ locked, onToggle }) {
-  return (
-    <button onClick={onToggle} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold border transition ${locked ? "border-border bg-card text-muted-foreground hover:bg-muted" : "border-primary bg-primary/10 text-primary hover:bg-primary/20"}`}>
-      {locked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
-      {locked ? "Verrouillé" : "Réorganiser"}
-    </button>
-  );
-}
 
 export default function PlaylistCategoryView({
   category,
@@ -112,79 +14,26 @@ export default function PlaylistCategoryView({
   playQueue,
   toggle,
   isAdmin,
-  onCreatePlaylist,
-  onSaved,
   onToggleFavorite,
   isFavorite,
   favoriteCategory,
 }) {
-  const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const [open, setOpen] = useState(null);
   const [targetUnavailable, setTargetUnavailable] = useState(false);
-  const [playlistToEdit, setPlaylistToEdit] = useState(null);
-  const [playlistsLocked, setPlaylistsLocked] = useState(true);
-  const [tracksLocked, setTracksLocked] = useState(true);
-  const [localCats, setLocalCats] = useState(null);
-  const [localTracks, setLocalTracks] = useState(null);
   const trackNodes = useRef(new Map());
   const targetTrackId = searchParams.get("track");
   const targetPlaylistId = searchParams.get("playlist");
-  // The media library can edit existing playlists; creation stays in Admin.
-  const [showPlaylistEditor, setShowPlaylistEditor] = useState(false);
 
   const isVideo = kind === "video";
 
-  const handleReorderCats = useCallback(async (next) => {
-    setLocalCats(next);
-    // Ne plus avaler l'erreur : Base44 rejette silencieusement un champ absent
-    // de l'entité déployée, et l'ordre réapparaissait à sa place au rechargement.
-    const results = await Promise.all(
-      next.map((p, i) =>
-        base44.entities.Playlist.update(p.id, { order: i }).then(
-          () => true,
-          () => false
-        )
-      )
-    );
-    if (results.includes(false)) {
-      setLocalCats(null);
-      toast({
-        title: "Réorganisation non enregistrée",
-        description:
-          "Le champ « order » semble absent de l'entité Playlist côté Base44. Ajoutez-le (type nombre) dans Entities → Playlist, puis Publish.",
-        variant: "destructive",
-      });
-    }
-  }, [toast]);
-
-  const handleReorderTracks = useCallback(async (next) => {
-    setLocalTracks(next);
-    const results = await Promise.all(
-      next.map((t, i) =>
-        base44.entities.PlaylistTrack.update(t.id, { order: i }).then(
-          () => true,
-          () => false
-        )
-      )
-    );
-    if (results.includes(false)) {
-      setLocalTracks(null);
-      toast({
-        title: "Réorganisation non enregistrée",
-        description: "Vérifiez le champ « order » de l'entité PlaylistTrack.",
-        variant: "destructive",
-      });
-    }
-  }, [toast]);
-
-  const cats = (localCats ?? playlists
+  const cats = playlists
     .filter((p) => (p.category || "music") === category)
-    .sort((a, b) => (a.order ?? 99999) - (b.order ?? 99999)));
+    .sort((a, b) => (a.order ?? 99999) - (b.order ?? 99999));
   const tracks = open
-    ? (localTracks ?? playlistTracks
+    ? playlistTracks
         .filter((t) => t.playlist_id === open.id)
-        .sort((a, b) => (a.order ?? 99999) - (b.order ?? 99999)))
+        .sort((a, b) => (a.order ?? 99999) - (b.order ?? 99999))
     : [];
 
   useEffect(() => {
@@ -217,7 +66,6 @@ export default function PlaylistCategoryView({
     }
 
     setTargetUnavailable(false);
-    setLocalTracks(null);
     setOpen(targetPlaylist);
   }, [category, targetTrackId, targetPlaylistId, playlistTracks, playlists]);
 
@@ -234,7 +82,6 @@ export default function PlaylistCategoryView({
 
   const closePlaylist = () => {
     setOpen(null);
-    setLocalTracks(null);
     if (targetTrackId || targetPlaylistId) {
       const next = new URLSearchParams(searchParams);
       next.delete("track");
@@ -242,9 +89,6 @@ export default function PlaylistCategoryView({
       setSearchParams(next, { replace: true });
     }
   };
-
-  const catDrag = useDragSort(cats, handleReorderCats);
-  const trackDrag = useDragSort(tracks, handleReorderTracks);
 
   const favItem = (t) => ({
     id: t.track_id,
@@ -281,14 +125,8 @@ export default function PlaylistCategoryView({
         </div>
 
         {tracks.length ? (
-          <>
-            {isAdmin && tracks.length > 1 && (
-              <div className="flex justify-end mb-2">
-                <LockToggle locked={tracksLocked} onToggle={() => setTracksLocked((v) => !v)} />
-              </div>
-            )}
-          <div ref={trackDrag.listRef} className="space-y-3">
-            {tracks.map((t, idx) =>
+          <div className="space-y-3">
+            {tracks.map((t) =>
               isVideo ? (
                 <div
                   key={t.id}
@@ -338,15 +176,6 @@ export default function PlaylistCategoryView({
                     targetTrackId === t.track_id ? "ring-2 ring-primary" : ""
                   }`}
                 >
-                  {isAdmin && !tracksLocked && (
-                    <div
-                      className="cursor-grab active:cursor-grabbing touch-none shrink-0 text-muted-foreground"
-                      onMouseDown={trackDrag.onMouseDown(idx)}
-                      onTouchStart={trackDrag.onTouchStart(idx)}
-                    >
-                      <GripVertical className="h-5 w-5" />
-                    </div>
-                  )}
                   <div
                     className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
                     onClick={() => {
@@ -389,7 +218,6 @@ export default function PlaylistCategoryView({
               )
             )}
           </div>
-          </>
         ) : (
           <p className="text-foreground/50 text-sm">
             Aucun titre dans cette playlist pour le moment.
@@ -409,93 +237,28 @@ export default function PlaylistCategoryView({
       )}
       <div className="flex items-center justify-between mb-5 gap-3">
         <p className="text-sm text-foreground/55">Les contenus sont organisés en playlists.</p>
-        {isAdmin && cats.length > 1 && (
-          <LockToggle locked={playlistsLocked} onToggle={() => setPlaylistsLocked((v) => !v)} />
-        )}
       </div>
 
       {cats.length ? (
-        !playlistsLocked && isAdmin ? (
-          /* Mode réorganisation : liste verticale avec poignées */
-          <div ref={catDrag.listRef} className="space-y-2">
-            {cats.map((p, idx) => {
-              const count = playlistTracks.filter((pt) => pt.playlist_id === p.id).length;
-              return (
-                <div
-                  key={p.id}
-                  className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 transition-transform duration-150 select-none"
-                >
-                  <div
-                    className="cursor-grab active:cursor-grabbing touch-none shrink-0 text-muted-foreground"
-                    onMouseDown={catDrag.onMouseDown(idx)}
-                    onTouchStart={catDrag.onTouchStart(idx)}
-                  >
-                    <GripVertical className="h-5 w-5" />
-                  </div>
-                  <PlaylistCover playlist={p} className="h-12 w-12 shrink-0 rounded-xl" />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-bold text-sm truncate">{p.name}</div>
-                    <div className="text-xs text-foreground/55">{count} titre(s)</div>
-                  </div>
-                  <button
-                    onClick={() => setOpen(p)}
-                    className="text-xs font-bold text-primary px-3 py-1 rounded-full border border-primary/30 hover:bg-primary/10"
-                  >
-                    Ouvrir
-                  </button>
-                  {isAdmin && (
-                    <button
-                      onClick={() => {
-                        setPlaylistToEdit(p);
-                        setShowPlaylistEditor(true);
-                      }}
-                      className="h-8 w-8 grid place-items-center rounded-full hover:bg-muted"
-                      aria-label={`Modifier la playlist ${p.name}`}
-                      title="Modifier la playlist"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          /* Mode normal : grille */
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {cats.map((p) => {
-              const count = playlistTracks.filter((pt) => pt.playlist_id === p.id).length;
-              return (
-                <div key={p.id} className="relative">
-                  <button
-                    onClick={() => { setLocalTracks(null); setOpen(p); }}
-                    className="group w-full rounded-[1.5rem] border border-border bg-card p-4 text-left hover:-translate-y-1 hover:shadow-lg transition-all"
-                  >
-                    <PlaylistCover
-                      playlist={p}
-                      className="aspect-square rounded-2xl mb-3"
-                    />
-                    <div className="font-bold text-sm line-clamp-1">{p.name}</div>
-                    <div className="text-xs text-foreground/55">{count} titre(s)</div>
-                  </button>
-                  {isAdmin && (
-                    <button
-                      onClick={() => {
-                        setPlaylistToEdit(p);
-                        setShowPlaylistEditor(true);
-                      }}
-                      className="absolute right-6 top-6 h-9 w-9 grid place-items-center rounded-full bg-background/90 text-foreground shadow hover:bg-background"
-                      aria-label={`Modifier la playlist ${p.name}`}
-                      title="Modifier la playlist"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {cats.map((p) => {
+            const count = playlistTracks.filter((pt) => pt.playlist_id === p.id).length;
+            return (
+              <button
+                key={p.id}
+                onClick={() => setOpen(p)}
+                className="group w-full rounded-[1.5rem] border border-border bg-card p-4 text-left hover:-translate-y-1 hover:shadow-lg transition-all"
+              >
+                <PlaylistCover
+                  playlist={p}
+                  className="aspect-square rounded-2xl mb-3"
+                />
+                <div className="font-bold text-sm line-clamp-1">{p.name}</div>
+                <div className="text-xs text-foreground/55">{count} titre(s)</div>
+              </button>
+            );
+          })}
+        </div>
       ) : (
         <p className="text-foreground/50 text-sm">
           Aucune playlist pour le moment
@@ -505,20 +268,6 @@ export default function PlaylistCategoryView({
         </p>
       )}
 
-      {/* Playlist editing stays available here; creation is only in Admin. */}
-      <CreatePlaylistModal
-        open={showPlaylistEditor}
-        onOpenChange={(nextOpen) => {
-          setShowPlaylistEditor(nextOpen);
-          if (!nextOpen) setPlaylistToEdit(null);
-        }}
-        category={category}
-        playlist={playlistToEdit}
-        onSaved={() => {
-          setPlaylistToEdit(null);
-          onSaved?.();
-        }}
-      />
     </div>
   );
 }

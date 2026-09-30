@@ -1,18 +1,13 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useLocation, useSearchParams } from "react-router-dom";
-import { Plus } from "lucide-react";
 import YouTubeCard from "@/components/media/YouTubeCard";
-import AddYouTubeLinkModal from "@/components/media/AddYouTubeLinkModal";
 import { clearMediaControl, requestMediaPlayback } from "@/lib/mediaControl";
 
 export default function YouTubeCategoryView({
   section,
   youtube = [],
-  isAdmin,
-  onSaved,
   targetVideoId,
 }) {
-  const [addOpen, setAddOpen] = useState(false);
   const [playingIndex, setPlayingIndex] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
@@ -76,14 +71,6 @@ export default function YouTubeCategoryView({
         <p className="text-sm text-foreground/55">
           Vidéos YouTube — {sectionLabels[section] || section}.
         </p>
-        {isAdmin && (
-          <button
-            onClick={() => setAddOpen(true)}
-            className="inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-4 py-2.5 text-sm font-bold hover:scale-105 transition"
-          >
-            <Plus className="h-4 w-4" /> Ajouter un lien
-          </button>
-        )}
       </div>
 
       {items.length ? (
@@ -106,8 +93,6 @@ export default function YouTubeCategoryView({
           Cette vidéo n'est plus disponible dans cette section.
         </p>
       )}
-
-      <AddYouTubeLinkModal open={addOpen} onOpenChange={setAddOpen} section={section} onSaved={onSaved} />
 
     </div>
   );

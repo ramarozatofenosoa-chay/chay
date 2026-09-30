@@ -60,8 +60,6 @@ export default function MediaCategory({
   currentTrack, isPlaying, play, playQueue, toggle,
   addToPlaylist, removeFromPlaylist, playPlaylistItem, isPinned,
   playlists = [], playlistTracks = [],
-  onSaved,
-  onDeletePlaylist,
 }) {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -177,7 +175,6 @@ export default function MediaCategory({
           category="music" kind="audio" favoriteCategory="music"
           playlists={playlists} playlistTracks={playlistTracks}
           currentTrack={currentTrack} isPlaying={isPlaying} playQueue={playQueue} toggle={toggle}
-          onSaved={onSaved}
           isAdmin={isAdmin}
           onToggleFavorite={addToPlaylist} isFavorite={isPinned}
         />
@@ -188,7 +185,6 @@ export default function MediaCategory({
           category="sermons" kind="audio" favoriteCategory="sermons"
           playlists={playlists} playlistTracks={playlistTracks}
           currentTrack={currentTrack} isPlaying={isPlaying} playQueue={playQueue} toggle={toggle}
-          onSaved={onSaved}
           isAdmin={isAdmin}
           onToggleFavorite={addToPlaylist} isFavorite={isPinned}
         />
@@ -199,7 +195,6 @@ export default function MediaCategory({
           category="films" kind="video" favoriteCategory="films"
           playlists={playlists} playlistTracks={playlistTracks}
           currentTrack={currentTrack} isPlaying={isPlaying} playQueue={playQueue} toggle={toggle}
-          onSaved={onSaved}
           isAdmin={isAdmin}
           onToggleFavorite={addToPlaylist} isFavorite={isPinned}
         />
@@ -231,8 +226,6 @@ export default function MediaCategory({
               <YouTubeCategoryView
                 section={ytSection}
                 youtube={youtube}
-                isAdmin={isAdmin}
-                onSaved={onSaved}
                 targetVideoId={targetVideoId}
               />
             </div>
@@ -384,10 +377,6 @@ export default function MediaCategory({
           isPlaying={isPlaying}
           playPlaylistItem={playPlaylistItem}
           removeFromPlaylist={removeFromPlaylist}
-          playlists={playlists}
-          onDeletePlaylist={onDeletePlaylist}
-          onSaved={onSaved}
-          isAdmin={isAdmin}
         />
       )}
     </div>

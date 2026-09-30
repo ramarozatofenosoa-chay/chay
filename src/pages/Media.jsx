@@ -148,16 +148,6 @@ export default function Media() {
 
   const isPinned = (id) => playlist.some((p) => p.track_id === id);
 
-  const deletePlaylist = async (id) => {
-    try {
-      await base44.entities.Playlist.delete(id);
-      toast({ title: "Playlist supprimée" });
-      await loadAll();
-    } catch (e) {
-      toast({ title: "Erreur", description: e.message, variant: "destructive" });
-    }
-  };
-
   const openCat = (id) =>
     setSearchParams({ cat: id }, { state: { chayMediaCategory: true } });
   const back = () => {
@@ -203,8 +193,6 @@ export default function Media() {
           isPinned={isPinned}
           playlists={playlists}
           playlistTracks={playlistTracks}
-          onSaved={loadAll}
-          onDeletePlaylist={deletePlaylist}
         />
       ) : (
         <CategoryGrid
