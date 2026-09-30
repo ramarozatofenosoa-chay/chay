@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
-import { Facebook, Youtube, Shield, Globe } from "lucide-react"; // Ajout de Globe
+import { Facebook, Youtube, Shield, Globe } from "lucide-react";
 import PullToRefresh from "@/components/PullToRefresh";
 import SplitClock from "@/components/home/SplitClock";
 import QuestionLogiqueSection from "@/components/home/QuestionLogiqueSection";
@@ -76,55 +76,46 @@ export default function Home() {
         </div> 
         */}
 
-             {/* Footer avec liens sociaux simplifiés en icônes BLANCES */}
+        {/* Footer avec liens sociaux */}
         <footer className="mt-12 pt-8 border-t border-border pb-6 flex flex-col items-center gap-6">
-          
-          {/* Conteneur des icônes sociales */}
           <div className="flex items-center justify-center gap-4">
-            
-            {/* Lien Site Web */}
             <a
               href="https://www.chay.fr/"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-card border border-border text-white hover:bg-primary hover:border-primary transition-all duration-300 shadow-sm"
+              className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-card border border-border text-foreground hover:bg-primary hover:border-primary hover:text-primary-foreground transition-all duration-300 shadow-sm"
               aria-label="Site Web Église Chay"
             >
               <Globe className="h-5 w-5" />
             </a>
 
-            {/* Lien Facebook */}
             <a
               href="https://www.facebook.com/www.chay.fr"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-card border border-border text-white hover:bg-primary hover:border-primary transition-all duration-300 shadow-sm"
+              className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-card border border-border text-foreground hover:bg-primary hover:border-primary hover:text-primary-foreground transition-all duration-300 shadow-sm"
               aria-label="Facebook"
             >
               <Facebook className="h-5 w-5" />
             </a>
 
-            {/* Lien YouTube */}
             <a
               href="https://www.youtube.com/@EgliseChay.fr-tv"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-card border border-border text-white hover:bg-primary hover:border-primary transition-all duration-300 shadow-sm"
+              className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-card border border-border text-foreground hover:bg-primary hover:border-primary hover:text-primary-foreground transition-all duration-300 shadow-sm"
               aria-label="YouTube"
             >
               <Youtube className="h-5 w-5" />
             </a>
 
-            {/* Lien TikTok */}
             <a
               href="https://www.tiktok.com/@anjahamintsoa"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-card border border-border text-white hover:bg-primary hover:border-primary transition-all duration-300 shadow-sm"
+              className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-card border border-border text-foreground hover:bg-primary hover:border-primary hover:text-primary-foreground transition-all duration-300 shadow-sm"
               aria-label="TikTok"
             >
-              {/* lucide-react ne fournit pas de logo TikTok : SVG inline,
-                  fill="currentColor" donc blanc via la classe text-white. */}
               <svg
                 viewBox="0 0 24 24"
                 fill="currentColor"
@@ -136,11 +127,10 @@ export default function Home() {
               </svg>
             </a>
 
-            {/* Lien Admin (Visible uniquement pour admin) */}
             {user?.role === "admin" && (
               <Link
                 to="/admin"
-                className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-card border border-border text-white hover:bg-primary hover:border-primary transition-all duration-300 shadow-sm"
+                className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-card border border-border text-foreground hover:bg-primary hover:border-primary hover:text-primary-foreground transition-all duration-300 shadow-sm"
                 aria-label="Administration"
               >
                 <Shield className="h-5 w-5" />

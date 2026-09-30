@@ -7,7 +7,7 @@ import AnimatedOutlet from "@/components/AnimatedOutlet";
 import MiniPlayer from "@/components/MiniPlayer";
 import PullDownMediaBar from "@/components/PullDownMediaBar";
 import UniversalMediaSurface from "@/components/UniversalMediaSurface";
-import { Image } from "@/components/ui/image";
+import BrandLogo from "@/components/BrandLogo";
 import { useAuth } from "@/lib/AuthContext";
 import { usePreferences } from "@/lib/PreferencesContext";
 import { usePresenceHeartbeat } from "@/hooks/usePresence";
@@ -25,9 +25,6 @@ import {
 } from "@/lib/backNavigation";
 import { hasOpenOverlay } from "@/hooks/useBackHandler";
 import { subscribeMediaControl } from "@/lib/mediaControl";
-
-const LOGO_URL =
-  "https://media.base44.com/images/public/6aa138d0e963d9e5f59d838c/c26279d55_logo.png";
 
 const NAV = [
   { to: "/", label: "Accueil", icon: Home, end: true },
@@ -157,7 +154,7 @@ export default function Layout() {
       <header className="hidden md:flex sticky top-0 z-40 px-6 pt-5">
         <div className="mx-auto w-full max-w-6xl flex items-center justify-between rounded-full border border-border bg-background/70 backdrop-blur-xl px-6 py-3 glow-soft">
           <Link to="/" className="flex items-center">
-            <Image src={LOGO_URL} alt="Chay" fittingType="fill" focalPointX={0.5} focalPointY={0.5} className="h-9 w-9 rounded-xl shadow-sm" />
+            <BrandLogo className="h-9 w-9" />
           </Link>
 
           <nav aria-label="Navigation principale" className="flex items-center gap-1">
@@ -220,7 +217,7 @@ export default function Layout() {
               </button>
             ) : (
               <Link to="/" className="flex items-center">
-                <Image src={LOGO_URL} alt="Chay" fittingType="fill" focalPointX={0.5} focalPointY={0.5} className="h-8 w-8 rounded-xl shadow-sm" />
+                <BrandLogo className="h-8 w-8" />
               </Link>
             )}
           </div>
