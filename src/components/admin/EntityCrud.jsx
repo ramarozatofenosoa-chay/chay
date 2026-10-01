@@ -150,14 +150,15 @@ function LockToggle({ locked, onToggle }) {
     <button
       onClick={onToggle}
       title={locked ? "Déverrouiller pour réorganiser" : "Verrouiller l'ordre"}
-      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold border transition
+      aria-label={locked ? "Déverrouiller pour réorganiser" : "Verrouiller l'ordre"}
+      aria-pressed={!locked}
+      className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition
         ${locked
           ? "border-border bg-card text-muted-foreground hover:bg-muted"
           : "border-primary bg-primary/10 text-primary hover:bg-primary/20"
         }`}
     >
       {locked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
-      {locked ? "Verrouillé" : "Réorganiser"}
     </button>
   );
 }

@@ -105,10 +105,22 @@ export default function Media() {
 
   const addToPlaylist = async (item, category) => {
     try {
-      if (playlist.some((p) => p.track_id === item.id)) {
-        toast({ title: "Déjà dans votre playlist" });
+      if (category !== "music" || !item.source_playlist_id) return;
+      if (playlist.some((p) =>
+        p.track_id === item.id && p.source_playlist_id === item.source_playlist_id
+      )) {
+        toast({ title: "Déjà dans cette playlist de favoris" });
         return;
       }
+      const samePlaylistItems = playlist.filter(
+        (p) => p.source_playlist_id === item.source_playlist_id
+      );
+      const nextTrackOrder = samePlaylistItems.length
+        ? Math.max(...samePlaylistItems.map((p) => p.order ?? -1)) + 1
+        : 0;
+      const nextPlaylistOrder = samePlaylistItems.length
+        ? Math.min(...samePlaylistItems.map((p) => p.playlist_order ?? 99999))
+        : playlist.reduce((max, p) => Math.max(max, (p.playlist_order ?? -1) + 1), 0);
       await base44.entities.PlaylistItem.create({
         track_id: item.id,
         title: item.title,
@@ -117,9 +129,13 @@ export default function Media() {
         video_url: item.video_url || null,
         cover_url: item.cover_url || null,
         kind: item.kind || "audio",
-        category: category || "music",
+        category: "music",
+        source_playlist_id: item.source_playlist_id,
+        source_playlist_name: item.source_playlist_name,
+        order: nextTrackOrder,
+        playlist_order: nextPlaylistOrder,
       });
-      toast({ title: "Ajouté à votre playlist" });
+      toast({ title: `Ajouté aux favoris : ${item.source_playlist_name || "playlist"}` });
       await loadAll();
     } catch (e) {
       toast({ title: "Erreur", description: e.message, variant: "destructive" });
@@ -146,7 +162,48 @@ export default function Media() {
     });
   };
 
-  const isPinned = (id) => playlist.some((p) => p.track_id === id);
+  const isPinned = (id, sourcePlaylistId) =>
+    playlist.some((p) => p.track_id === id && p.source_playlist_id === sourcePlaylistId);
+
+  const reorderFavoriteItems = async (sourcePlaylistId, nextItems) => {
+    const orders = new Map(nextItems.map((item, index) => [item.id, index]));
+    const updates = nextItems.map((item) => ({
+      ...item,
+      order: orders.get(item.id),
+    }));
+    setPlaylist((current) => current.map((item) => {
+      const key = item.source_playlist_id || "legacy-favorites";
+      return key === sourcePlaylistId ? { ...item, order: orders.get(item.id) ?? item.order } : item;
+    }));
+    const results = await Promise.all(updates.map((item) =>
+      base44.entities.PlaylistItem.update(item.id, { order: item.order }).then(() => true, () => false)
+    ));
+    if (results.includes(false)) {
+      toast({ title: "Réorganisation non enregistrée", variant: "destructive" });
+      await loadAll();
+    }
+  };
+
+  const reorderFavoritePlaylists = async (nextGroups) => {
+    const orderById = new Map(nextGroups.map((group, index) => [group.id, index]));
+    const updates = playlist
+      .filter((item) => orderById.has(item.source_playlist_id || "legacy-favorites"))
+      .map((item) => ({
+        id: item.id,
+        playlist_order: orderById.get(item.source_playlist_id || "legacy-favorites"),
+      }));
+    setPlaylist((current) => current.map((item) => {
+      const key = item.source_playlist_id || "legacy-favorites";
+      return orderById.has(key) ? { ...item, playlist_order: orderById.get(key) } : item;
+    }));
+    const results = await Promise.all(updates.map((item) =>
+      base44.entities.PlaylistItem.update(item.id, { playlist_order: item.playlist_order }).then(() => true, () => false)
+    ));
+    if (results.includes(false)) {
+      toast({ title: "Réorganisation non enregistrée", variant: "destructive" });
+      await loadAll();
+    }
+  };
 
   const openCat = (id) =>
     setSearchParams({ cat: id }, { state: { chayMediaCategory: true } });
@@ -191,8 +248,16 @@ export default function Media() {
           removeFromPlaylist={removeFromPlaylist}
           playPlaylistItem={playPlaylistItem}
           isPinned={isPinned}
+          onReorderFavoriteItems={reorderFavoriteItems}
+          onReorderFavoritePlaylists={reorderFavoritePlaylists}
           playlists={playlists}
           playlistTracks={playlistTracks}
+          onGalleryItemUpdated={(updated) =>
+            setGallery((items) => items.map((item) => item.id === updated.id ? updated : item))
+          }
+          onGalleryItemDeleted={(imageId) =>
+            setGallery((items) => items.filter((item) => item.id !== imageId))
+          }
         />
       ) : (
         <CategoryGrid

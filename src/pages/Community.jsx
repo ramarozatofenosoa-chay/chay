@@ -250,7 +250,17 @@ export default function Community() {
               </div>
             ) : posts.length ? (
               posts.map((p) => (
-                <PostCard key={p.id} post={p} currentUser={user} />
+                <PostCard
+                  key={p.id}
+                  post={p}
+                  currentUser={user}
+                  onPostUpdated={(updated) =>
+                    setPosts((items) => items.map((item) => item.id === updated.id ? updated : item))
+                  }
+                  onPostDeleted={(postId) =>
+                    setPosts((items) => items.filter((item) => item.id !== postId))
+                  }
+                />
               ))
             ) : (
               <p className="text-center text-foreground/50 py-12">

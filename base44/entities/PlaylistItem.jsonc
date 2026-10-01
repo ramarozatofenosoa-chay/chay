@@ -36,6 +36,20 @@
         "films"
       ],
       "default": "music"
+    },
+    "source_playlist_id": {
+      "type": "string"
+    },
+    "source_playlist_name": {
+      "type": "string"
+    },
+    "order": {
+      "type": "number",
+      "description": "Ordre du titre dans la playlist de favoris de l'utilisateur"
+    },
+    "playlist_order": {
+      "type": "number",
+      "description": "Ordre de la playlist de favoris de l'utilisateur"
     }
   },
   "required": [

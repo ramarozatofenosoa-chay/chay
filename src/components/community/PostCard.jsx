@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Heart, MessageCircle, Send, Loader2, X, Maximize2 } from "lucide-react"; // Ajout de X et Maximize2
+import { Heart, MessageCircle, Send, Loader2, X, Maximize2, Pencil, Trash2, Check } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import { useBackHandler } from "@/hooks/useBackHandler";
 import { notifyComment, notifyLike } from "@/lib/socialNotifications";
+import { uploadToBase44 } from "@/lib/upload";
+import { useToast } from "@/components/ui/use-toast";
+import { formatTimestamp } from "@/lib/formatTimestamp";
 import {
   Dialog,
   DialogContent,
@@ -12,7 +15,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-export default function PostCard({ post, currentUser }) {
+export default function PostCard({ post, currentUser, onPostUpdated, onPostDeleted }) {
+  const { toast } = useToast();
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState([]);
   const [loadingComments, setLoadingComments] = useState(false);
@@ -21,6 +25,16 @@ export default function PostCard({ post, currentUser }) {
   const [reactions, setReactions] = useState([]);
   const [showLikes, setShowLikes] = useState(false);
   const [likeBusy, setLikeBusy] = useState(false);
+  const [editingPost, setEditingPost] = useState(false);
+  const [editText, setEditText] = useState(post.text || "");
+  const [editImageFile, setEditImageFile] = useState(null);
+  const [removeImage, setRemoveImage] = useState(false);
+  const [savingPost, setSavingPost] = useState(false);
+  const [deletingPost, setDeletingPost] = useState(false);
+  const [deleted, setDeleted] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editCommentText, setEditCommentText] = useState("");
+  const [busyCommentId, setBusyCommentId] = useState(null);
   
   // NOUVEL ÉTAT POUR LE VIEWER D'IMAGE
   const [isViewerOpen, setIsViewerOpen] = useState(false);
@@ -28,9 +42,80 @@ export default function PostCard({ post, currentUser }) {
   useBackHandler(isViewerOpen, () => setIsViewerOpen(false));
 
   const isMine = currentUser && post.created_by_id === currentUser.id;
+  const canManagePost = Boolean(isMine || currentUser?.role === "admin");
   const displayName = post.author_name || (isMine ? "Vous" : "Membre");
   const liked = reactions.some((r) => r.user_id === currentUser?.id);
   const likeCount = reactions.length;
+
+  const savePost = async () => {
+    const hasImageAfterEdit = Boolean(editImageFile || (post.image_url && !removeImage));
+    if ((!editText.trim() && !hasImageAfterEdit) || savingPost) return;
+    setSavingPost(true);
+    try {
+      const image_url = editImageFile
+        ? await uploadToBase44(editImageFile)
+        : removeImage ? null : post.image_url;
+      const updated = await base44.entities.CommunityPost.update(post.id, {
+        text: editText.trim(),
+        image_url,
+      });
+      onPostUpdated?.({ ...post, ...updated, text: editText.trim(), image_url });
+      setEditingPost(false);
+      setEditImageFile(null);
+      setRemoveImage(false);
+      toast({ title: "Publication mise à jour" });
+    } catch (error) {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } finally {
+      setSavingPost(false);
+    }
+  };
+
+  const deletePost = async () => {
+    if (deletingPost) return;
+    if (!window.confirm("Supprimer cette publication ? Cette action est irréversible.")) return;
+    setDeletingPost(true);
+    try {
+      await base44.entities.CommunityPost.delete(post.id);
+      setDeleted(true);
+      onPostDeleted?.(post.id);
+      toast({ title: "Publication supprimée" });
+    } catch (error) {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } finally {
+      setDeletingPost(false);
+    }
+  };
+
+  const saveComment = async (comment) => {
+    const text = editCommentText.trim();
+    if (!text || busyCommentId) return;
+    setBusyCommentId(comment.id);
+    try {
+      const updated = await base44.entities.Comment.update(comment.id, { text });
+      setComments((prev) => prev.map((item) => item.id === comment.id ? { ...item, ...updated, text } : item));
+      setEditingCommentId(null);
+      toast({ title: "Commentaire modifié" });
+    } catch (error) {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } finally {
+      setBusyCommentId(null);
+    }
+  };
+
+  const deleteComment = async (comment) => {
+    if (busyCommentId || !window.confirm("Supprimer ce commentaire ?")) return;
+    setBusyCommentId(comment.id);
+    try {
+      await base44.entities.Comment.delete(comment.id);
+      setComments((prev) => prev.filter((item) => item.id !== comment.id));
+      toast({ title: "Commentaire supprimé" });
+    } catch (error) {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } finally {
+      setBusyCommentId(null);
+    }
+  };
 
   const loadReactions = async () => {
     const r = await base44.entities.PostReaction
@@ -124,11 +209,14 @@ export default function PostCard({ post, currentUser }) {
     }
   };
 
+  if (deleted) return null;
+
   return (
     <div className="rounded-[1.5rem] border border-border bg-card p-5 md:p-6 relative">
       
       {/* En-tête du post */}
       <div className="flex items-center gap-3 mb-3">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
         {post.created_by_id ? (
           <Link to={`/profile/${post.created_by_id}`} className="contents">
             <div className="h-11 w-11 rounded-full brand-gradient grid place-items-center text-white font-display font-bold shrink-0">
@@ -137,12 +225,7 @@ export default function PostCard({ post, currentUser }) {
             <div>
               <div className="font-semibold text-[0.9375rem] hover:underline">{displayName}</div>
               <div className="text-xs text-foreground/50">
-                {new Date(post.created_date).toLocaleDateString("fr-FR", {
-                  day: "numeric",
-                  month: "short",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+                {formatTimestamp(post.created_date)}
               </div>
             </div>
           </Link>
@@ -154,27 +237,97 @@ export default function PostCard({ post, currentUser }) {
             <div>
               <div className="font-semibold text-[0.9375rem]">{displayName}</div>
               <div className="text-xs text-foreground/50">
-                {new Date(post.created_date).toLocaleDateString("fr-FR", {
-                  day: "numeric",
-                  month: "short",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+                {formatTimestamp(post.created_date)}
               </div>
             </div>
           </>
         )}
+        </div>
+        {canManagePost && (
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                setEditText(post.text || "");
+                setEditImageFile(null);
+                setRemoveImage(false);
+                setEditingPost((value) => !value);
+              }}
+              className="h-8 w-8 grid place-items-center rounded-full text-foreground/50 hover:bg-muted hover:text-primary"
+              aria-label="Modifier la publication"
+              title="Modifier"
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={deletePost}
+              disabled={deletingPost}
+              className="h-8 w-8 grid place-items-center rounded-full text-foreground/50 hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+              aria-label="Supprimer la publication"
+              title="Supprimer"
+            >
+              {deletingPost ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Texte du post */}
-      {post.text && (
+      {editingPost ? (
+        <div className="space-y-3">
+          <textarea
+            value={editText}
+            onChange={(event) => setEditText(event.target.value)}
+            maxLength={5000}
+            rows={4}
+            className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-primary"
+            aria-label="Modifier le texte de la publication"
+          />
+          {post.image_url && !removeImage && (
+            <div className="flex items-center gap-3">
+              <Image src={post.image_url} alt="" className="h-16 w-16 rounded-xl object-cover" />
+              <button type="button" onClick={() => setRemoveImage(true)} className="text-xs font-semibold text-destructive">
+                Retirer l’image
+              </button>
+            </div>
+          )}
+          <label className="block text-xs font-semibold text-foreground/60">
+            {editImageFile ? editImageFile.name : "Remplacer l’image (facultatif)"}
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(event) => {
+                const file = event.target.files?.[0] || null;
+                setEditImageFile(file);
+                if (file) setRemoveImage(false);
+              }}
+              className="mt-1 block w-full text-sm"
+            />
+          </label>
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={() => setEditingPost(false)} className="rounded-full px-4 py-2 text-sm font-semibold hover:bg-muted">
+              Annuler
+            </button>
+            <button
+              type="button"
+              onClick={savePost}
+              disabled={savingPost || (!editText.trim() && !(editImageFile || (post.image_url && !removeImage)))}
+              className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-bold text-primary-foreground disabled:opacity-50"
+            >
+              {savingPost ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              Enregistrer
+            </button>
+          </div>
+        </div>
+      ) : post.text && (
         <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/85">
           {post.text}
         </p>
       )}
 
           {/* IMAGE CLIQUABLE - PROPORTIONS RESPECTÉES */}
-      {post.image_url && (
+      {post.image_url && !(editingPost && removeImage) && (
         <div 
           className="mt-3 rounded-2xl overflow-hidden border border-border cursor-zoom-in group relative bg-muted/20 flex justify-center items-center"
           onClick={() => setIsViewerOpen(true)}
@@ -237,17 +390,58 @@ export default function PostCard({ post, currentUser }) {
               Soyez le premier à commenter.
             </p>
           ) : (
-            comments.map((c) => (
+            comments.map((c) => {
+              const canEdit = c.created_by_id === currentUser?.id || currentUser?.role === "admin";
+              const canDelete = canEdit;
+              return (
               <div key={c.id} className="flex gap-2.5">
                 <div className="h-8 w-8 rounded-full bg-muted grid place-items-center text-xs font-bold shrink-0">
                   {(c.author_name || "M")[0]?.toUpperCase()}
                 </div>
                 <div className="rounded-2xl bg-muted px-3 py-2 flex-1">
-                  <div className="font-semibold text-xs">{c.author_name || "Membre"}</div>
-                  <div className="text-sm text-foreground/80">{c.text}</div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="font-semibold text-xs">{c.author_name || "Membre"}</div>
+                    {canEdit && (
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => { setEditingCommentId(c.id); setEditCommentText(c.text || ""); }}
+                          className="text-foreground/45 hover:text-primary"
+                          aria-label="Modifier le commentaire"
+                        ><Pencil className="h-3.5 w-3.5" /></button>
+                        {canDelete && (
+                          <button
+                            type="button"
+                            disabled={busyCommentId === c.id}
+                            onClick={() => deleteComment(c)}
+                            className="text-foreground/45 hover:text-destructive disabled:opacity-50"
+                            aria-label="Supprimer le commentaire"
+                          ><Trash2 className="h-3.5 w-3.5" /></button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {editingCommentId === c.id ? (
+                    <div className="mt-2 flex gap-2">
+                      <input
+                        value={editCommentText}
+                        onChange={(event) => setEditCommentText(event.target.value)}
+                        className="min-w-0 flex-1 rounded-lg border border-border bg-background px-2 py-1 text-sm"
+                        aria-label="Modifier le texte du commentaire"
+                      />
+                      <button type="button" onClick={() => saveComment(c)} disabled={busyCommentId === c.id} className="text-primary disabled:opacity-50" aria-label="Enregistrer le commentaire">
+                        {busyCommentId === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                      </button>
+                      <button type="button" onClick={() => setEditingCommentId(null)} className="text-foreground/50" aria-label="Annuler">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-foreground/80">{c.text}</div>
+                  )}
                 </div>
               </div>
-            ))
+            );})
           )}
           <div className="flex gap-2">
             <input

@@ -1,25 +1,24 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ChevronLeft, ChevronRight, MessageCircle, Send, Loader2 } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, MessageCircle, Send, Loader2, Pencil, Trash2, Check } from "lucide-react";
 import { useBackHandler } from "@/hooks/useBackHandler";
 import { parseWixMediaUrl, buildTransformUrl } from "@/components/ui/image-helpers";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
+import { uploadToBase44 } from "@/lib/upload";
+import { useToast } from "@/components/ui/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { formatTimestamp } from "@/lib/formatTimestamp";
+import { GALLERY_SECTIONS } from "@/lib/mediaConstants";
 
 // Les commentaires de photo réutilisent l'entité Comment (déjà utilisée par
 // la Communauté). Le champ `post_id` reçoit un préfixe « gallery: » pour ne
 // jamais entrer en collision avec l'identifiant d'un vrai post.
 const commentKey = (id) => `gallery:${id}`;
 
-const commentDate = (value) => {
-  if (!value) return "";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
-};
-
-export default function GalleryViewer({ items = [], index, onClose }) {
+export default function GalleryViewer({ items = [], index, onClose, onItemUpdated, onItemDeleted }) {
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const [i, setI] = useState(index || 0);
   // Synchronisation de l'index pendant le rendu (et non dans un useEffect) :
@@ -39,6 +38,16 @@ export default function GalleryViewer({ items = [], index, onClose }) {
   const [loadingComments, setLoadingComments] = useState(false);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const [editingItem, setEditingItem] = useState(false);
+  const [savingItem, setSavingItem] = useState(false);
+  const [deletingItem, setDeletingItem] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editCategory, setEditCategory] = useState("");
+  const [editVisibility, setEditVisibility] = useState("membre");
+  const [replacementFile, setReplacementFile] = useState(null);
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editCommentText, setEditCommentText] = useState("");
+  const [busyCommentId, setBusyCommentId] = useState(null);
 
   // ── Anti-clignotement ──────────────────────────────────────────────────
   // 1. On ne montre l'image qu'une fois entièrement téléchargée : un gros
@@ -63,6 +72,9 @@ export default function GalleryViewer({ items = [], index, onClose }) {
   const isOpen = index !== null && index !== undefined && items.length > 0;
   const current = isOpen ? items[i] : null;
   const key = current && current.id ? commentKey(current.id) : null;
+  const canManageItem = Boolean(
+    current && (current.created_by_id === user?.id || user?.role === "admin")
+  );
 
   const sourceUrl = (current && current.image_url) || null;
   const parsedUrl = sourceUrl ? parseWixMediaUrl(sourceUrl) : null;
@@ -192,6 +204,84 @@ export default function GalleryViewer({ items = [], index, onClose }) {
     }
   };
 
+  const beginEditItem = () => {
+    setEditTitle(current?.title || "");
+    setEditCategory(current?.category || "");
+    setEditVisibility(current?.visibility || "membre");
+    setReplacementFile(null);
+    setEditingItem(true);
+  };
+
+  const saveItem = async (event) => {
+    event.preventDefault();
+    if (!current || savingItem) return;
+    setSavingItem(true);
+    try {
+      const image_url = replacementFile ? await uploadToBase44(replacementFile) : current.image_url;
+      const patch = {
+        title: editTitle.trim(),
+        category: editCategory.trim() || null,
+        visibility: editVisibility,
+        image_url,
+      };
+      const updated = await base44.entities.GalleryImage.update(current.id, patch);
+      onItemUpdated?.({ ...current, ...updated, ...patch });
+      setEditingItem(false);
+      toast({ title: "Photo mise à jour" });
+      if (patch.category !== current.category) onClose?.();
+    } catch (error) {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } finally {
+      setSavingItem(false);
+    }
+  };
+
+  const deleteItem = async () => {
+    if (!current || deletingItem) return;
+    if (!window.confirm("Supprimer cette photo ? Cette action est irréversible.")) return;
+    setDeletingItem(true);
+    try {
+      await base44.entities.GalleryImage.delete(current.id);
+      onItemDeleted?.(current.id);
+      onClose?.();
+      toast({ title: "Photo supprimée" });
+    } catch (error) {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } finally {
+      setDeletingItem(false);
+    }
+  };
+
+  const saveComment = async (comment) => {
+    const text = editCommentText.trim();
+    if (!text || busyCommentId) return;
+    setBusyCommentId(comment.id);
+    try {
+      const updated = await base44.entities.Comment.update(comment.id, { text });
+      setComments((prev) => prev.map((item) => item.id === comment.id ? { ...item, ...updated, text } : item));
+      setEditingCommentId(null);
+      toast({ title: "Commentaire modifié" });
+    } catch (error) {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } finally {
+      setBusyCommentId(null);
+    }
+  };
+
+  const deleteComment = async (comment) => {
+    if (busyCommentId || !window.confirm("Supprimer ce commentaire ?")) return;
+    setBusyCommentId(comment.id);
+    try {
+      await base44.entities.Comment.delete(comment.id);
+      setComments((prev) => prev.filter((item) => item.id !== comment.id));
+      toast({ title: "Commentaire supprimé" });
+    } catch (error) {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } finally {
+      setBusyCommentId(null);
+    }
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -206,6 +296,25 @@ export default function GalleryViewer({ items = [], index, onClose }) {
         >
           {/* Contrôles haut : commentaires + fermeture */}
           <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+            {canManageItem && (
+              <>
+                <button
+                  onClick={(e) => { e.stopPropagation(); beginEditItem(); }}
+                  className="h-10 w-10 grid place-items-center rounded-full bg-white/10 text-white hover:bg-white/20"
+                  aria-label="Modifier la photo"
+                >
+                  <Pencil className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); deleteItem(); }}
+                  disabled={deletingItem}
+                  className="h-10 w-10 grid place-items-center rounded-full bg-white/10 text-white hover:bg-red-500/70 disabled:opacity-50"
+                  aria-label="Supprimer la photo"
+                >
+                  {deletingItem ? <Loader2 className="h-5 w-5 animate-spin" /> : <Trash2 className="h-5 w-5" />}
+                </button>
+              </>
+            )}
             <button
               onClick={(e) => { e.stopPropagation(); setShowComments(true); }}
               className="relative h-10 w-10 grid place-items-center rounded-full bg-white/10 text-white hover:bg-white/20"
@@ -321,10 +430,42 @@ export default function GalleryViewer({ items = [], index, onClose }) {
                       <span className="mr-2 font-bold text-white">
                         {c.author_name || "Membre"}
                       </span>
-                      <span className="whitespace-pre-wrap break-words">{c.text}</span>
-                      {commentDate(c.created_date) && (
+                      {editingCommentId !== c.id && (
+                        <span className="whitespace-pre-wrap break-words">{c.text}</span>
+                      )}
+                      {formatTimestamp(c.created_date, { time: false }) && (
                         <div className="mt-0.5 text-[11px] text-white/40">
-                          {commentDate(c.created_date)}
+                          {formatTimestamp(c.created_date, { time: false })}
+                        </div>
+                      )}
+                      {(c.created_by_id === user?.id || user?.role === "admin") && (
+                        <div className="mt-1 flex gap-3">
+                          <button
+                            type="button"
+                            onClick={() => { setEditingCommentId(c.id); setEditCommentText(c.text || ""); }}
+                            className="text-[11px] text-white/50 hover:text-white"
+                          >Modifier</button>
+                          <button
+                            type="button"
+                            disabled={busyCommentId === c.id}
+                            onClick={() => deleteComment(c)}
+                            className="text-[11px] text-white/50 hover:text-red-300 disabled:opacity-50"
+                          >Supprimer</button>
+                        </div>
+                      )}
+                      {editingCommentId === c.id && (
+                        <div className="mt-2 flex gap-2">
+                          <input
+                            value={editCommentText}
+                            onChange={(event) => setEditCommentText(event.target.value)}
+                            className="min-w-0 flex-1 rounded-lg bg-white/10 px-2 py-1 text-sm text-white"
+                          />
+                          <button onClick={() => saveComment(c)} disabled={busyCommentId === c.id} aria-label="Enregistrer le commentaire" className="text-white">
+                            {busyCommentId === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                          </button>
+                          <button onClick={() => setEditingCommentId(null)} aria-label="Annuler" className="text-white/60">
+                            <X className="h-4 w-4" />
+                          </button>
                         </div>
                       )}
                     </div>
@@ -363,6 +504,46 @@ export default function GalleryViewer({ items = [], index, onClose }) {
           )}
         </motion.div>
       )}
+      <Dialog open={editingItem} onOpenChange={setEditingItem}>
+        <DialogContent className="z-[70]">
+          <DialogHeader>
+            <DialogTitle>Modifier la photo</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={saveItem} className="space-y-4">
+            <label className="block text-sm font-medium">
+              Titre
+              <input value={editTitle} onChange={(event) => setEditTitle(event.target.value)} className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2" />
+            </label>
+            <label className="block text-sm font-medium">
+              Section
+              <select value={editCategory} onChange={(event) => setEditCategory(event.target.value)} className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2">
+                <option value="">Non classée</option>
+                {editCategory && !GALLERY_SECTIONS.some((section) => section.id === editCategory) && (
+                  <option value={editCategory}>{editCategory}</option>
+                )}
+                {GALLERY_SECTIONS.map((section) => (
+                  <option key={section.id} value={section.id}>{section.label}</option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm font-medium">
+              Visibilité
+              <select value={editVisibility} onChange={(event) => setEditVisibility(event.target.value)} className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2">
+                <option value="membre">Membre</option>
+                <option value="non-membre">Non-membre</option>
+              </select>
+            </label>
+            <label className="block text-sm font-medium">
+              Remplacer l’image (facultatif)
+              <input type="file" accept="image/*" onChange={(event) => setReplacementFile(event.target.files?.[0] || null)} className="mt-1 block w-full text-sm" />
+            </label>
+            <button type="submit" disabled={savingItem} className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-bold text-primary-foreground disabled:opacity-50">
+              {savingItem ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              Enregistrer
+            </button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </AnimatePresence>
   );
 }

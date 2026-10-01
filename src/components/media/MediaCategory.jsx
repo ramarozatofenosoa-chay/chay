@@ -60,6 +60,8 @@ export default function MediaCategory({
   currentTrack, isPlaying, play, playQueue, toggle,
   addToPlaylist, removeFromPlaylist, playPlaylistItem, isPinned,
   playlists = [], playlistTracks = [],
+  onGalleryItemUpdated, onGalleryItemDeleted,
+  onReorderFavoriteItems, onReorderFavoritePlaylists,
 }) {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -308,6 +310,8 @@ export default function MediaCategory({
                   <GalleryViewer
                     items={uncategorizedImages}
                     index={orphanIdx}
+                    onItemUpdated={onGalleryItemUpdated}
+                    onItemDeleted={onGalleryItemDeleted}
                     onClose={() => {
                       clearTarget("image");
                       setOrphanIdx(null);
@@ -360,6 +364,8 @@ export default function MediaCategory({
               <GalleryViewer
                 items={sectionImages}
                 index={galleryIdx}
+                onItemUpdated={onGalleryItemUpdated}
+                onItemDeleted={onGalleryItemDeleted}
                 onClose={() => {
                   clearTarget("image");
                   setGalleryIdx(null);
@@ -377,6 +383,8 @@ export default function MediaCategory({
           isPlaying={isPlaying}
           playPlaylistItem={playPlaylistItem}
           removeFromPlaylist={removeFromPlaylist}
+          onReorderItems={onReorderFavoriteItems}
+          onReorderPlaylists={onReorderFavoritePlaylists}
         />
       )}
     </div>

@@ -111,7 +111,7 @@ export default function MemberProfile() {
 
       <div className="px-6">
         {/* Avatar chevauchant la couverture, façon profil "réseau social" */}
-        <div className="-mt-12 flex items-end justify-between">
+        <div className="-mt-12 relative flex justify-center">
           <button
             type="button"
             onClick={() => member.profile_photo_url && setLightbox("avatar")}
@@ -134,13 +134,14 @@ export default function MemberProfile() {
           {isOwnProfile && (
             <Link
               to="/settings"
-              className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-2 text-sm font-bold hover:bg-muted transition"
+              className="absolute right-0 top-14 inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-2 text-sm font-bold hover:bg-muted transition"
             >
               <Pencil className="h-3.5 w-3.5" /> Modifier mon profil
             </Link>
           )}
         </div>
 
+        <div className="text-center">
         <h1 className="mt-3 text-xl font-bold">{displayName}</h1>
         {member.role === "admin" && (
           <span className="mt-1 inline-block text-xs font-bold text-primary">
@@ -149,10 +150,11 @@ export default function MemberProfile() {
         )}
 
         {member.profile_bio && (
-          <p className="mt-3 text-sm text-foreground/75 whitespace-pre-wrap">
+          <p className="mt-3 mx-auto max-w-xl text-sm text-foreground/75 whitespace-pre-wrap text-center">
             {member.profile_bio}
           </p>
         )}
+        </div>
 
         {/* Publications de ce membre dans Actualités */}
         <div className="mt-8 space-y-5">
@@ -169,7 +171,17 @@ export default function MemberProfile() {
             </p>
           ) : (
             posts.map((p) => (
-              <PostCard key={p.id} post={p} currentUser={currentUser} />
+              <PostCard
+                key={p.id}
+                post={p}
+                currentUser={currentUser}
+                onPostUpdated={(updated) =>
+                  setPosts((items) => items.map((item) => item.id === updated.id ? updated : item))
+                }
+                onPostDeleted={(postId) =>
+                  setPosts((items) => items.filter((item) => item.id !== postId))
+                }
+              />
             ))
           )}
         </div>

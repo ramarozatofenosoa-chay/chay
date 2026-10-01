@@ -23,13 +23,10 @@ import MessageActionMenu from "@/components/messages/MessageActionMenu";
 import PhotoViewer from "@/components/messages/PhotoViewer";
 import ReadReceipts from "@/components/messages/ReadReceipts";
 import { isRenderableMessage } from "@/lib/messageNotifications";
+import { formatTimestamp } from "@/lib/formatTimestamp";
 
 function fmtTime(d) {
-  if (!d) return "";
-  return new Date(d).toLocaleTimeString("fr-FR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatTimestamp(d, { date: false });
 }
 
 export default function ConversationView({
@@ -227,7 +224,7 @@ reply_to_id: replyTo?.id || null,
 
       await base44.entities.Conversation.update(conversation.id, {
         last_message_text: text,
-        last_message_at: new Date().toISOString(),
+        last_message_at: result?.data?.created_date || new Date().toISOString(),
         typing_user_id: null,
         typing_at: null,
       });
@@ -259,7 +256,7 @@ image_url: uploadedUrl,
 
       await base44.entities.Conversation.update(conversation.id, {
         last_message_text: "📷 Photo",
-        last_message_at: new Date().toISOString(),
+        last_message_at: result?.data?.created_date || new Date().toISOString(),
       });
     } catch (e) {
       toast({ title: "Erreur", description: e.message, variant: "destructive" });
