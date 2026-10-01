@@ -39,3 +39,12 @@ mg: [
   },
 ],
 };
+
+// Identifiant de traduction utilisé par l'entité BibleVerse / le backend de
+// recherche ("lsg1910" / "malagasy"), différent de l'id du lecteur en ligne
+// ("fra_lsg" / "mg"). Centralise la correspondance pour que le cache
+// hors-ligne (alimenté au fil de l'eau par le lecteur, et en masse par le
+// téléchargement complet) utilise toujours la même clé.
+export function toOfflineTranslationId(readerVersionId) {
+  return readerVersionId === "mg" ? "malagasy" : "lsg1910";
+}

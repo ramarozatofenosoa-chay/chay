@@ -1,6 +1,6 @@
 // Utilitaires partagés par la recherche plein texte biblique (frontend).
 
-import { getMalagasyBooks } from "./malagasyBible";
+import { getMalagasyBooks } from "./malagasyBible.js";
 
 // Traductions proposées dans le sélecteur de recherche, indépendantes de la
 // langue de l'interface (toujours française dans cette application).

@@ -14,11 +14,17 @@ import {
   X,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { HIGHLIGHT_COLORS, LANGUAGES, VERSIONS } from "@/lib/bibleConstants";
+import { HIGHLIGHT_COLORS, LANGUAGES, VERSIONS, toOfflineTranslationId } from "@/lib/bibleConstants";
 import VerseActionsSheet from "@/components/bible/VerseActionsSheet";
 import DrawerSelect from "@/components/DrawerSelect";
 import { getMalagasyBooks, fetchMalagasyChapter } from "@/lib/malagasyBible";
 import BibleAudioPlayer from "@/components/bible/BibleAudioPlayer";
+import {
+  cacheChapterVerses,
+  getCachedChapterVerses,
+  cacheBooksList,
+  getCachedBooksList,
+} from "@/lib/offlineBible";
 
 const API_BASE_URL = "https://bible.helloao.org/api";
 
@@ -201,8 +207,11 @@ export default function BibleReader({ onBack }) {
       return;
     }
 
-    // Version helloao (LSG) : fetch de la liste des livres.
+    // Version helloao (LSG) : fetch de la liste des livres, avec repli sur le
+    // cache hors-ligne (alimenté au fil de l'eau ou via téléchargement complet)
+    // si le réseau est indisponible.
     const controller = new AbortController();
+    const offlineTranslationId = toOfflineTranslationId(selectedVersion);
     async function loadBooks() {
       setBooksStatus("loading");
       setErrorMessage("");
@@ -212,6 +221,7 @@ export default function BibleReader({ onBack }) {
         const data = await res.json();
         const loaded = normalizeBookResponse(data);
         if (loaded.length === 0) throw new Error("Aucun livre trouvé.");
+        cacheBooksList(offlineTranslationId, loaded);
         const { nextBookId, nextChapter } = resolveInitial(
           loaded,
           loaded.find((b) => b.id === "JHN")?.id || loaded[0].id
@@ -222,8 +232,24 @@ export default function BibleReader({ onBack }) {
         setBooksStatus("ready");
       } catch (e) {
         if (e.name === "AbortError") return;
+        const cached = await getCachedBooksList(offlineTranslationId).catch(() => null);
+        if (cached?.length) {
+          const { nextBookId, nextChapter } = resolveInitial(
+            cached,
+            cached.find((b) => b.id === "JHN")?.id || cached[0].id
+          );
+          setBooks(cached);
+          setSelectedBookId(nextBookId);
+          setSelectedChapter(nextChapter);
+          setBooksStatus("ready");
+          return;
+        }
         setBooksStatus("error");
-        setErrorMessage(e.message);
+        setErrorMessage(
+          typeof navigator !== "undefined" && !navigator.onLine
+            ? "Hors ligne : téléchargez la Bible pour la lecture hors connexion depuis le menu Bible."
+            : e.message
+        );
       }
     }
     loadBooks();
@@ -245,6 +271,7 @@ export default function BibleReader({ onBack }) {
   useEffect(() => {
     if (booksStatus !== "ready" || !selectedBookId || !selectedChapter) return;
     const controller = new AbortController();
+    const offlineTranslationId = toOfflineTranslationId(selectedVersion);
     async function loadChapter() {
       setChapterStatus("loading");
       setVerses([]);
@@ -263,10 +290,23 @@ export default function BibleReader({ onBack }) {
         if (!loaded || loaded.length === 0) throw new Error("Aucun verset trouvé pour ce chapitre.");
         setVerses(loaded);
         setChapterStatus("ready");
+        // Alimente le cache hors-ligne à chaque lecture réussie, pour une
+        // disponibilité progressive sans action de l'utilisateur.
+        cacheChapterVerses(offlineTranslationId, selectedBookId, selectedChapter, loaded);
       } catch (e) {
         if (e.name === "AbortError") return;
+        const cached = await getCachedChapterVerses(offlineTranslationId, selectedBookId, selectedChapter).catch(() => null);
+        if (cached?.length) {
+          setVerses(cached);
+          setChapterStatus("ready");
+          return;
+        }
         setChapterStatus("error");
-        setErrorMessage(e.message);
+        setErrorMessage(
+          typeof navigator !== "undefined" && !navigator.onLine
+            ? "Hors ligne : ce chapitre n'a pas encore été téléchargé. Téléchargez la Bible depuis le menu Bible."
+            : e.message
+        );
       }
     }
     loadChapter();
