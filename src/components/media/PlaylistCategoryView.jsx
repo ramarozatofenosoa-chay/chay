@@ -141,14 +141,15 @@ function LockToggle({ locked, onToggle }) {
     <button
       onClick={onToggle}
       title={locked ? "Déverrouiller pour réorganiser" : "Verrouiller l'ordre"}
-      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold border transition ${
+      aria-label={locked ? "Déverrouiller pour réorganiser" : "Verrouiller l'ordre"}
+      aria-pressed={!locked}
+      className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition ${
         locked
           ? "border-border bg-card text-muted-foreground hover:bg-muted"
           : "border-primary bg-primary/10 text-primary hover:bg-primary/20"
       }`}
     >
       {locked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
-      {locked ? "Verrouillé" : "Réorganiser"}
     </button>
   );
 }
@@ -354,6 +355,8 @@ export default function PlaylistCategoryView({
     video_url: t.video_url,
     cover_url: t.cover_url,
     kind: t.kind,
+    source_playlist_id: open?.id,
+    source_playlist_name: open?.name,
   });
 
   if (open) {
@@ -427,13 +430,16 @@ export default function PlaylistCategoryView({
                   )}
                   <div className="flex items-center gap-3 p-3">
                     <div className="flex-1 min-w-0 font-bold truncate">{t.title}</div>
-                    <button
-                      onClick={() => onToggleFavorite?.(favItem(t), favoriteCategory)}
-                      className={`h-9 w-9 grid place-items-center rounded-full hover:bg-muted ${isFavorite?.(t.track_id) ? "text-primary" : "text-foreground/40 hover:text-primary"}`}
-                      title="Ajouter à ma playlist"
-                    >
-                      <Star className="h-4 w-4" fill={isFavorite?.(t.track_id) ? "currentColor" : "none"} />
-                    </button>
+                    {favoriteCategory === "music" && (
+                      <button
+                        onClick={() => onToggleFavorite?.(favItem(t), favoriteCategory)}
+                        className={`h-9 w-9 grid place-items-center rounded-full hover:bg-muted ${isFavorite?.(t.track_id, open?.id) ? "text-primary" : "text-foreground/40 hover:text-primary"}`}
+                        title="Ajouter aux favoris"
+                        aria-label={isFavorite?.(t.track_id, open?.id) ? "Déjà dans vos favoris" : "Ajouter aux favoris"}
+                      >
+                        <Star className="h-4 w-4" fill={isFavorite?.(t.track_id, open?.id) ? "currentColor" : "none"} />
+                      </button>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -505,13 +511,16 @@ export default function PlaylistCategoryView({
                       </div>
                     </div>
                   </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onToggleFavorite?.(favItem(t), favoriteCategory); }}
-                    className={`h-9 w-9 grid place-items-center rounded-full hover:bg-muted ${isFavorite?.(t.track_id) ? "text-primary" : "text-foreground/40 hover:text-primary"}`}
-                    title="Ajouter à ma playlist"
-                  >
-                    <Star className="h-4 w-4" fill={isFavorite?.(t.track_id) ? "currentColor" : "none"} />
-                  </button>
+                  {favoriteCategory === "music" && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onToggleFavorite?.(favItem(t), favoriteCategory); }}
+                      className={`h-9 w-9 grid place-items-center rounded-full hover:bg-muted ${isFavorite?.(t.track_id, open?.id) ? "text-primary" : "text-foreground/40 hover:text-primary"}`}
+                      title="Ajouter aux favoris"
+                      aria-label={isFavorite?.(t.track_id, open?.id) ? "Déjà dans vos favoris" : "Ajouter aux favoris"}
+                    >
+                      <Star className="h-4 w-4" fill={isFavorite?.(t.track_id, open?.id) ? "currentColor" : "none"} />
+                    </button>
+                  )}
                 </div>
               )
             )}

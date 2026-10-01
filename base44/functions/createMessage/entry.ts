@@ -88,7 +88,11 @@ export default async function (req) {
       });
     }
 
-    return Response.json({ id: message.id, notification_error: notificationError });
+    return Response.json({
+      id: message.id,
+      created_date: message.created_date,
+      notification_error: notificationError,
+    });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

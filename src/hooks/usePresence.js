@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { formatTimestamp, parseTimestamp } from "@/lib/formatTimestamp";
 
 const ONLINE_WINDOW_MS = 2 * 60 * 1000;
 
@@ -113,12 +114,11 @@ export function useProfiles() {
 }
 
 export function relTime(d) {
-  if (!d) return "";
-  const date = new Date(d);
+  const date = parseTimestamp(d);
+  if (!date) return "";
   const diff = Date.now() - date.getTime();
   if (diff < 60000) return "à l'instant";
   if (diff < 3600000) return `${Math.floor(diff / 60000)} min`;
-  if (diff < 86400000)
-    return date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-  return date.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+  if (diff < 86400000) return formatTimestamp(date, { date: false });
+  return formatTimestamp(date, { time: false });
 }

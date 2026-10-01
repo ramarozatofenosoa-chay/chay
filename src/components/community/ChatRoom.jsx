@@ -1,12 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Send, Loader2 } from "lucide-react";
+import { formatTimestamp } from "@/lib/formatTimestamp";
 
 function fmtTime(d) {
-  return new Date(d).toLocaleTimeString("fr-FR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatTimestamp(d, { date: false });
 }
 function initial(name) {
   return (name || "?")[0]?.toUpperCase();
