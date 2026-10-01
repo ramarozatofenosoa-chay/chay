@@ -31,6 +31,10 @@
       ],
       "default": "audio"
     },
+    "listen_count": {
+      "type": "number",
+      "default": 0
+    },
     "order": {
       "type": "number",
       "default": 0
