@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Search, X, BookMarked, Loader2 } from "lucide-react";
 import { DICTIONARY_URL, DICTIONARY_SOURCE, normalizeWord } from "@/lib/bibleDictionary";
+import { cacheDictionary, getOfflineDictionary } from "@/lib/offlineBible";
 
 // Cache module : on ne re-télécharge le JSON qu'une fois par session.
 let _cache = null; // { entries, byLetter, total }
@@ -39,34 +40,44 @@ export default function BibleDictionary({ onBack }) {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(null); // entrée ouverte en fiche
 
-  // Chargement unique du JSON statique.
+  // Chargement unique du JSON statique, avec mise en cache hors-ligne et
+  // repli automatique dessus si le réseau échoue.
   useEffect(() => {
     if (_cache) { setData(_cache); setLoading(false); return; }
     let alive = true;
     setLoading(true);
+    function applyRows(rows) {
+      const list = Array.isArray(rows) ? rows : (rows?.entries || []);
+      const entries = list
+        .map((e) => ({
+          id: e.id ?? `${e.mot}_${e.n}`,
+          mot: e.mot || "",
+          n: e.n || normalizeWord(e.mot),
+          d: e.d || "",
+          s: e.s || "",
+        }))
+        .filter((e) => e.mot);
+      const byLetter = {};
+      for (const e of entries) (byLetter[letterOf(e)] ||= []).push(e);
+      for (const k of Object.keys(byLetter))
+        byLetter[k].sort((a, b) => a.mot.localeCompare(b.mot, "fr"));
+      _cache = { entries, byLetter, total: entries.length };
+      setData(_cache);
+    }
     fetch(DICTIONARY_URL)
       .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then((rows) => {
         if (!alive) return;
-        const list = Array.isArray(rows) ? rows : (rows?.entries || []);
-        const entries = list
-          .map((e) => ({
-            id: e.id ?? `${e.mot}_${e.n}`,
-            mot: e.mot || "",
-            n: e.n || normalizeWord(e.mot),
-            d: e.d || "",
-            s: e.s || "",
-          }))
-          .filter((e) => e.mot);
-        const byLetter = {};
-        for (const e of entries) (byLetter[letterOf(e)] ||= []).push(e);
-        for (const k of Object.keys(byLetter))
-          byLetter[k].sort((a, b) => a.mot.localeCompare(b.mot, "fr"));
-        _cache = { entries, byLetter, total: entries.length };
-        setData(_cache);
+        applyRows(rows);
         setLoading(false);
+        cacheDictionary(rows);
       })
-      .catch(() => { if (alive) setLoading(false); });
+      .catch(async () => {
+        if (!alive) return;
+        const cached = await getOfflineDictionary().catch(() => null);
+        if (alive && cached) applyRows(cached);
+        if (alive) setLoading(false);
+      });
     return () => { alive = false; };
   }, []);
 

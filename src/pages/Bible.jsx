@@ -4,6 +4,7 @@ import { BookMarked, BookOpen, Search } from "lucide-react";
 import BibleReader from "@/components/bible/BibleReader";
 import BibleDictionary from "@/components/bible/BibleDictionary";
 import BibleFullTextSearch from "@/components/bible/BibleFullTextSearch";
+import BibleOfflineManager from "@/components/bible/BibleOfflineManager";
 import { hasNavigationOrigin } from "@/lib/backNavigation";
 
 // Les sous-écrans sont décrits dans l'URL (?view=reader|dictionary|search) et
@@ -114,6 +115,8 @@ export default function Bible() {
           </div>
         </button>
       </div>
+
+      <BibleOfflineManager />
     </main>
   );
 }

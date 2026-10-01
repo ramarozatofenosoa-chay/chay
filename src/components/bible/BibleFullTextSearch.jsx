@@ -4,6 +4,8 @@ import { base44 } from "@/api/base44Client";
 import BibleSearchBar from "@/components/bible/BibleSearchBar";
 import BibleSearchResults from "@/components/bible/BibleSearchResults";
 import { getSearchBooks } from "@/lib/bibleSearch";
+import { matchOfflineVerses } from "@/lib/offlineBibleSearch";
+import { getOfflineSearchIndex } from "@/lib/offlineBible";
 
 const PAGE_SIZE = 20;
 
@@ -43,20 +45,44 @@ export default function BibleFullTextSearch({ onNavigate, onBack }) {
     if (trimmed.replace(/\s/g, "").length < 2) return;
     const requestId = ++latestRequestId.current;
     setStatus("loading");
+    const offline = typeof navigator !== "undefined" && !navigator.onLine;
+    if (!offline) {
+      try {
+        const res = await base44.functions.invoke("searchBibleVerses", {
+          query: trimmed,
+          translation,
+          bookOrder: book || null, // null = tous les livres
+          limit: PAGE_SIZE,
+          offset,
+        });
+        if (requestId !== latestRequestId.current) return; // réponse obsolète ignorée
+        const data = res.data || {};
+        setTranslationStatus(data.translationStatus || null);
+        setTotal(data.total || 0);
+        setHasMore(!!data.hasMore);
+        setItems((prev) => (append ? [...prev, ...(data.items || [])] : data.items || []));
+        setStatus("done");
+        return;
+      } catch {
+        if (requestId !== latestRequestId.current) return;
+        // Repli automatique sur l'index hors-ligne si le réseau échoue.
+      }
+    }
     try {
-      const res = await base44.functions.invoke("searchBibleVerses", {
+      const index = await getOfflineSearchIndex(translation);
+      if (!index) throw new Error("no-offline-index");
+      const { total: t, items: i, hasMore: hm } = matchOfflineVerses(index, {
         query: trimmed,
         translation,
-        bookOrder: book || null, // null = tous les livres
+        bookOrder: book || 0,
         limit: PAGE_SIZE,
         offset,
       });
-      if (requestId !== latestRequestId.current) return; // réponse obsolète ignorée
-      const data = res.data || {};
-      setTranslationStatus(data.translationStatus || null);
-      setTotal(data.total || 0);
-      setHasMore(!!data.hasMore);
-      setItems((prev) => (append ? [...prev, ...(data.items || [])] : data.items || []));
+      if (requestId !== latestRequestId.current) return;
+      setTranslationStatus(null);
+      setTotal(t);
+      setHasMore(hm);
+      setItems((prev) => (append ? [...prev, ...i] : i));
       setStatus("done");
     } catch {
       if (requestId !== latestRequestId.current) return;

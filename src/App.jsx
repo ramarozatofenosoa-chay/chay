@@ -12,6 +12,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import { PreferencesProvider } from '@/lib/PreferencesContext';
 import { Navigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
+import LocationGate from '@/components/LocationGate';
 const PageNotFound = lazy(() => import("./lib/PageNotFound"));
 const Login = lazy(() => import("@/pages/Login"));
 const Register = lazy(() => import("@/pages/Register"));
@@ -66,7 +67,7 @@ const AuthenticatedApp = () => {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
-        <Route element={<Layout />}>
+        <Route element={<LocationGate><Layout /></LocationGate>}>
           <Route path="/" element={<Home />} />
           <Route path="/bible" element={<Bible />} />
           <Route path="/media" element={<Media />} />

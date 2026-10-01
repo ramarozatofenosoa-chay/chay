@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
+  Download,
+  Check,
   Loader2,
   Pause,
   Play,
@@ -11,6 +13,7 @@ import {
   isWordProjectAudioEnabled,
 } from "@/lib/wordProjectAudio";
 import { useAudioPlayer } from "@/lib/AudioPlayerContext";
+import { cacheUrl, isUrlCached, getCachedUrlAsObjectUrl } from "@/lib/offlineCache";
 
 const STORAGE_PREFIX = "bible_audio_pos_";
 
@@ -45,6 +48,8 @@ export default function BibleAudioPlayer({ book, chapter, onPrev, onNext }) {
   const posKey = book && chapter ? `${STORAGE_PREFIX}${book.order}_${chapter}` : null;
 
   const [dragging, setDragging] = useState(false);
+  const [offlineAvailable, setOfflineAvailable] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const isCurrentTrack = currentTrack?.id === url;
   const isPlaying = isCurrentTrack && globalIsPlaying;
   const currentTime = isCurrentTrack ? globalCurrentTime : 0;
@@ -54,21 +59,26 @@ export default function BibleAudioPlayer({ book, chapter, onPrev, onNext }) {
   useEffect(() => {
     if (!url) return;
     setDragging(false);
+    isUrlCached(url).then(setOfflineAvailable);
     if (autoPlayNextRef.current) {
       autoPlayNextRef.current = false;
       playBibleChapter();
     }
   }, [url]);
 
-  const playBibleChapter = useCallback(() => {
+  const playBibleChapter = useCallback(async () => {
     if (!url) return;
     const saved = posKey ? Number(localStorage.getItem(posKey)) : 0;
+    // Hors-ligne : on privilégie la version mise en cache si disponible,
+    // pour permettre la lecture audio sans connexion.
+    const offline = typeof navigator !== "undefined" && !navigator.onLine;
+    const audioSrc = offline ? (await getCachedUrlAsObjectUrl(url)) || url : url;
     play({
       id: url,
       title: `${book?.name || "Bible"} ${chapter}`,
       speaker: "Bible audio",
       mediaType: "bible",
-      audio_url: url,
+      audio_url: audioSrc,
       initialTime: Number.isFinite(saved) && saved > 0 ? saved : 0,
       hasPrevious: Boolean(onPrev),
       hasNext: Boolean(onNext),
@@ -80,6 +90,15 @@ export default function BibleAudioPlayer({ book, chapter, onPrev, onNext }) {
       },
     });
   }, [url, posKey, book?.name, chapter, play, onPrev, onNext]);
+
+  const handleDownload = useCallback(async (e) => {
+    e.stopPropagation();
+    if (!url || downloading || offlineAvailable) return;
+    setDownloading(true);
+    const ok = await cacheUrl(url);
+    setDownloading(false);
+    setOfflineAvailable(ok);
+  }, [url, downloading, offlineAvailable]);
 
   // Sauvegarde périodique de la position d'écoute.
   useEffect(() => {
@@ -152,9 +171,26 @@ export default function BibleAudioPlayer({ book, chapter, onPrev, onNext }) {
   return (
     <div className="border-b border-border bg-card px-5 py-5 md:px-6">
       <div className="flex flex-col items-center gap-3">
-        <p className="text-center text-sm font-bold text-foreground">
-          {book?.name} {chapter}
-        </p>
+        <div className="flex items-center gap-2">
+          <p className="text-center text-sm font-bold text-foreground">
+            {book?.name} {chapter}
+          </p>
+          <button
+            onClick={handleDownload}
+            disabled={downloading || offlineAvailable}
+            aria-label={offlineAvailable ? "Déjà disponible hors-ligne" : "Télécharger pour écoute hors-ligne"}
+            title={offlineAvailable ? "Disponible hors-ligne" : "Télécharger pour écoute hors-ligne"}
+            className="grid h-6 w-6 place-items-center rounded-full text-foreground/50 transition hover:bg-muted disabled:opacity-60"
+          >
+            {downloading ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : offlineAvailable ? (
+              <Check className="h-3.5 w-3.5 text-emerald-500" />
+            ) : (
+              <Download className="h-3.5 w-3.5" />
+            )}
+          </button>
+        </div>
 
         <div className="flex items-center gap-8">
           <button
