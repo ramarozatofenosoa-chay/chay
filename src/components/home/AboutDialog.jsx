@@ -24,7 +24,6 @@ export default function AboutDialog({ open, onOpenChange }) {
 
   const [notices, setNotices] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [editing, setEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState("");
   const [editText, setEditText] = useState("");

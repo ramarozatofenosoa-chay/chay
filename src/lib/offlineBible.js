@@ -92,7 +92,6 @@ export async function downloadBibleTranslation(translationId, { onProgress } = {
 
   let skip = 0;
   const flat = [];
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     const batch = await base44.entities.BibleVerse.filter({ translation: translationId }, "bookOrder", PAGE_SIZE, skip);
     if (!Array.isArray(batch) || batch.length === 0) break;

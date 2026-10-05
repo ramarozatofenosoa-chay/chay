@@ -41,7 +41,7 @@ function useDragSort(items, onReorder) {
     window.addEventListener("mouseup", onUp);
   };
 
-  const onTouchStart = (index) => (event) => {
+  const onTouchStart = (index) => () => {
     dragIndex.current = index;
     listRef.current?.children[index]?.classList.add("opacity-50", "scale-[0.98]");
     const onMove = (moveEvent) => moveEvent.preventDefault();
