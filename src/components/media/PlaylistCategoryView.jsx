@@ -84,7 +84,7 @@ function useDragSort(items, onReorder) {
 
   /* ── tactile ── */
   const onTouchStart = useCallback(
-    (idx) => (e) => {
+    (idx) => () => {
       dragIdx.current = idx;
       const els = getItemEls();
       els[idx]?.classList.add("opacity-50", "scale-[0.98]");

@@ -18,19 +18,6 @@ import DOMPurify from "dompurify";
 // On détecte le HTML pour ne jamais afficher des balises brutes.
 const looksLikeHtml = (s) => /<[a-z][^>]*>/i.test(s || "");
 
-// Assainit le HTML du corps avant l'injection : supprime scripts, gestionnaires
-// d'événements (onerror, onclick…) et URI javascript:. Indispensable car tout
-// utilisateur authentifié peut créer un Article (création ouverte), et le corps
-// est rendu dans la session de chaque membre qui ouvre l'article.
-function sanitizeHtml(html) {
-  if (!html) return "";
-  return DOMPurify.sanitize(html, {
-    USE_PROFILES: { html: true },
-    FORBID_ATTR: ["style", "onerror", "onload", "onclick", "onmouseover"],
-    ALLOWED_URI_REGEXP: /^(?:(?:https?|data:image):|\/|#)/i,
-  });
-}
-
 function ArticleBody({ body }) {
   if (!body) return null;
 
