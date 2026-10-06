@@ -99,12 +99,17 @@ function App() {
     () => typeof sessionStorage === "undefined" || sessionStorage.getItem(SPLASH_SESSION_KEY) !== "1"
   );
   useEffect(() => {
-    // Cache le splash natif Capacitor dès que React monte
-    CapacitorSplashScreen.hide();
+    // Cache le splash natif Capacitor dès que React monte (double sécurité :
+    // launchShowDuration est déjà à 0 dans capacitor.config.json).
+    CapacitorSplashScreen.hide().catch(() => {});
     if (!showSplash) return undefined;
     // Marqué immédiatement : un actualisation pendant l'animation ne la rejoue pas.
     sessionStorage.setItem(SPLASH_SESSION_KEY, "1");
-    const t = setTimeout(() => setShowSplash(false), 2000);
+    // Durée = fin exacte de l'animation personnalisée (citation qui apparaît à
+    // delay 2.2s + duration 1s), puis fondu de sortie 0.8s. Avant : l'écran
+    // restait figé ~2 s après la fin de l'animation (le texte final se jouait
+    // "sous" un overlay opaque), ce qui ressemblait à un splash screen système.
+    const t = setTimeout(() => setShowSplash(false), 3200);
     return () => clearTimeout(t);
   }, [showSplash]);
 
