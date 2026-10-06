@@ -110,12 +110,15 @@ export default function MemberProfile() {
       </div>
 
       <div className="px-6">
-        {/* Avatar chevauchant la couverture, façon profil "réseau social" */}
-        <div className="-mt-12 relative flex justify-center">
+        {/* Avatar chevauchant la couverture, façon profil "réseau social".
+            z-[5] : garanti au-dessus de la photo de couverture (qui crée son
+            propre contexte d'empilement via transform/filter), même si un
+            thème ou une animation ajoute un stacking context intermédiaire. */}
+        <div className="-mt-12 relative z-[5] flex justify-center">
           <button
             type="button"
             onClick={() => member.profile_photo_url && setLightbox("avatar")}
-            className={`h-24 w-24 rounded-full border-4 border-background overflow-hidden brand-gradient grid place-items-center text-white text-3xl font-bold shrink-0 ${
+            className={`h-24 w-24 rounded-full border-4 border-background overflow-hidden bg-card brand-gradient grid place-items-center text-white text-3xl font-bold shrink-0 shadow-lg ${
               member.profile_photo_url ? "cursor-zoom-in" : "cursor-default"
             }`}
             aria-label="Photo de profil"
