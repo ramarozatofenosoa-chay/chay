@@ -58,3 +58,55 @@ test("subscribeToGeolocationPermission forwards permission state changes", async
   storedHandler();
   assert.deepEqual(changes, ["denied"]);
 });
+
+// Tests pour probeLocationStatus avec l'API Permissions (nouveau comportement).
+test("probeLocationStatus uses Permissions API when available and returns active", async () => {
+  const statusObj = { state: "granted" };
+  const nav = {
+    geolocation: { getCurrentPosition: () => {} },
+    permissions: { query: () => Promise.resolve(statusObj) },
+  };
+  assert.equal(await probeLocationStatus(nav), "active");
+});
+
+test("probeLocationStatus uses Permissions API when available and returns denied", async () => {
+  const statusObj = { state: "denied" };
+  const nav = {
+    geolocation: { getCurrentPosition: () => {} },
+    permissions: { query: () => Promise.resolve(statusObj) },
+  };
+  assert.equal(await probeLocationStatus(nav), "denied");
+});
+
+test("probeLocationStatus falls back to getCurrentPosition when Permissions returns prompt", async () => {
+  const statusObj = { state: "prompt" };
+  const nav = {
+    geolocation: { getCurrentPosition: (success) => success({ coords: {} }) },
+    permissions: { query: () => Promise.resolve(statusObj) },
+  };
+  assert.equal(await probeLocationStatus(nav), "active");
+});
+
+test("probeLocationStatus falls back to getCurrentPosition when Permissions API is unavailable", async () => {
+  const nav = {
+    geolocation: { getCurrentPosition: (success) => success({ coords: {} }) },
+  };
+  assert.equal(await probeLocationStatus(nav), "active");
+});
+
+test("probeLocationStatus falls back to getCurrentPosition when Permissions API throws", async () => {
+  const nav = {
+    geolocation: { getCurrentPosition: (success) => success({ coords: {} }) },
+    permissions: { query: () => Promise.reject(new Error("failed")) },
+  };
+  assert.equal(await probeLocationStatus(nav), "active");
+});
+
+test("probeLocationStatus returns inactive when Permissions returns prompt and getCurrentPosition fails", async () => {
+  const statusObj = { state: "prompt" };
+  const nav = {
+    geolocation: { getCurrentPosition: (_s, error) => error({ code: 2 }) },
+    permissions: { query: () => Promise.resolve(statusObj) },
+  };
+  assert.equal(await probeLocationStatus(nav), "inactive");
+});

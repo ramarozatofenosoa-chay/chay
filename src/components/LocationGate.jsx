@@ -9,7 +9,7 @@ const RECHECK_INTERVAL_MS = 6000;
 // ligne : la vérification repose uniquement sur l'API Geolocation du
 // navigateur/WebView, jamais sur le réseau.
 export default function LocationGate({ children }) {
-  const [status, setStatus] = useState("checking"); // checking | active | denied | inactive | unsupported
+  const [status, setStatus] = useState("active"); // active | checking | denied | inactive | unsupported
   const timerRef = useRef(null);
 
   const check = useCallback(async () => {
@@ -20,7 +20,15 @@ export default function LocationGate({ children }) {
 
   useEffect(() => {
     check();
-    const unsubscribe = subscribeToGeolocationPermission(() => check());
+    const unsubscribe = subscribeToGeolocationPermission((state) => {
+      // Si la permission est accordée via l'API Permissions, on met à jour
+      // immédiatement sans attendre la prochaine sonde getCurrentPosition.
+      if (state === "granted") {
+        setStatus("active");
+      } else if (state === "denied") {
+        setStatus("denied");
+      }
+    });
     const onVisible = () => { if (document.visibilityState === "visible") check(); };
     document.addEventListener("visibilitychange", onVisible);
     return () => {
@@ -38,7 +46,6 @@ export default function LocationGate({ children }) {
   }, [status, check]);
 
   if (status === "active") return children;
-  if (status === "checking") return null;
 
   const messages = {
     denied: "L'accès à la localisation a été refusé. Autorisez-la dans les réglages de votre appareil ou de votre navigateur pour continuer.",
