@@ -18,8 +18,17 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <title>ÉGLISE CHAY</title>
+    <script>
+      // Applique le mode sombre (thème par défaut de CHAY) avant le premier rendu React,
+      // pour éviter tout flash de fond clair au chargement.
+      try {
+        if (localStorage.getItem("chay-theme") !== "light") {
+          document.documentElement.classList.add("dark");
+        }
+      } catch (e) {}
+    </script>
   </head>
-  <body>
+  <body class="bg-black">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
