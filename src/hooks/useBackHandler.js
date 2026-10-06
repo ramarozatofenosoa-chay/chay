@@ -31,8 +31,22 @@ import {
 const closers = [];
 const POP_KEY = "__chay_popstate_installed__";
 const POP_LISTENER_KEY = "__chay_popstate_listener__";
+// Clé (non énumérable) posée sur l'entrée d'historique synthétique pour
+// mémoriser le closer déjà déclenché : évite les doubles fermetures quand un
+// cleanup React se relance (HMR, re-render) avant que le popstate effectif
+// n'arrive. Non énumérable => jamais sérialisée par structuredClone du
+// navigateur ni copiée dans les entrées suivantes.
+const PROCESSED_STATE_KEY = Symbol("chayOverlayProcessed");
 
 function onPopState(event) {
+  const st = window.history.state;
+  // Si une fermeture par bouton X / Échap a déjà appelé onClose() pour cette
+  // entrée synthétique (history.back() en cours de traitement), le popstate
+  // qui arrive ne doit RIEN faire : pas de re-fermeture, pas de pushState.
+  if (st && typeof st === "object" && st[PROCESSED_STATE_KEY]) {
+    delete st[PROCESSED_STATE_KEY];
+    return;
+  }
   if (closers.length === 0) {
     // Entrée MARKER orpheline : quand le navigateur revient sur
     // cette entrée, le popstate a déjà été traité par React Router
@@ -118,16 +132,20 @@ export function useBackHandler(open, onClose) {
       const i = closers.indexOf(close);
       if (i !== -1) closers.splice(i, 1);
 
-      // Si on vient de fermer la dernière superposition et que notre entrée
-      // synthétique est encore en tête d'historique, on la retire pour ne pas
-      // laisser une entrée fantôme qui causerait un "retour" fantôme plus tard.
-      if (closers.length === 0) {
-        const st = window.history.state;
-        if (st && typeof st === "object" && st[OVERLAY_HISTORY_KEY]) {
-          // Remove the synthetic entry after a close button / Escape. When
-          // closing from popstate, the browser is already on the real entry.
-          window.history.back();
-        }
+      // Fermeture par bouton X / Échap : si l'entrée synthétique créée par ce
+      // hook est toujours en tête d'historique, on la dépile — qu'il reste ou
+      // non d'autres superpositions ouvertes. Sans ce dépilement, les entrées
+      // s'accumulent ("fantômes") et le bouton retour doit être pressé
+      // plusieurs fois avant de réellement naviguer → le retour semble
+      // aléatoire ("marche et ne marche pas").
+      // Quand la fermeture provient du popstate, le navigateur est déjà sur
+      // l'entrée réelle : rien à faire ici.
+      const st = window.history.state;
+      if (st && typeof st === "object" && st[OVERLAY_HISTORY_KEY]) {
+        // Marquer `close` comme traité évite tout doublon si le cleanup se
+        // relance (re-render strict mode / HMR) avant le popstate effectif.
+        st[PROCESSED_STATE_KEY] = close;
+        window.history.back();
       }
     };
   }, [open]);
