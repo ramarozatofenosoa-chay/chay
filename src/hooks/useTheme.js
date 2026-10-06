@@ -3,10 +3,11 @@ import { useState, useEffect } from "react";
 const KEY = "chay-theme";
 
 function getInitial() {
-  if (typeof window === "undefined") return "light";
+  if (typeof window === "undefined") return "dark";
   const saved = localStorage.getItem(KEY);
-  if (saved === "light" || saved === "dark" || saved === "auto") return saved;
-  return "auto";
+  // "auto" est normalisé en "dark" : le thème par défaut de CHAY est le mode sombre.
+  if (saved === "light") return "light";
+  return "dark";
 }
 
 function systemPrefersDark() {

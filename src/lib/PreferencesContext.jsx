@@ -14,7 +14,7 @@ import { toast } from "@/components/ui/use-toast";
 const LS_KEY = "chay-prefs";
 
 export const DEFAULT_PREFS = {
-  theme: "auto",
+  theme: "dark",
   text_size: "md",
   contrast: "normal",
   reduce_animations: false,
