@@ -5,9 +5,9 @@ const KEY = "chay-theme";
 function getInitial() {
   if (typeof window === "undefined") return "dark";
   const saved = localStorage.getItem(KEY);
-  // Seul "light" est explicitement conserve : toute autre valeur (y compris
-  // "auto" ou une valeur expiree/corrompue) est traitee comme "dark".
   // Le theme par defaut de CHAY est le mode sombre.
+  // Seul "light" est explicitement conserve : toute autre valeur (y compris
+  // l'absence de valeur, "auto", ou une valeur legacy) est traitee comme "dark".
   if (saved === "light") return "light";
   return "dark";
 }
@@ -32,8 +32,8 @@ export function useTheme() {
     const root = document.documentElement;
     const isDark = resolveDark(theme);
     root.classList.toggle("dark", isDark);
-    // Ecrit toujours dans localStorage pour synchroniser avec le script
-    // inline de index.html (qui evite le flash au prochain chargement).
+    // Ecrit dans localStorage pour synchroniser avec le script inline
+    // de index.html (qui evite le flash au prochain chargement).
     localStorage.setItem(KEY, theme);
 
     if (theme === "auto") {

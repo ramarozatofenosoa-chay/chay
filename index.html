@@ -22,13 +22,15 @@
     <script>
       // Applique le mode sombre (thème par défaut de CHAY) avant le premier
       // rendu React, pour éviter tout flash de fond clair au chargement.
-      // Seul "light" est explicitement conservé : toute autre valeur (y compris
-      // "auto", une valeur expirée ou corrompue, ou l'absence de valeur) est
-      // traité comme "dark".
+      //
+      // Stratégie : le mode sombre est LE thème par défaut de CHAY.
+      // On applique toujours le mode sombre au chargement. Si l'utilisateur
+      // veut le mode clair, il le change explicitement dans les paramètres.
       try {
-        if (localStorage.getItem("chay-theme") !== "light") {
-          document.documentElement.classList.add("dark");
-        }
+        // Force le mode sombre systématiquement (c'est le default de CHAY)
+        document.documentElement.classList.add("dark");
+        // Normalise la valeur dans localStorage pour le prochain chargement
+        localStorage.setItem("chay-theme", "dark");
       } catch (e) {}
     </script>
   </head>
