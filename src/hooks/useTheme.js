@@ -1,16 +1,13 @@
 import { useState, useEffect } from "react";
+import {
+  THEME_STORAGE_KEY,
+  readStoredTheme,
+  persistTheme,
+  shouldApplyDark,
+  normalizeTheme,
+} from "@/lib/theme";
 
-const KEY = "chay-theme";
-
-function getInitial() {
-  if (typeof window === "undefined") return "dark";
-  const saved = localStorage.getItem(KEY);
-  // Le theme par defaut de CHAY est le mode sombre.
-  // Seul "light" est explicitement conserve : toute autre valeur (y compris
-  // l'absence de valeur, "auto", ou une valeur legacy) est traitee comme "dark".
-  if (saved === "light") return "light";
-  return "dark";
-}
+export { THEME_STORAGE_KEY };
 
 function systemPrefersDark() {
   return (
@@ -19,10 +16,11 @@ function systemPrefersDark() {
   );
 }
 
-function resolveDark(t) {
-  if (t === "dark") return true;
-  if (t === "light") return false;
-  return systemPrefersDark();
+// Etat initial : la préférence enregistrée est PRIORITAIRE ; sans préférence
+// (ou valeur invalide) on retombe sur le mode sombre par défaut.
+function getInitial() {
+  if (typeof window === "undefined") return "dark";
+  return readStoredTheme(window.localStorage);
 }
 
 export function useTheme() {
@@ -30,24 +28,25 @@ export function useTheme() {
 
   useEffect(() => {
     const root = document.documentElement;
-    const isDark = resolveDark(theme);
-    root.classList.toggle("dark", isDark);
-    // Ecrit dans localStorage pour synchroniser avec le script inline
-    // de index.html (qui evite le flash au prochain chargement).
-    localStorage.setItem(KEY, theme);
+    root.classList.toggle("dark", shouldApplyDark(theme, systemPrefersDark()));
+    // Persiste uniquement quand l'utilisateur a un état React valide.
+    // (La lecture initiale ne touche jamais au stockage : une préférence
+    // existante n'est donc jamais écrasée au démarrage.)
+    persistTheme(window.localStorage, theme);
 
     if (theme === "auto") {
       const mq = window.matchMedia("(prefers-color-scheme: dark)");
-      const handler = () => root.classList.toggle("dark", mq.matches);
+      const handler = () =>
+        root.classList.toggle("dark", shouldApplyDark("auto", mq.matches));
       mq.addEventListener("change", handler);
       return () => mq.removeEventListener("change", handler);
     }
   }, [theme]);
 
-  const setTheme = (t) => setThemeState(t);
-  const toggle = () => setThemeState((t) => (t === "dark" ? "light" : "dark"));
-  const resolved =
-    theme === "auto" ? (systemPrefersDark() ? "dark" : "light") : theme;
+  const setTheme = (t) => setThemeState(normalizeTheme(t));
+  const toggle = () =>
+    setThemeState((t) => (shouldApplyDark(t, systemPrefersDark()) ? "light" : "dark"));
+  const resolved = shouldApplyDark(theme, systemPrefersDark()) ? "dark" : "light";
 
   return { theme, setTheme, toggle, resolved };
 }

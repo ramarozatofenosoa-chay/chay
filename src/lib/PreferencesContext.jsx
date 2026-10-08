@@ -10,10 +10,13 @@ import { useAuth } from "@/lib/AuthContext";
 import { base44 } from "@/api/base44Client";
 import { useTheme } from "@/hooks/useTheme";
 import { toast } from "@/components/ui/use-toast";
+import { readStoredTheme, persistTheme } from "@/lib/theme";
 
 const LS_KEY = "chay-prefs";
 
 export const DEFAULT_PREFS = {
+  // Thème par défaut de CHAY : mode sombre. Une préférence enregistrée
+  // (localStorage "chay-theme" ou compte utilisateur) est toujours prioritaire.
   theme: "dark",
   text_size: "md",
   contrast: "normal",
@@ -71,10 +74,12 @@ export function PreferencesProvider({ children }) {
   const { setTheme } = useTheme();
   const [prefs, setPrefs] = useState(() => {
     const ls = loadLocal();
-    const t =
-      (typeof window !== "undefined" && localStorage.getItem("chay-theme")) ||
-      DEFAULT_PREFS.theme;
-    return { ...DEFAULT_PREFS, theme: t, ...ls };
+    // La préférence "chay-theme" (localStorage) est prioritaire sur le défaut.
+    // readStoredTheme() renvoie "dark" si aucune préférence n'est enregistrée.
+    const storedTheme = readStoredTheme(
+      typeof window !== "undefined" ? window.localStorage : null
+    );
+    return { ...DEFAULT_PREFS, ...ls, theme: storedTheme };
   });
   const [saving, setSaving] = useState(false);
   const prefsRef = useRef(prefs);
@@ -95,7 +100,9 @@ export function PreferencesProvider({ children }) {
       setPrefs(merged);
       try {
         localStorage.setItem(LS_KEY, JSON.stringify(merged));
-        if (s.theme) localStorage.setItem("chay-theme", s.theme);
+        // Le thème du compte est une préférence utilisateur explicite :
+        // il devient la valeur de référence pour "chay-theme" (normalisée).
+        persistTheme(localStorage, merged.theme);
       } catch {
         /* ignore */
       }
@@ -157,11 +164,8 @@ export function PreferencesProvider({ children }) {
         /* ignore */
       }
       if (key === "theme") {
-        try {
-          localStorage.setItem("chay-theme", value);
-        } catch {
-          /* ignore */
-        }
+        // Persistance immédiate pour le script anti-flash de index.html
+        persistTheme(localStorage, value);
       }
       persistToAccount(next, previous);
     },

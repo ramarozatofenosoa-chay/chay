@@ -20,18 +20,26 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <title>ÉGLISE CHAY</title>
     <script>
-      // Applique le mode sombre (thème par défaut de CHAY) avant le premier
-      // rendu React, pour éviter tout flash de fond clair au chargement.
+      // Anti-flash : applique le thème AVANT le premier rendu React.
       //
-      // Stratégie : le mode sombre est LE thème par défaut de CHAY.
-      // On applique toujours le mode sombre au chargement. Si l'utilisateur
-      // veut le mode clair, il le change explicitement dans les paramètres.
-      try {
-        // Force le mode sombre systématiquement (c'est le default de CHAY)
-        document.documentElement.classList.add("dark");
-        // Normalise la valeur dans localStorage pour le prochain chargement
-        localStorage.setItem("chay-theme", "dark");
-      } catch (e) {}
+      // Règle : la préférence enregistrée ("chay-theme") est prioritaire ;
+      // sans préférence (nouvelle installation), le mode SOMBRE est le défaut.
+      // Ce script est en LECTURE SEULE — il n'écrase jamais la préférence.
+      (function () {
+        var KEY = "chay-theme"; // doit rester synchronisé avec src/lib/theme.js
+        var theme = null;
+        try {
+          theme = localStorage.getItem(KEY);
+        } catch (e) {}
+        if (theme !== "light" && theme !== "dark" && theme !== "auto") {
+          theme = "dark"; // aucune préférence / valeur invalide => défaut sombre
+        }
+        var dark =
+          theme === "dark" ||
+          (theme === "auto" &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.classList.toggle("dark", dark);
+      })();
     </script>
   </head>
   <body class="bg-black">
