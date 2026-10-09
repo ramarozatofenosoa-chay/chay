@@ -102,29 +102,95 @@ export async function loadConcordance(lang) {
 }
 
 // --- Normalisation -----------------------------------------------------------
+// Les index générés (`scripts/build-bible-index.mjs`) conservent les accents
+// dans leurs clés (« créa », « aimé ») : `keyOf` = minuscule, accents
+// préservés. La recherche doit donc être cohérente des deux côtés : une
+// saisie sans accent atteint la clé accentuée de l'index, et réciproquement.
+//
+// Classe d'équivalence (français uniquement — en malgasy, les accents sont
+// distinctifs et aucune tolérance n'est appliquée) : chaque forme — saisie ou
+// clé d'index — est réduite à un squelette où toute voyelle latine, accentuée
+// ou non (quel que soit le type d'accent : aigu, grave, circonflexe, tréma),
+// est remplacée par un joker commun « * », tandis que les consonnes restent
+// en place. Deux mots se correspondent dès qu'ils partagent une forme
+// commune :
+//   « crea » ↔ « créa »  → tous deux « cr** » ;
+//   « grâce » ↔ « grace » → « gr*c* » ;
+//   « aima » ↔ « aimé »  → « *-* » … attention : seuls les mots de même
+//   longueur et mêmes consonnes se rejoignent — « ami » (« **m* »… soit
+//   « *m* ») ne correspond jamais à « aimé » (* m * vs * * m * : longueurs
+//   différentes). Les consonnes ne changent pas, donc pas de faux positifs
+//   entre mots distincts.
+// Le texte biblique affiché et les références restent intacts : cette
+// normalisation ne sert qu'à la comparaison.
 
-const ACCENT_FOLD = (s) =>
+// Insensible à la casse + normalisation Unicode (NFC).
+const basicNormalize = (s) => String(s || "").normalize("NFC").toLowerCase();
+
+// Clé canonique directe d'un mot : celle utilisée par `keyOf` dans le
+// générateur d'index — minuscule, accents conservés.
+const canonicalKey = (word) => basicNormalize(word).trim();
+
+// Suppression contrôlée des signes diacritiques : décomposition NFD, retrait
+// des marques combinantes U+0300–U+036F, recomposition NFC. Utilisée
+// uniquement pour la comparaison, jamais pour le texte affiché.
+const stripDiacritics = (s) =>
   s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").normalize("NFC");
 
-// Clé d'index attendue : minuscules, accents conservés (comme à la
-// génération). En français, « a » correspond aussi à « â »… ; en malgasy,
-// les accents sont distinctifs et ne sont donc pas retirés.
+const VOWELS = new Set(["a", "e", "i", "o", "u", "y"]);
+
+// Squelette d'équivalence : voyelles (accentuées ou non) → « * », consonnes
+// conservées. Ex. : « Créa » → « cr** », « grâce » → « gr*c* ».
+const structuralSignature = (word) => {
+  const plain = stripDiacritics(basicNormalize(word));
+  let sig = "";
+  for (const ch of plain) sig += VOWELS.has(ch) ? "*" : ch;
+  return sig;
+};
+
+// Formes de comparaison d'une saisie (API publique du module) :
+// [clé canonique, squelette] en français ; [clé canonique] en malgasy.
 export function wordToIndexKeys(word, lang) {
-  const w = String(word || "").trim().toLowerCase();
+  const w = canonicalKey(word);
   if (!w) return [];
-  if (lang === "fr") {
-    const folded = ACCENT_FOLD(w);
-    return folded !== w ? [w, folded] : [w];
-  }
+  if (lang === "fr") return [w, structuralSignature(w)];
   return [w];
 }
 
-// Formes acceptées pour un mot du texte lors de la recherche multi-mots
-// (insensible à la casse ; tolérance aux accents uniquement en français).
-function acceptedForms(word, lang) {
-  const w = String(word || "").toLowerCase();
-  if (lang === "fr") return new Set([w, ACCENT_FOLD(w)]);
-  return new Set([w]);
+// Index inversé « forme de comparaison → clés réelles de l'index », construit
+// une seule fois par objet d'index chargé (WeakMap) : lookupWord/lookupPhrase
+// restent efficaces sans parcourir tout l'index à chaque saisie.
+const formMaps = new WeakMap();
+
+function getFormMap(indexData) {
+  let map = formMaps.get(indexData);
+  if (!map) {
+    map = new Map();
+    for (const key of Object.keys(indexData.index)) {
+      for (const form of wordToIndexKeys(key, indexData.lang)) {
+        let list = map.get(form);
+        if (!list) map.set(form, (list = []));
+        list.push(key);
+      }
+    }
+    formMaps.set(indexData, map);
+  }
+  return map;
+}
+
+// Résout une saisie en vraies clés d'index à consulter : union des listes
+// pointées par ses formes de comparaison (« crea » atteint ainsi la clé
+// accentuée « créa » réellement présente dans l'index).
+function resolveIndexKeys(indexData, word) {
+  const forms = wordToIndexKeys(word, indexData.lang);
+  if (!forms.length) return [];
+  const out = new Set([forms[0]]);
+  const map = getFormMap(indexData);
+  for (const f of forms) {
+    const list = map.get(f);
+    if (list) for (const k of list) out.add(k);
+  }
+  return [...out];
 }
 
 const WORD_RE = /[\p{L}]+(?:['’-][\p{L}]+)*/gu;
@@ -135,8 +201,7 @@ const WORD_RE = /[\p{L}]+(?:['’-][\p{L}]+)*/gu;
 export function lookupWord(indexData, word, { offset = 0, limit = 50 } = {}) {
   const raw = String(word || "").trim();
   if (!raw || !isValidIndex(indexData)) return { total: 0, entries: [] };
-  const lang = indexData.lang;
-  const keys = wordToIndexKeys(raw, lang);
+  const keys = resolveIndexKeys(indexData, raw);
   const postings = new Set();
   for (const k of keys) {
     const list = indexData.index[k];
@@ -168,7 +233,7 @@ export function lookupPhrase(indexData, phrase, { offset = 0, limit = 50 } = {})
   // Intersection des listes d'affichage de chaque mot.
   const sets = words.map((w) => {
     const s = new Set();
-    for (const k of wordToIndexKeys(w, lang)) {
+    for (const k of resolveIndexKeys(indexData, w)) {
       const list = indexData.index[k];
       if (Array.isArray(list)) for (const i of list) s.add(i);
     }
@@ -182,12 +247,17 @@ export function lookupPhrase(indexData, phrase, { offset = 0, limit = 50 } = {})
   }
   // Vérification finale sur forme insensible à la casse/accents : on
   // re-tokenise les versets candidats (peu nombreux après intersection).
-  const accepted = words.map((w) => acceptedForms(w, lang));
+  // Vérification finale dans la même classe d'équivalence que la saisie.
+  const accepted = words.map((w) => new Set(wordToIndexKeys(w, lang)));
   const candidates = [...common].sort((a, b) => a - b);
   const matches = [];
   for (const i of candidates) {
     const toks = indexData.verses[i][3].match(WORD_RE) || [];
-    const forms = new Set(toks.map((t) => t.toLowerCase()));
+    const forms = new Set();
+    for (const t of toks) {
+      forms.add(canonicalKey(t));
+      if (lang === "fr") forms.add(structuralSignature(t));
+    }
     if (accepted.every((set) => [...set].some((f) => forms.has(f)))) matches.push(i);
   }
   const safeOffset = Math.max(Number(offset) || 0, 0);

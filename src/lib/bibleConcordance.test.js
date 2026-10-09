@@ -55,9 +55,25 @@ test("lookupWord est insensible à la casse", () => {
 });
 
 test("lookupWord tolère l'absence d'accents en français", () => {
-  // « crea » doit trouver « créa » (clé accentuée) via l'accent folding.
+  // Les index générés conservent les accents dans leurs clés (« créa »).
+  // Une saisie sans accent (« crea ») doit donc être repliée vers la clé
+  // accentuée, et une saisie accentuée doit fonctionner directement — avec
+  // le même résultat des deux côtés.
   assert.equal(lookupWord(INDEX, "crea").total, 1);
   assert.equal(lookupWord(INDEX, "créa").total, 1);
+  assert.equal(lookupWord(INDEX, "aimé").total, 1);
+  assert.equal(lookupWord(INDEX, "aime").total, 1);
+  assert.deepEqual(lookupWord(INDEX, "crea").entries, lookupWord(INDEX, "créa").entries);
+  // Pas de faux positifs : un mot distinct ne doit pas correspondre.
+  assert.equal(lookupWord(INDEX, "cea").total, 0);
+  assert.equal(lookupWord(INDEX, "amie").total, 0);
+});
+
+test("lookupPhrase tolère les accents dans les deux sens", () => {
+  assert.equal(lookupPhrase(INDEX, "Dieu aima").total, 1); // « aimé » accentué
+  assert.equal(lookupPhrase(INDEX, "dieu a").total, 1);
+  assert.equal(lookupPhrase(INDEX, "crea dieu").total, 1); // « créa » + « Dieu »
+  assert.equal(lookupPhrase(INDEX, "cea dieu").total, 0);
 });
 
 test("lookupWord ne correspond pas à l'intérieur d'un autre mot", () => {
